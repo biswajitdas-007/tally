@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useStore } from "@/store/useStore";
+import { useStore, useMyId } from "@/store/useStore";
 import { memberNet } from "@/lib/balances";
-import { ME_ID } from "@/lib/seed";
 import { AvatarStack } from "@/components/ui/avatar";
 import { formatINR, cn } from "@/lib/utils";
 import type { Group } from "@/lib/types";
@@ -11,12 +10,13 @@ import type { Group } from "@/lib/types";
 export function GroupCard({ group }: { group: Group }) {
   const people = useStore((s) => s.people);
   const expenses = useStore((s) => s.expenses);
+  const myId = useMyId();
 
   const members = group.memberIds.map((id) => people.find((p) => p.id === id)).filter(Boolean) as NonNullable<
     ReturnType<typeof people.find>
   >[];
   const groupExpenses = expenses.filter((e) => e.groupId === group.id);
-  const net = memberNet(groupExpenses).get(ME_ID) ?? 0;
+  const net = memberNet(groupExpenses).get(myId ?? "") ?? 0;
   const settled = Math.abs(net) < 0.5;
 
   return (

@@ -20,6 +20,8 @@ export interface Person {
   avatarColor?: string;
   photoURL?: string;
   isYou?: boolean;
+  /** Invited but hasn't signed in yet — no Firebase uid. */
+  pending?: boolean;
 }
 
 export interface Split {

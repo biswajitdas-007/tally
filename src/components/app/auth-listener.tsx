@@ -5,12 +5,9 @@ import { onAuthStateChanged } from "firebase/auth";
 import { firebaseAuth, isFirebaseConfigured } from "@/lib/firebase";
 import { useStore } from "@/store/useStore";
 
-/**
- * Makes Firebase the source of truth for auth when configured: restores a
- * returning user's session on load and forces the login screen when signed out.
- */
+/** Firebase is the source of truth for auth: sets the current uid or signs out. */
 export function AuthListener() {
-  const signInReal = useStore((s) => s.signInReal);
+  const setUser = useStore((s) => s.setUser);
   const signOut = useStore((s) => s.signOut);
   const setAuthReady = useStore((s) => s.setAuthReady);
 
@@ -24,25 +21,17 @@ export function AuthListener() {
       setAuthReady();
       return;
     }
-    // Safety net so the UI never hangs on the splash if auth is slow/offline.
     const fallback = setTimeout(setAuthReady, 3500);
     const unsub = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        signInReal({
-          name: user.displayName || user.email?.split("@")[0] || "You",
-          email: user.email ?? undefined,
-          photoURL: user.photoURL ?? undefined,
-        });
-      } else {
-        signOut();
-      }
+      if (user) setUser(user.uid);
+      else signOut();
       setAuthReady();
     });
     return () => {
       clearTimeout(fallback);
       unsub();
     };
-  }, [signInReal, signOut, setAuthReady]);
+  }, [setUser, signOut, setAuthReady]);
 
   return null;
 }

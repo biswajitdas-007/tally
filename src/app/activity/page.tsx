@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Search, Receipt, Clock, MailCheck } from "lucide-react";
+import { Search, Receipt, Clock } from "lucide-react";
 import { PageHeader } from "@/components/app/page-header";
 import { Card } from "@/components/ui/card";
 import { Segmented } from "@/components/ui/segmented";
@@ -16,11 +16,8 @@ function monthTitle(iso: string) {
 
 export default function ActivityPage() {
   const expenses = useStore((s) => s.expenses);
-  const invites = useStore((s) => s.invites);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"all" | "expenses" | "settled">("all");
-
-  const pending = invites.filter((i) => i.status === "pending");
 
   const filtered = useMemo(() => {
     return [...expenses]
@@ -46,18 +43,6 @@ export default function ActivityPage() {
   return (
     <div className="flex flex-col gap-4">
       <PageHeader title="Activity" subtitle={`${expenses.length} entries`} />
-
-      {pending.length > 0 && (
-        <Card className="flex items-center gap-3 border-brand/30 bg-brand-soft/40 p-3.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand text-on-brand">
-            <MailCheck className="h-4.5 w-4.5" />
-          </div>
-          <p className="flex-1 text-[0.85rem] text-brand-on-soft">
-            {pending.length} invite{pending.length > 1 ? "s" : ""} pending —{" "}
-            {pending.map((i) => i.email).join(", ")}
-          </p>
-        </Card>
-      )}
 
       <div className="relative">
         <Search className="pointer-events-none absolute left-3.5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-text-3" />

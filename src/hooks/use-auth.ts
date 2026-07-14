@@ -6,20 +6,14 @@ import { firebaseAuth, googleProvider, isFirebaseConfigured } from "@/lib/fireba
 import { useStore } from "@/store/useStore";
 
 export function useAuth() {
-  const signInReal = useStore((s) => s.signInReal);
   const storeSignOut = useStore((s) => s.signOut);
 
   const loginWithGoogle = useCallback(async () => {
     const auth = firebaseAuth();
     if (!auth) throw new Error("firebase-not-configured");
-    const res = await signInWithPopup(auth, googleProvider());
-    const u = res.user;
-    signInReal({
-      name: u.displayName || u.email?.split("@")[0] || "You",
-      email: u.email ?? undefined,
-      photoURL: u.photoURL ?? undefined,
-    });
-  }, [signInReal]);
+    await signInWithPopup(auth, googleProvider());
+    // AuthListener picks up the session and loads the user's data.
+  }, []);
 
   const logout = useCallback(async () => {
     const auth = firebaseAuth();
