@@ -66,6 +66,9 @@ export function AddExpenseSheet() {
   const [recurring, setRecurring] = useState(false);
 
   const friends = people.filter((p) => p.id !== ME_ID);
+  const inGroup = Boolean(groupCtx);
+  const ctxGroup = groups.find((g) => g.id === groupCtx);
+  const sortedGroups = [...groups].sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
 
   // Members available to split among, based on chosen group.
   const pool: ID[] = useMemo(() => {
@@ -184,7 +187,6 @@ export function AddExpenseSheet() {
           <div className="mt-1 flex items-center gap-1">
             <span className="font-display text-3xl font-semibold text-text-2">₹</span>
             <input
-              autoFocus={!editing}
               value={amount}
               onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
               inputMode="decimal"
@@ -230,33 +232,40 @@ export function AddExpenseSheet() {
           </div>
         </div>
 
-        {/* Split with (group) */}
+        {/* Split within */}
         <div>
           <p className="mb-2 px-0.5 text-[0.8rem] font-semibold text-text-2">Split within</p>
-          <div className="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5">
-            <button
-              onClick={() => switchGroup(null)}
-              className={cn(
-                "flex shrink-0 items-center gap-2 rounded-full border px-3.5 py-2 text-[0.82rem] font-medium transition-all",
-                groupId === null ? "border-transparent bg-brand text-on-brand" : "border-border text-text-2",
-              )}
-            >
-              👥 Friends
-            </button>
-            {groups.map((g) => (
+          {inGroup && ctxGroup ? (
+            <div className="inline-flex items-center gap-2 rounded-full bg-brand-soft px-3.5 py-2 text-[0.85rem] font-semibold text-brand-on-soft">
+              <span>{ctxGroup.icon}</span>
+              {ctxGroup.name}
+            </div>
+          ) : (
+            <div className="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5">
               <button
-                key={g.id}
-                onClick={() => switchGroup(g.id)}
+                onClick={() => switchGroup(null)}
                 className={cn(
                   "flex shrink-0 items-center gap-2 rounded-full border px-3.5 py-2 text-[0.82rem] font-medium transition-all",
-                  groupId === g.id ? "border-transparent bg-brand text-on-brand" : "border-border text-text-2",
+                  groupId === null ? "border-transparent bg-brand text-on-brand" : "border-border text-text-2",
                 )}
               >
-                <span>{g.icon}</span>
-                {g.name}
+                👥 Friends
               </button>
-            ))}
-          </div>
+              {sortedGroups.map((g) => (
+                <button
+                  key={g.id}
+                  onClick={() => switchGroup(g.id)}
+                  className={cn(
+                    "flex shrink-0 items-center gap-2 rounded-full border px-3.5 py-2 text-[0.82rem] font-medium transition-all",
+                    groupId === g.id ? "border-transparent bg-brand text-on-brand" : "border-border text-text-2",
+                  )}
+                >
+                  <span>{g.icon}</span>
+                  {g.name}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Paid by */}

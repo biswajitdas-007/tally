@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import { cn, initials } from "@/lib/utils";
 import type { Person } from "@/lib/types";
 
@@ -24,9 +27,11 @@ export function Avatar({
   className?: string;
   ring?: boolean;
 }) {
+  const [broken, setBroken] = useState(false);
   const label = person?.name ?? name ?? "?";
   const bg = person?.avatarColor ?? color ?? "#1c6b52";
   const photo = person?.photoURL;
+  const showPhoto = Boolean(photo) && !broken;
 
   return (
     <div
@@ -36,14 +41,20 @@ export function Avatar({
         sizeMap[size],
         className,
       )}
-      style={{ background: photo ? undefined : `linear-gradient(140deg, ${bg}, ${bg}cc)` }}
+      style={{ background: `linear-gradient(140deg, ${bg}, ${bg}cc)` }}
       aria-hidden
     >
-      {photo ? (
+      <span className="tracking-wide">{initials(label)}</span>
+      {showPhoto && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={photo} alt="" className="h-full w-full object-cover" />
-      ) : (
-        <span className="tracking-wide">{initials(label)}</span>
+        <img
+          src={photo}
+          alt=""
+          referrerPolicy="no-referrer"
+          loading="lazy"
+          onError={() => setBroken(true)}
+          className="absolute inset-0 block h-full w-full object-cover"
+        />
       )}
     </div>
   );
