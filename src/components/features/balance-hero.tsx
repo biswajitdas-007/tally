@@ -2,15 +2,15 @@
 
 import { motion } from "framer-motion";
 import { ArrowDownLeft, ArrowUpRight, Check } from "lucide-react";
-import { useStore } from "@/store/useStore";
+import { useStore, useMyId } from "@/store/useStore";
 import { overallSummary } from "@/lib/balances";
-import { ME_ID } from "@/lib/seed";
 import { AnimatedAmount } from "@/components/ui/animated-number";
 import { formatINR } from "@/lib/utils";
 
 export function BalanceHero() {
   const expenses = useStore((s) => s.expenses);
-  const { net, owedToYou, youOwe } = overallSummary(expenses, ME_ID);
+  const myId = useMyId();
+  const { net, owedToYou, youOwe } = overallSummary(expenses, myId ?? "");
   const settled = Math.abs(net) < 0.5;
   const positive = net >= 0;
 
