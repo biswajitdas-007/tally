@@ -12,8 +12,8 @@ export function TopBar() {
   const pendingInvites = useStore((s) => s.invites.filter((i) => i.status === "pending").length);
 
   return (
-    <header className="glass sticky top-0 z-30 border-b border-border md:hidden">
-      <div className="flex h-14 items-center justify-between px-4 pt-[env(safe-area-inset-top)]">
+    <header className="glass sticky top-0 z-30 border-b border-border pt-[env(safe-area-inset-top)] md:hidden">
+      <div className="flex h-14 items-center justify-between px-4">
         <Link href="/" className="flex items-center gap-2">
           <TallyMark size={28} />
           <span className="font-display text-lg font-bold tracking-[-0.03em]">Tally</span>
