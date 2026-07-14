@@ -290,6 +290,15 @@ body {
   outline: none;
 }
 
+/* Text fields manage their own focus styling (soft ring) — no harsh outline. */
+input:focus,
+input:focus-visible,
+textarea:focus,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
+}
+
 .tnum {
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
