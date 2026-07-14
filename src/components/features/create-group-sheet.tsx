@@ -6,10 +6,9 @@ import { Sheet } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar } from "@/components/ui/avatar";
-import { useStore } from "@/store/useStore";
+import { useStore, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { useToast } from "@/components/ui/toast";
-import { ME_ID } from "@/lib/seed";
 import { cn } from "@/lib/utils";
 import type { ID } from "@/lib/types";
 
@@ -46,7 +45,8 @@ export function CreateGroupSheet() {
     }
   }, [open]);
 
-  const friends = people.filter((p) => p.id !== ME_ID);
+  const myId = useMyId() ?? "";
+  const friends = people.filter((p) => p.id !== myId);
   const valid = name.trim().length > 0;
 
   function toggle(id: ID) {

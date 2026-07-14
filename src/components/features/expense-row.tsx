@@ -3,10 +3,9 @@
 import { ArrowLeftRight } from "lucide-react";
 import { CategoryIcon } from "@/components/ui/chip";
 import { SwipeRow } from "./swipe-row";
-import { useStore } from "@/store/useStore";
+import { useStore, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { useToast } from "@/components/ui/toast";
-import { ME_ID } from "@/lib/seed";
 import { myShare } from "@/lib/balances";
 import { formatDate, formatINR, cn } from "@/lib/utils";
 import type { Expense } from "@/lib/types";
@@ -17,18 +16,16 @@ export function ExpenseRow({ expense, showGroup = false }: { expense: Expense; s
   const deleteExpense = useStore((s) => s.deleteExpense);
   const undoDelete = useStore((s) => s.undoDelete);
   const openEdit = useUI((s) => s.openEdit);
+  const myId = useMyId();
   const { toast } = useToast();
 
-  const nameOf = (id: string) => (id === ME_ID ? "You" : people.find((p) => p.id === id)?.name.split(" ")[0] ?? "Someone");
+  const nameOf = (id: string) =>
+    id === myId ? "You" : people.find((p) => p.id === id)?.name.split(" ")[0] ?? "Someone";
   const group = groups.find((g) => g.id === expense.groupId);
 
   function handleDelete() {
     deleteExpense(expense.id);
-    toast({
-      message: "Expense deleted",
-      tone: "info",
-      action: { label: "Undo", onClick: undoDelete },
-    });
+    toast({ message: "Expense deleted", tone: "info", action: { label: "Undo", onClick: undoDelete } });
   }
 
   if (expense.isSettlement) {
@@ -52,8 +49,8 @@ export function ExpenseRow({ expense, showGroup = false }: { expense: Expense; s
     );
   }
 
-  const share = myShare(expense, ME_ID);
-  const iPaid = expense.paidBy === ME_ID;
+  const share = myShare(expense, myId ?? "");
+  const iPaid = expense.paidBy === myId;
   const impact = iPaid ? expense.amount - share : -share;
   const label = iPaid ? "you lent" : "you borrowed";
 

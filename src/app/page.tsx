@@ -8,11 +8,10 @@ import { ExpenseRow } from "@/components/features/expense-row";
 import { PersonBalanceRow } from "@/components/features/person-balance-row";
 import { Card, SectionHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { useStore, useMe } from "@/store/useStore";
+import { useStore, useMe, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { useToast } from "@/components/ui/toast";
 import { overallSummary } from "@/lib/balances";
-import { ME_ID } from "@/lib/seed";
 
 function greeting() {
   const h = new Date().getHours();
@@ -50,6 +49,7 @@ function QuickAction({
 
 export default function HomePage() {
   const me = useMe();
+  const myId = useMyId();
   const expenses = useStore((s) => s.expenses);
   const groups = useStore((s) => s.groups);
   const openAdd = useUI((s) => s.openAdd);
@@ -58,7 +58,7 @@ export default function HomePage() {
   const openSettle = useUI((s) => s.openSettle);
   const { toast } = useToast();
 
-  const summary = overallSummary(expenses, ME_ID);
+  const summary = overallSummary(expenses, myId ?? "");
   const recent = [...expenses].sort((a, b) => +new Date(b.date) - +new Date(a.date)).slice(0, 6);
   const topGroups = groups.slice(0, 3);
 

@@ -1,14 +1,15 @@
 import { firebaseAuth } from "@/lib/firebase";
-import type { Expense, Group, Invite, Person } from "@/lib/types";
+import { socketId } from "@/lib/pusher-client";
+import type { Expense, Group, Person } from "@/lib/types";
 
 export interface ServerState {
+  me: Person | null;
   people: Person[];
   groups: Group[];
   expenses: Expense[];
-  invites: Invite[];
 }
 
-async function idToken(): Promise<string | null> {
+async function token(): Promise<string | null> {
   const user = firebaseAuth()?.currentUser;
   if (!user) return null;
   try {
@@ -18,20 +19,45 @@ async function idToken(): Promise<string | null> {
   }
 }
 
-export async function fetchState(): Promise<ServerState | null> {
-  const token = await idToken();
-  if (!token) return null;
+async function req(method: string, path: string, body?: Record<string, unknown>): Promise<Response | null> {
+  const t = await token();
+  if (!t) return null;
   try {
-    const res = await fetch("/api/state", {
-      headers: { authorization: `Bearer ${token}` },
+    return await fetch(path, {
+      method,
       cache: "no-store",
+      headers: { authorization: `Bearer ${t}`, ...(body ? { "content-type": "application/json" } : {}) },
+      body: body ? JSON.stringify({ ...body, socketId: socketId() }) : undefined,
     });
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchState(): Promise<ServerState | null> {
+  const t = await token();
+  if (!t) return null;
+  try {
+    const res = await fetch("/api/state", { headers: { authorization: `Bearer ${t}` }, cache: "no-store" });
     if (!res.ok) return null;
     return (await res.json()) as ServerState;
   } catch {
     return null;
   }
 }
+
+export const addExpenseApi = (e: Record<string, unknown>) => req("POST", "/api/expenses", e);
+export const updateExpenseApi = (id: string, patch: Record<string, unknown>) => req("PATCH", `/api/expenses/${id}`, patch);
+export const deleteExpenseApi = (id: string) => req("DELETE", `/api/expenses/${id}`);
+export const settleApi = (s: Record<string, unknown>) => req("POST", "/api/settle", s);
+export const addGroupApi = (g: Record<string, unknown>) => req("POST", "/api/groups", g);
+export const updateGroupApi = (id: string, patch: Record<string, unknown>) => req("PATCH", `/api/groups/${id}`, patch);
+export const deleteGroupApi = (id: string) => req("DELETE", `/api/groups/${id}`);
+export const updateProfileApi = (p: Record<string, unknown>) => req("POST", "/api/profile", p);
+export const subscribePushApi = (subscription: unknown) => req("POST", "/api/push/subscribe", { subscription });
+export const unsubscribePushApi = (endpoint: string) => req("POST", "/api/push/unsubscribe", { endpoint });
+
+/* ---------- invites ---------- */
 
 export interface InviteInfo {
   inviterName: string;
@@ -49,17 +75,8 @@ export async function sendInvite(input: {
   groupIcon?: string;
   inviterName?: string;
 }): Promise<{ ok: boolean; sent: boolean; link: string } | null> {
-  const token = await idToken();
-  try {
-    const res = await fetch("/api/invite", {
-      method: "POST",
-      headers: { ...(token ? { authorization: `Bearer ${token}` } : {}), "content-type": "application/json" },
-      body: JSON.stringify(input),
-    });
-    return res.ok ? await res.json() : null;
-  } catch {
-    return null;
-  }
+  const res = await req("POST", "/api/invite", input);
+  return res?.ok ? await res.json() : null;
 }
 
 export async function fetchInvite(id: string): Promise<InviteInfo | null> {
@@ -72,36 +89,7 @@ export async function fetchInvite(id: string): Promise<InviteInfo | null> {
   }
 }
 
-export async function acceptInvite(
-  id: string,
-  profile: { name?: string; email?: string; photoURL?: string },
-): Promise<{ ok: boolean; self?: boolean; group?: unknown; expenses?: unknown[]; people?: unknown[] } | null> {
-  const token = await idToken();
-  if (!token) return null;
-  try {
-    const res = await fetch(`/api/invite/${id}/accept`, {
-      method: "POST",
-      headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
-      body: JSON.stringify(profile),
-    });
-    if (!res.ok) return null;
-    return await res.json();
-  } catch {
-    return null;
-  }
-}
-
-export async function saveState(state: ServerState, opts?: { keepalive?: boolean }): Promise<void> {
-  const token = await idToken();
-  if (!token) return;
-  try {
-    await fetch("/api/state", {
-      method: "PUT",
-      headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
-      body: JSON.stringify(state),
-      keepalive: opts?.keepalive,
-    });
-  } catch {
-    /* best-effort; a later change will retry the save */
-  }
+export async function acceptInvite(id: string): Promise<{ ok: boolean; self?: boolean; groupId?: string | null } | null> {
+  const res = await req("POST", `/api/invite/${id}/accept`, {});
+  return res?.ok ? await res.json() : null;
 }
