@@ -2,65 +2,73 @@
 
 import { useEffect } from "react";
 import { useStore } from "@/store/useStore";
-import { fetchState, saveState } from "@/lib/api";
+import * as api from "@/lib/api";
+import { getPusherClient, isPusherConfigured } from "@/lib/pusher-client";
 
-/** Loads the signed-in user's data from MongoDB and persists changes back. */
+/** Loads the user's shared data (with retry) and keeps it live via Pusher. */
 export function SyncManager() {
   const currentUserId = useStore((s) => s.currentUserId);
-  const loadServerState = useStore((s) => s.loadServerState);
-  const setDataReady = useStore((s) => s.setDataReady);
+  const loadState = useStore((s) => s.loadState);
+  const setLoadError = useStore((s) => s.setLoadError);
 
-  // Load once we know who's signed in.
+  // Initial load — retry on failure, NEVER show an empty (savable) app.
   useEffect(() => {
     if (!currentUserId) return;
     let active = true;
-    (async () => {
-      const data = await fetchState();
+    let attempt = 0;
+    setLoadError(false);
+
+    const load = async () => {
+      const data = await api.fetchState();
       if (!active) return;
-      if (data) loadServerState(data);
-      else setDataReady(); // offline / no server — proceed with what we have
-    })();
+      if (data && data.me) {
+        loadState(data);
+      } else {
+        attempt += 1;
+        if (attempt <= 6) setTimeout(load, Math.min(1000 * 2 ** attempt, 8000));
+        else setLoadError(true);
+      }
+    };
+    load();
     return () => {
       active = false;
     };
-  }, [currentUserId, loadServerState, setDataReady]);
+  }, [currentUserId, loadState, setLoadError]);
 
-  // Debounced save on any data change, plus a flush when the tab is hidden.
+  // Realtime: subscribe to my private channel; refetch on any "sync" nudge + on refocus.
   useEffect(() => {
+    if (!currentUserId) return;
     let timer: ReturnType<typeof setTimeout>;
-
-    const snapshot = () => {
-      const s = useStore.getState();
-      return { people: s.people, groups: s.groups, expenses: s.expenses, invites: s.invites };
-    };
-
-    const unsub = useStore.subscribe((state, prev) => {
-      if (!state.dataReady || !state.currentUserId) return;
-      const unchanged =
-        state.people === prev.people &&
-        state.groups === prev.groups &&
-        state.expenses === prev.expenses &&
-        state.invites === prev.invites;
-      if (unchanged) return;
+    const debouncedRefetch = () => {
       clearTimeout(timer);
-      timer = setTimeout(() => saveState(snapshot()), 700);
-    });
-
-    const onHidden = () => {
-      const s = useStore.getState();
-      if (document.visibilityState === "hidden" && s.dataReady && s.currentUserId) {
-        clearTimeout(timer);
-        saveState(snapshot(), { keepalive: true });
-      }
+      timer = setTimeout(() => useStore.getState().refetch(), 250);
     };
-    document.addEventListener("visibilitychange", onHidden);
+
+    let cleanupPusher: (() => void) | undefined;
+    if (isPusherConfigured) {
+      const pusher = getPusherClient();
+      if (pusher) {
+        const channelName = `private-user-${currentUserId}`;
+        const channel = pusher.subscribe(channelName);
+        channel.bind("sync", debouncedRefetch);
+        cleanupPusher = () => {
+          channel.unbind("sync", debouncedRefetch);
+          pusher.unsubscribe(channelName);
+        };
+      }
+    }
+
+    const onVisible = () => {
+      if (document.visibilityState === "visible") debouncedRefetch();
+    };
+    document.addEventListener("visibilitychange", onVisible);
 
     return () => {
       clearTimeout(timer);
-      unsub();
-      document.removeEventListener("visibilitychange", onHidden);
+      cleanupPusher?.();
+      document.removeEventListener("visibilitychange", onVisible);
     };
-  }, []);
+  }, [currentUserId]);
 
   return null;
 }

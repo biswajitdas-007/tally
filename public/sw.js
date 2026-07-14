@@ -1,5 +1,5 @@
 /* Tally service worker — offline shell + runtime caching + push. */
-const VERSION = "tally-v1";
+const VERSION = "tally-v2";
 const STATIC_CACHE = `${VERSION}-static`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_URL = "/offline";
@@ -25,6 +25,9 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET" || new URL(request.url).origin !== self.location.origin) return;
+
+  // Never cache API calls — data must always be fresh from the server.
+  if (new URL(request.url).pathname.startsWith("/api/")) return;
 
   // Navigations: network-first, fall back to cache, then offline page.
   if (request.mode === "navigate") {

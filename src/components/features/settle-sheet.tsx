@@ -7,10 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar } from "@/components/ui/avatar";
 import { UpiQR } from "./upi-qr";
-import { useStore, useMe } from "@/store/useStore";
+import { useStore, useMe, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { useToast } from "@/components/ui/toast";
-import { ME_ID } from "@/lib/seed";
 import { buildAppUri, buildUpiUri, isAndroid, isValidVpa, UPI_APPS } from "@/lib/upi";
 import { formatINR } from "@/lib/utils";
 
@@ -18,9 +17,10 @@ export function SettleSheet() {
   const target = useUI((s) => s.settle);
   const close = useUI((s) => s.closeSettle);
   const settleUp = useStore((s) => s.settleUp);
-  const updatePerson = useStore((s) => s.updatePerson);
+  const updateProfile = useStore((s) => s.updateProfile);
   const people = useStore((s) => s.people);
   const me = useMe();
+  const myId = useMyId() ?? "";
   const { toast } = useToast();
 
   const [android, setAndroid] = useState(false);
@@ -48,8 +48,8 @@ export function SettleSheet() {
   if (!target || !person) return null;
 
   function confirmSettled() {
-    if (youOwe) settleUp({ from: ME_ID, to: person!.id, amount, groupId: target!.groupId ?? null });
-    else settleUp({ from: person!.id, to: ME_ID, amount, groupId: target!.groupId ?? null });
+    if (youOwe) settleUp({ from: myId, to: person!.id, amount, groupId: target!.groupId ?? null });
+    else settleUp({ from: person!.id, to: myId, amount, groupId: target!.groupId ?? null });
     toast({ message: youOwe ? `Settled up with ${person!.name.split(" ")[0]}` : "Payment recorded" });
     close();
   }
@@ -75,7 +75,7 @@ export function SettleSheet() {
         <div className="flex items-center justify-center gap-3">
           <div className="flex flex-col items-center gap-1">
             <Avatar person={payer} size="lg" />
-            <span className="text-[0.72rem] text-text-3">{payer?.id === ME_ID ? "You" : payer?.name.split(" ")[0]}</span>
+            <span className="text-[0.72rem] text-text-3">{payer?.id === myId ? "You" : payer?.name.split(" ")[0]}</span>
           </div>
           <div className="flex flex-col items-center">
             <span className="font-display text-2xl font-bold text-text tnum">{formatINR(amount)}</span>
@@ -84,7 +84,7 @@ export function SettleSheet() {
           </div>
           <div className="flex flex-col items-center gap-1">
             <Avatar person={payee} size="lg" />
-            <span className="text-[0.72rem] text-text-3">{payee?.id === ME_ID ? "You" : payee?.name.split(" ")[0]}</span>
+            <span className="text-[0.72rem] text-text-3">{payee?.id === myId ? "You" : payee?.name.split(" ")[0]}</span>
           </div>
         </div>
 
@@ -105,7 +105,7 @@ export function SettleSheet() {
               <Button
                 disabled={!isValidVpa(upiDraft)}
                 onClick={() => {
-                  updatePerson(ME_ID, { upiId: upiDraft.trim() });
+                  updateProfile({ upiId: upiDraft.trim() });
                   toast({ message: "UPI ID saved" });
                 }}
               >
