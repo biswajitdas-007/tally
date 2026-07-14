@@ -1,36 +1,99 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Tally — split expenses, settle up over UPI
 
-## Getting Started
+A production-grade PWA for splitting shared expenses with friends and settling up
+instantly over UPI. Track who owes whom across trips, flats and dinners; the app
+computes minimal settle-up transactions and generates real `upi://pay` QR codes
+and deep links.
 
-First, run the development server:
+> **A warm digital ledger** — pine-green identity, brass accents, tabular
+> numerals everywhere money appears. Designed mobile-first, works beautifully on
+> desktop, with independently designed light and dark themes.
+
+## Features
+
+- **Split-expense engine** — equal or exact splits, per-person balances,
+  greedy debt simplification for minimal settle-up.
+- **UPI settle-up** — receipt-style card with a live scannable QR + one-tap
+  deep links to GPay / PhonePe / Paytm / BHIM (Android). No gateway, no keys.
+- **Google sign-in** (via Firebase) + **email invites** so friends can join.
+- **Insights** — animated 6-month trend, category donut, spend-by-group, CSV export.
+- **PWA** — installable, offline support (service worker), app shortcuts,
+  maskable icons, web-push ready.
+- **Polish** — skeletons, micro-interactions, swipe-to-delete with undo,
+  optimistic UI, reduced-motion + keyboard + WCAG-AA support.
+
+## Stack
+
+Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS v4 ·
+shadcn/ui (Base UI) · Zustand · Framer Motion · Firebase Auth · MongoDB Atlas ·
+lucide-react.
+
+Data lives in **MongoDB Atlas**, scoped per user. API routes verify the
+caller's Firebase ID token (via Google's JWKS — no Admin SDK needed) before
+reading/writing, so a user can only touch their own data. The client loads state
+on sign-in and debounce-saves changes; nothing is stored in the browser.
+
+## Getting started
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev            # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Sign-in is via **Google (Firebase Auth)** and data is stored in **MongoDB Atlas**.
+Both are wired through `.env.local` (git-ignored), so `npm run dev` boots straight
+to the Google sign-in screen. New users start with a clean slate — no seeded data
+— and build their groups by inviting friends. Their data syncs to their account.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+> Deploying? Add your production domain to **Firebase → Authentication →
+> Settings → Authorized domains** so Google sign-in works there too.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Optional integrations
 
-## Learn More
+Copy `.env.local.example` → `.env.local` and fill in what you need:
 
-To learn more about Next.js, take a look at the following resources:
+- **Google login** — create a [Firebase](https://console.firebase.google.com)
+  project, add a Web App, enable the Google sign-in provider, and set the
+  `NEXT_PUBLIC_FIREBASE_*` vars. **Required for sign-in.**
+- **Email invites** — set `RESEND_API_KEY` + `INVITE_FROM_EMAIL`
+  ([Resend](https://resend.com)). Without them, invites are still recorded and a
+  shareable link is shown.
+- **Push notifications** — `npx web-push generate-vapid-keys`, then set the
+  `*_VAPID_*` vars.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Deploy to Vercel
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. Push the repo to GitHub and import it in Vercel (or run `vercel`).
+2. Add the env vars from `.env.local` in **Vercel → Settings → Environment
+   Variables** (`NEXT_PUBLIC_FIREBASE_*` and `MONGODB_URI` are required).
+3. In **MongoDB Atlas → Network Access**, allow `0.0.0.0/0` (Vercel functions use
+   dynamic IPs) or use the Atlas Vercel integration.
+4. In **Firebase → Authentication → Settings → Authorized domains**, add your
+   Vercel domain so Google sign-in works in production.
 
-## Deploy on Vercel
+## Scripts
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+npm run dev            # dev server (Turbopack)
+npm run build          # production build
+npm run start          # serve the production build
+node scripts/gen-icons.mjs   # regenerate PWA icons from the tally mark
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Project structure
+
+```
+src/
+  app/                 routes (home, groups, analytics, activity, account), manifest, api
+  components/
+    ui/                design-system primitives + shadcn components (bridged to our tokens)
+    charts/            bespoke SVG donut + bar chart
+    features/          add-expense, settle (UPI), invite, group, expense/balance rows
+    app/               shell: sidebar, bottom nav, top bar, login, install prompt
+  lib/                 types, balances engine, UPI helpers, categories, seed, firebase
+  store/               Zustand stores (data + ephemeral UI)
+```
+
+Design tokens live in `src/app/globals.css`; shadcn's semantic tokens
+(`--primary`, `--border`, …) are bridged to the Tally palette so every component
+inherits the look and dark mode automatically.

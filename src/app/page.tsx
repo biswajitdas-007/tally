@@ -1,65 +1,164 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import Link from "next/link";
+import { Plus, ArrowLeftRight, Users, UserPlus, ChevronRight, Receipt } from "lucide-react";
+import { BalanceHero } from "@/components/features/balance-hero";
+import { GroupCard } from "@/components/features/group-card";
+import { ExpenseRow } from "@/components/features/expense-row";
+import { PersonBalanceRow } from "@/components/features/person-balance-row";
+import { Card, SectionHeader } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { useStore, useMe } from "@/store/useStore";
+import { useUI } from "@/store/useUI";
+import { useToast } from "@/components/ui/toast";
+import { overallSummary } from "@/lib/balances";
+import { ME_ID } from "@/lib/seed";
+
+function greeting() {
+  const h = new Date().getHours();
+  if (h < 12) return "Good morning";
+  if (h < 17) return "Good afternoon";
+  return "Good evening";
+}
+
+function QuickAction({
+  icon: Icon,
+  label,
+  onClick,
+  tint,
+}: {
+  icon: typeof Plus;
+  label: string;
+  onClick: () => void;
+  tint: string;
+}) {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+    <button
+      onClick={onClick}
+      className="flex flex-1 flex-col items-center gap-1.5 rounded-[16px] border border-border bg-surface py-3 transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-sm)]"
+    >
+      <span
+        className="flex h-9 w-9 items-center justify-center rounded-full"
+        style={{ background: `color-mix(in srgb, ${tint} 15%, transparent)`, color: tint }}
+      >
+        <Icon className="h-[18px] w-[18px]" />
+      </span>
+      <span className="text-[0.72rem] font-semibold text-text-2">{label}</span>
+    </button>
+  );
+}
+
+export default function HomePage() {
+  const me = useMe();
+  const expenses = useStore((s) => s.expenses);
+  const groups = useStore((s) => s.groups);
+  const openAdd = useUI((s) => s.openAdd);
+  const openInvite = useUI((s) => s.openInvite);
+  const openCreateGroup = useUI((s) => s.openCreateGroup);
+  const openSettle = useUI((s) => s.openSettle);
+  const { toast } = useToast();
+
+  const summary = overallSummary(expenses, ME_ID);
+  const recent = [...expenses].sort((a, b) => +new Date(b.date) - +new Date(a.date)).slice(0, 6);
+  const topGroups = groups.slice(0, 3);
+
+  function quickSettle() {
+    const debt = summary.byPerson.find((b) => b.amount < 0);
+    if (debt) openSettle({ personId: debt.personId, amount: debt.amount });
+    else toast({ message: "You're all settled up 🎉", tone: "info" });
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div>
+        <p className="text-sm text-text-2">{greeting()},</p>
+        <h1 className="font-display text-2xl font-bold tracking-[-0.02em] text-text">
+          {me?.name?.split(" ")[0] ?? "there"}
+        </h1>
+      </div>
+
+      <BalanceHero />
+
+      <div className="flex gap-2.5">
+        <QuickAction icon={Plus} label="Add" tint="var(--brand)" onClick={() => openAdd()} />
+        <QuickAction icon={ArrowLeftRight} label="Settle" tint="var(--info)" onClick={quickSettle} />
+        <QuickAction icon={Users} label="Group" tint="var(--cat-fun)" onClick={openCreateGroup} />
+        <QuickAction icon={UserPlus} label="Invite" tint="var(--brass)" onClick={() => openInvite(null)} />
+      </div>
+
+      {/* Balances by person */}
+      <section>
+        <SectionHeader title="Who owes whom" />
+        {summary.byPerson.length > 0 ? (
+          <Card className="overflow-hidden">
+            <div className="divide-y divide-border">
+              {summary.byPerson.slice(0, 5).map((b) => (
+                <PersonBalanceRow key={b.personId} personId={b.personId} amount={b.amount} />
+              ))}
+            </div>
+          </Card>
+        ) : (
+          <Card>
+            <EmptyState
+              icon={ArrowLeftRight}
+              title="All settled up"
+              description="No outstanding balances. Add an expense to start splitting."
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+          </Card>
+        )}
+      </section>
+
+      {/* Groups */}
+      <section>
+        <SectionHeader
+          title="Your groups"
+          action={
+            <Link href="/groups" className="flex items-center gap-0.5 text-[0.78rem] font-semibold text-brand">
+              See all <ChevronRight className="h-3.5 w-3.5" />
+            </Link>
+          }
+        />
+        <div className="flex flex-col gap-2.5">
+          {topGroups.map((g) => (
+            <GroupCard key={g.id} group={g} />
+          ))}
+          <button
+            onClick={openCreateGroup}
+            className="flex items-center justify-center gap-2 rounded-[16px] border border-dashed border-border-strong py-3 text-[0.85rem] font-semibold text-text-2 transition-colors hover:bg-surface-inset"
           >
-            Documentation
-          </a>
+            <Plus className="h-4 w-4" /> New group
+          </button>
         </div>
-      </main>
+      </section>
+
+      {/* Recent activity */}
+      <section>
+        <SectionHeader
+          title="Recent activity"
+          action={
+            <Link href="/activity" className="flex items-center gap-0.5 text-[0.78rem] font-semibold text-brand">
+              See all <ChevronRight className="h-3.5 w-3.5" />
+            </Link>
+          }
+        />
+        {recent.length > 0 ? (
+          <Card className="overflow-hidden">
+            <div className="divide-y divide-border">
+              {recent.map((e) => (
+                <ExpenseRow key={e.id} expense={e} showGroup />
+              ))}
+            </div>
+          </Card>
+        ) : (
+          <Card>
+            <EmptyState
+              icon={Receipt}
+              title="No expenses yet"
+              description="Tap the + button to add your first shared expense."
+            />
+          </Card>
+        )}
+      </section>
     </div>
   );
 }

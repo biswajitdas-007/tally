@@ -1,0 +1,35 @@
+"use client";
+
+import { Sidebar } from "./sidebar";
+import { BottomNav } from "./bottom-nav";
+import { TopBar } from "./top-bar";
+import { AddExpenseSheet } from "@/components/features/add-expense-sheet";
+import { SettleSheet } from "@/components/features/settle-sheet";
+import { InviteDialog } from "@/components/features/invite-dialog";
+import { CreateGroupSheet } from "@/components/features/create-group-sheet";
+import { InstallPrompt } from "./install-prompt";
+
+export function AppShell({ children }: { children: React.ReactNode }) {
+  return (
+    <>
+      <div className="mx-auto flex w-full max-w-[1440px]">
+        <Sidebar />
+        <main className="relative min-w-0 flex-1">
+          <TopBar />
+          <div className="mx-auto w-full max-w-[640px] px-4 pb-28 pt-4 md:max-w-3xl md:px-10 md:pb-16 md:pt-9">
+            {children}
+          </div>
+        </main>
+      </div>
+
+      <BottomNav />
+
+      {/* Global surfaces */}
+      <AddExpenseSheet />
+      <SettleSheet />
+      <InviteDialog />
+      <CreateGroupSheet />
+      <InstallPrompt />
+    </>
+  );
+}
