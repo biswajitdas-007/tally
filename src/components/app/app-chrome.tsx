@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { useStore } from "@/store/useStore";
 import { isFirebaseConfigured } from "@/lib/firebase";
@@ -37,17 +38,23 @@ export function AppChrome({ children }: { children: React.ReactNode }) {
   // Gate on client mount so the first client render matches the server (Splash),
   // regardless of when the persisted store rehydrates.
   const [mounted, setMounted] = useState(false);
+  const pathname = usePathname();
   const authReady = useStore((s) => s.authReady);
   const dataReady = useStore((s) => s.dataReady);
   const currentUserId = useStore((s) => s.currentUserId);
 
   useEffect(() => setMounted(true), []);
 
+  if (!mounted) return <Splash />;
+
+  // The join flow renders its own sign-in UI, outside the app shell/gate.
+  if (pathname?.startsWith("/join")) return <>{children}</>;
+
   // Wait for Firebase to resolve the session before deciding what to show,
   // so a returning user never flashes the login screen.
   const waitingForAuth = isFirebaseConfigured && !authReady;
 
-  if (!mounted || waitingForAuth) return <Splash />;
+  if (waitingForAuth) return <Splash />;
   if (!currentUserId) return <LoginScreen />;
   if (!dataReady) return <Splash />; // loading data from the server
   return <AppShell>{children}</AppShell>;

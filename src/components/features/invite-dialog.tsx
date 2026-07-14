@@ -5,9 +5,10 @@ import { Mail, Copy, Share2, CircleCheckBig } from "lucide-react";
 import { Sheet } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input, Field } from "@/components/ui/input";
-import { useStore } from "@/store/useStore";
+import { useStore, useMe } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { useToast } from "@/components/ui/toast";
+import { sendInvite } from "@/lib/api";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -17,16 +18,19 @@ export function InviteDialog() {
   const groupId = useUI((s) => s.inviteGroupId);
   const groups = useStore((s) => s.groups);
   const invite = useStore((s) => s.invite);
+  const me = useMe();
   const { toast } = useToast();
 
   const [email, setEmail] = useState("");
   const [sending, setSending] = useState(false);
   const [sentLink, setSentLink] = useState<string | null>(null);
+  const [emailSent, setEmailSent] = useState(false);
 
   useEffect(() => {
     if (open) {
       setEmail("");
       setSentLink(null);
+      setEmailSent(false);
     }
   }, [open]);
 
@@ -37,20 +41,19 @@ export function InviteDialog() {
     if (!valid) return;
     setSending(true);
     const record = invite(email.trim(), groupId ?? null);
-    // Attempt to send a real email if a backend is configured; otherwise simulate.
-    try {
-      await fetch("/api/invite", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ email: email.trim(), groupId, inviteId: record.id }),
-      });
-    } catch {
-      /* offline / not configured — the invite is still recorded locally */
-    }
+    const result = await sendInvite({
+      email: email.trim(),
+      inviteId: record.id,
+      groupId: groupId ?? null,
+      groupName: group?.name,
+      groupIcon: group?.icon,
+      inviterName: me?.name,
+    });
     const origin = typeof window !== "undefined" ? window.location.origin : "";
-    setSentLink(`${origin}/join/${record.id}`);
+    setSentLink(result?.link ?? `${origin}/join/${record.id}`);
+    setEmailSent(Boolean(result?.sent));
     setSending(false);
-    toast({ message: `Invite sent to ${email.trim()}` });
+    toast({ message: result?.sent ? `Invite emailed to ${email.trim()}` : "Invite created — share the link" });
   }
 
   async function shareLink() {
@@ -76,9 +79,13 @@ export function InviteDialog() {
             <CircleCheckBig className="h-7 w-7" />
           </div>
           <div>
-            <p className="font-display text-lg font-semibold text-text">Invite on its way</p>
+            <p className="font-display text-lg font-semibold text-text">
+              {emailSent ? "Invite on its way" : "Invite ready"}
+            </p>
             <p className="mt-1 text-sm text-text-2">
-              {email} will get an email to sign in with Google and join you.
+              {emailSent
+                ? `${email} will get an email to sign in with Google and join you.`
+                : `Share this link with ${email} — they sign in with Google to join.`}
             </p>
           </div>
           <div className="flex w-full items-center gap-2 rounded-[13px] border border-border bg-surface-2 px-3 py-2.5">

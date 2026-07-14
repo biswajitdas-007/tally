@@ -55,6 +55,7 @@ interface State {
 
   settleUp: (input: { from: ID; to: ID; amount: number; groupId?: ID | null; note?: string }) => void;
   invite: (email: string, groupId: ID | null) => Invite;
+  mergeInvited: (payload: { group: Group; expenses: Expense[]; people: Person[] }) => void;
 
   resetAll: () => void;
 }
@@ -240,6 +241,23 @@ export const useStore = create<State>()((set, get) => ({
     }));
     return invite;
   },
+
+  mergeInvited: ({ group, expenses, people }) =>
+    set((s) => {
+      if (!group) return {};
+      const hasGroup = s.groups.some((g) => g.id === group.id);
+      const groups = hasGroup ? s.groups.map((g) => (g.id === group.id ? group : g)) : [group, ...s.groups];
+
+      const existingExpenseIds = new Set(s.expenses.map((e) => e.id));
+      const nextExpenses = [...expenses.filter((e) => !existingExpenseIds.has(e.id)), ...s.expenses];
+
+      const byId = new Map(s.people.map((p) => [p.id, p]));
+      for (const p of people) {
+        if (p.id === ME_ID) continue; // never overwrite the current user
+        byId.set(p.id, { ...byId.get(p.id), ...p });
+      }
+      return { groups, expenses: nextExpenses, people: Array.from(byId.values()) };
+    }),
 
   resetAll: () =>
     set((s) => {
