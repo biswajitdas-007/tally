@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Check, Copy, Share2, QrCode as QrIcon, Wallet } from "lucide-react";
+import { Check, Copy, Share2, QrCode as QrIcon } from "lucide-react";
 import { Sheet } from "@/components/ui/sheet";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar } from "@/components/ui/avatar";
 import { UpiQR } from "./upi-qr";
@@ -11,7 +11,7 @@ import { useStore, useMe, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { useToast } from "@/components/ui/toast";
 import { buildAppUri, buildUpiUri, isAndroid, isValidVpa, UPI_APPS } from "@/lib/upi";
-import { formatINR, cn } from "@/lib/utils";
+import { formatINR } from "@/lib/utils";
 
 export function SettleSheet() {
   const target = useUI((s) => s.settle);
@@ -24,13 +24,9 @@ export function SettleSheet() {
   const { toast } = useToast();
 
   const [android, setAndroid] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
   const [upiDraft, setUpiDraft] = useState("");
 
-  useEffect(() => {
-    setAndroid(isAndroid());
-    setIsMobile(/android|iphone|ipad|ipod/i.test(navigator.userAgent));
-  }, []);
+  useEffect(() => setAndroid(isAndroid()), []);
   useEffect(() => {
     if (target) setUpiDraft("");
   }, [target]);
@@ -162,24 +158,23 @@ export function SettleSheet() {
           </div>
         )}
 
-        {/* One-tap app buttons (Android) */}
-        {upiUri && android && (
-          <div className="grid grid-cols-2 gap-2">
-            {UPI_APPS.map((app) => (
-              <a
-                key={app.id}
-                href={buildAppUri(app.scheme, {
-                  vpa: payee!.upiId!,
-                  name: payee!.name,
-                  amount,
-                  note,
-                })}
-                className="flex items-center justify-center gap-2 rounded-[13px] border border-border bg-surface py-3 text-[0.85rem] font-semibold text-text transition-colors hover:bg-surface-2"
-              >
-                <span className="h-2.5 w-2.5 rounded-full" style={{ background: app.color }} />
-                {app.label}
-              </a>
-            ))}
+        {/* Pick a UPI app to pay with (opens that exact app, prefilled) */}
+        {youOwe && upiUri && android && (
+          <div>
+            <p className="mb-2 px-0.5 text-[0.8rem] font-semibold text-text-2">Pay with your UPI app</p>
+            <div className="grid grid-cols-2 gap-2">
+              {UPI_APPS.map((app) => (
+                <a
+                  key={app.id}
+                  href={buildAppUri(app.scheme, { vpa: payee!.upiId!, name: payee!.name, amount, note })}
+                  className="flex items-center justify-center gap-2 rounded-[13px] border border-border bg-surface py-3.5 text-[0.9rem] font-semibold text-text transition-all hover:border-border-strong hover:bg-surface-2 active:scale-[0.98]"
+                >
+                  <span className="h-2.5 w-2.5 rounded-full" style={{ background: app.color }} />
+                  {app.label}
+                </a>
+              ))}
+            </div>
+            <p className="mt-2 px-0.5 text-[0.72rem] text-text-3">Don&apos;t have these? Scan the QR with any UPI app.</p>
           </div>
         )}
 
@@ -205,20 +200,9 @@ export function SettleSheet() {
           )}
         </div>
 
-        {/* Actions */}
-        <div className="sticky bottom-0 -mx-5 flex flex-col gap-2 border-t border-border bg-surface px-5 pb-1 pt-3">
-          {youOwe && upiUri && isMobile && (
-            <a href={upiUri} className={cn(buttonVariants({ variant: "primary", size: "lg" }), "w-full")}>
-              <Wallet className="h-[18px] w-[18px]" />
-              Pay {formatINR(amount)} in UPI app
-            </a>
-          )}
-          <Button
-            variant={youOwe && upiUri && isMobile ? "secondary" : "primary"}
-            size="lg"
-            fullWidth
-            onClick={confirmSettled}
-          >
+        {/* Confirm */}
+        <div className="sticky bottom-0 -mx-5 border-t border-border bg-surface px-5 pb-1 pt-3">
+          <Button variant="primary" size="lg" fullWidth onClick={confirmSettled}>
             <Check className="h-4.5 w-4.5" />
             {youOwe ? `I've paid ${formatINR(amount)}` : `Mark ${formatINR(amount)} received`}
           </Button>
