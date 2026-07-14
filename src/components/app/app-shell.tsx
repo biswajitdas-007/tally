@@ -9,6 +9,7 @@ import { InviteDialog } from "@/components/features/invite-dialog";
 import { CreateGroupSheet } from "@/components/features/create-group-sheet";
 import { InstallPrompt } from "./install-prompt";
 import { PushAutoEnable } from "./push-auto";
+import { NotificationPrompt } from "./notification-prompt";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
@@ -32,6 +33,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <CreateGroupSheet />
       <InstallPrompt />
       <PushAutoEnable />
+      <NotificationPrompt />
     </>
   );
 }
