@@ -10,7 +10,7 @@ import { UpiQR } from "./upi-qr";
 import { useStore, useMe, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { useToast } from "@/components/ui/toast";
-import { buildAppUri, buildUpiUri, isAndroid, isValidVpa, UPI_APPS } from "@/lib/upi";
+import { buildAppUri, buildUpiUri, isValidVpa, UPI_APPS } from "@/lib/upi";
 import { formatINR } from "@/lib/utils";
 
 export function SettleSheet() {
@@ -23,10 +23,8 @@ export function SettleSheet() {
   const myId = useMyId() ?? "";
   const { toast } = useToast();
 
-  const [android, setAndroid] = useState(false);
   const [upiDraft, setUpiDraft] = useState("");
 
-  useEffect(() => setAndroid(isAndroid()), []);
   useEffect(() => {
     if (target) setUpiDraft("");
   }, [target]);
@@ -159,7 +157,7 @@ export function SettleSheet() {
         )}
 
         {/* Pick a UPI app to pay with (opens that exact app, prefilled) */}
-        {youOwe && upiUri && android && (
+        {youOwe && upiUri && (
           <div>
             <p className="mb-2 px-0.5 text-[0.8rem] font-semibold text-text-2">Pay with your UPI app</p>
             <div className="grid grid-cols-2 gap-2">
