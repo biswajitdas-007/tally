@@ -9,6 +9,7 @@ import { useStore, useMe } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { useToast } from "@/components/ui/toast";
 import { sendInvite } from "@/lib/api";
+import { uid } from "@/lib/utils";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -17,7 +18,7 @@ export function InviteDialog() {
   const close = useUI((s) => s.closeInvite);
   const groupId = useUI((s) => s.inviteGroupId);
   const groups = useStore((s) => s.groups);
-  const invite = useStore((s) => s.invite);
+  const refetch = useStore((s) => s.refetch);
   const me = useMe();
   const { toast } = useToast();
 
@@ -40,19 +41,20 @@ export function InviteDialog() {
   async function send() {
     if (!valid) return;
     setSending(true);
-    const record = invite(email.trim(), groupId ?? null);
+    const inviteId = uid("i_");
     const result = await sendInvite({
       email: email.trim(),
-      inviteId: record.id,
+      inviteId,
       groupId: groupId ?? null,
       groupName: group?.name,
       groupIcon: group?.icon,
       inviterName: me?.name,
     });
     const origin = typeof window !== "undefined" ? window.location.origin : "";
-    setSentLink(result?.link ?? `${origin}/join/${record.id}`);
+    setSentLink(result?.link ?? `${origin}/join/${inviteId}`);
     setEmailSent(Boolean(result?.sent));
     setSending(false);
+    await refetch(); // pull the pending member into the group
     toast({ message: result?.sent ? `Invite emailed to ${email.trim()}` : "Invite created — share the link" });
   }
 

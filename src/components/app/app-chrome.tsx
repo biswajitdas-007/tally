@@ -8,6 +8,7 @@ import { isFirebaseConfigured } from "@/lib/firebase";
 import { AppShell } from "./app-shell";
 import { LoginScreen } from "./login-screen";
 import { TallyMark } from "./logo";
+import { Button } from "@/components/ui/button";
 
 function Splash() {
   return (
@@ -19,11 +20,7 @@ function Splash() {
       >
         <TallyMark size={64} />
       </motion.div>
-      <motion.div
-        className="h-1 w-24 overflow-hidden rounded-full bg-surface-inset"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-      >
+      <motion.div className="h-1 w-24 overflow-hidden rounded-full bg-surface-inset" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
         <motion.div
           className="h-full w-1/2 rounded-full bg-brand"
           animate={{ x: ["-100%", "220%"] }}
@@ -34,13 +31,36 @@ function Splash() {
   );
 }
 
+function LoadError() {
+  const refetch = useStore((s) => s.refetch);
+  const setLoadError = useStore((s) => s.setLoadError);
+  return (
+    <div className="fixed inset-0 flex flex-col items-center justify-center gap-5 bg-bg px-6 text-center">
+      <TallyMark size={52} />
+      <div>
+        <h1 className="font-display text-lg font-bold text-text">Couldn&apos;t reach the server</h1>
+        <p className="mt-1 max-w-xs text-sm text-text-2">
+          Check your connection and try again — your data is safe on the server.
+        </p>
+      </div>
+      <Button
+        onClick={() => {
+          setLoadError(false);
+          refetch();
+        }}
+      >
+        Try again
+      </Button>
+    </div>
+  );
+}
+
 export function AppChrome({ children }: { children: React.ReactNode }) {
-  // Gate on client mount so the first client render matches the server (Splash),
-  // regardless of when the persisted store rehydrates.
   const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
   const authReady = useStore((s) => s.authReady);
   const dataReady = useStore((s) => s.dataReady);
+  const loadError = useStore((s) => s.loadError);
   const currentUserId = useStore((s) => s.currentUserId);
 
   useEffect(() => setMounted(true), []);
@@ -50,12 +70,10 @@ export function AppChrome({ children }: { children: React.ReactNode }) {
   // The join flow renders its own sign-in UI, outside the app shell/gate.
   if (pathname?.startsWith("/join")) return <>{children}</>;
 
-  // Wait for Firebase to resolve the session before deciding what to show,
-  // so a returning user never flashes the login screen.
   const waitingForAuth = isFirebaseConfigured && !authReady;
-
   if (waitingForAuth) return <Splash />;
   if (!currentUserId) return <LoginScreen />;
+  if (loadError) return <LoadError />;
   if (!dataReady) return <Splash />; // loading data from the server
   return <AppShell>{children}</AppShell>;
 }
