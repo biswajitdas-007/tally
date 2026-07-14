@@ -12,10 +12,9 @@ import { CategoryIcon } from "@/components/ui/chip";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CATEGORY_LIST } from "@/lib/categories";
-import { useStore } from "@/store/useStore";
+import { useStore, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { useToast } from "@/components/ui/toast";
-import { ME_ID } from "@/lib/seed";
 import { cn, formatINR, formatDate, splitEqually } from "@/lib/utils";
 import type { CategoryKey, ID, Split } from "@/lib/types";
 
@@ -47,6 +46,7 @@ export function AddExpenseSheet() {
   const updateExpense = useStore((s) => s.updateExpense);
   const deleteExpense = useStore((s) => s.deleteExpense);
   const { toast } = useToast();
+  const myId = useMyId() ?? "";
 
   const editing = editId ? expenses.find((e) => e.id === editId) ?? null : null;
 
@@ -55,7 +55,7 @@ export function AddExpenseSheet() {
   const [category, setCategory] = useState<CategoryKey>("food");
   const [catTouched, setCatTouched] = useState(false);
   const [groupId, setGroupId] = useState<ID | null>(null);
-  const [paidBy, setPaidBy] = useState<ID>(ME_ID);
+  const [paidBy, setPaidBy] = useState<ID>(myId);
   const [participants, setParticipants] = useState<ID[]>([]);
   const [splitMode, setSplitMode] = useState<"equal" | "exact">("equal");
   const [exact, setExact] = useState<Record<ID, string>>({});
@@ -65,15 +65,15 @@ export function AddExpenseSheet() {
   const [showNotes, setShowNotes] = useState(false);
   const [recurring, setRecurring] = useState(false);
 
-  const friends = people.filter((p) => p.id !== ME_ID);
+  const friends = people.filter((p) => p.id !== myId);
   const inGroup = Boolean(groupCtx);
   const ctxGroup = groups.find((g) => g.id === groupCtx);
   const sortedGroups = [...groups].sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
 
   // Members available to split among, based on chosen group.
   const pool: ID[] = useMemo(() => {
-    if (groupId) return groups.find((g) => g.id === groupId)?.memberIds ?? [ME_ID];
-    return [ME_ID, ...friends.map((f) => f.id)];
+    if (groupId) return groups.find((g) => g.id === groupId)?.memberIds ?? [myId];
+    return [myId, ...friends.map((f) => f.id)];
   }, [groupId, groups, friends]);
 
   // Initialize when the sheet opens.
@@ -98,10 +98,10 @@ export function AddExpenseSheet() {
       setCategory("food");
       setCatTouched(false);
       setGroupId(groupCtx);
-      setPaidBy(ME_ID);
+      setPaidBy(myId);
       const initPool = groupCtx
-        ? groups.find((g) => g.id === groupCtx)?.memberIds ?? [ME_ID]
-        : [ME_ID];
+        ? groups.find((g) => g.id === groupCtx)?.memberIds ?? [myId]
+        : [myId];
       setParticipants(initPool);
       setDate(new Date());
       setNotes("");
@@ -125,9 +125,9 @@ export function AddExpenseSheet() {
 
   function switchGroup(id: ID | null) {
     setGroupId(id);
-    const next = id ? groups.find((g) => g.id === id)?.memberIds ?? [ME_ID] : [ME_ID];
+    const next = id ? groups.find((g) => g.id === id)?.memberIds ?? [myId] : [myId];
     setParticipants(next);
-    if (!next.includes(paidBy)) setPaidBy(ME_ID);
+    if (!next.includes(paidBy)) setPaidBy(myId);
   }
 
   function toggleParticipant(id: ID) {
@@ -175,7 +175,7 @@ export function AddExpenseSheet() {
     close();
   }
 
-  const nameOf = (id: ID) => (id === ME_ID ? "You" : people.find((p) => p.id === id)?.name.split(" ")[0] ?? "—");
+  const nameOf = (id: ID) => (id === myId ? "You" : people.find((p) => p.id === id)?.name.split(" ")[0] ?? "—");
   const perHead = participants.length ? splitEqually(total, participants.length)[0] : 0;
 
   return (

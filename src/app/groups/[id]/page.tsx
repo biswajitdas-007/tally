@@ -19,10 +19,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useStore } from "@/store/useStore";
+import { useStore, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { useToast } from "@/components/ui/toast";
-import { ME_ID } from "@/lib/seed";
 import { memberNet, pairwiseWithMe, simplifyDebts } from "@/lib/balances";
 import { formatINR } from "@/lib/utils";
 
@@ -37,6 +36,7 @@ export default function GroupDetailPage() {
   const openInvite = useUI((s) => s.openInvite);
   const openSettle = useUI((s) => s.openSettle);
   const { toast } = useToast();
+  const myId = useMyId() ?? "";
 
   const [tab, setTab] = useState<"expenses" | "balances">("expenses");
 
@@ -61,14 +61,14 @@ export default function GroupDetailPage() {
   const groupExpenses = expenses
     .filter((e) => e.groupId === group.id)
     .sort((a, b) => +new Date(b.date) - +new Date(a.date));
-  const myNet = memberNet(groupExpenses).get(ME_ID) ?? 0;
-  const pairwise = pairwiseWithMe(groupExpenses, ME_ID);
+  const myNet = memberNet(groupExpenses).get(myId) ?? 0;
+  const pairwise = pairwiseWithMe(groupExpenses, myId);
   const myBalances = members
-    .filter((m) => m.id !== ME_ID && Math.abs(pairwise.get(m.id) ?? 0) > 0.5)
+    .filter((m) => m.id !== myId && Math.abs(pairwise.get(m.id) ?? 0) > 0.5)
     .map((m) => ({ personId: m.id, amount: pairwise.get(m.id) ?? 0 }));
 
   const transfers = simplifyDebts(memberNet(groupExpenses));
-  const nameOf = (pid: string) => (pid === ME_ID ? "You" : people.find((p) => p.id === pid)?.name.split(" ")[0] ?? "—");
+  const nameOf = (pid: string) => (pid === myId ? "You" : people.find((p) => p.id === pid)?.name.split(" ")[0] ?? "—");
 
   return (
     <div className="flex flex-col gap-5">
@@ -200,7 +200,7 @@ export default function GroupDetailPage() {
               <Card className="overflow-hidden">
                 <div className="divide-y divide-border">
                   {transfers.map((t, i) => {
-                    const involvesMe = t.from === ME_ID || t.to === ME_ID;
+                    const involvesMe = t.from === myId || t.to === myId;
                     return (
                       <div key={i} className="flex items-center gap-3 px-4 py-3">
                         <div className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-inset text-text-3">
@@ -214,16 +214,16 @@ export default function GroupDetailPage() {
                         {involvesMe && (
                           <Button
                             size="sm"
-                            variant={t.from === ME_ID ? "primary" : "soft"}
+                            variant={t.from === myId ? "primary" : "soft"}
                             onClick={() =>
                               openSettle({
-                                personId: t.from === ME_ID ? t.to : t.from,
-                                amount: t.from === ME_ID ? -t.amount : t.amount,
+                                personId: t.from === myId ? t.to : t.from,
+                                amount: t.from === myId ? -t.amount : t.amount,
                                 groupId: group.id,
                               })
                             }
                           >
-                            {t.from === ME_ID ? "Pay" : "Remind"}
+                            {t.from === myId ? "Pay" : "Remind"}
                           </Button>
                         )}
                       </div>
@@ -247,7 +247,7 @@ export default function GroupDetailPage() {
                   <div key={m.id} className="flex items-center gap-3 rounded-[12px] px-2 py-2">
                     <Avatar person={m} size="sm" />
                     <span className="flex-1 text-[0.9rem] font-medium text-text">
-                      {m.id === ME_ID ? "You" : m.name}
+                      {m.id === myId ? "You" : m.name}
                     </span>
                   </div>
                 ))}

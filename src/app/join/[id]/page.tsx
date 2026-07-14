@@ -3,14 +3,13 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Loader2, PartyPopper, LinkIcon } from "lucide-react";
+import { Loader2, PartyPopper, Link as LinkIcon } from "lucide-react";
 import { TallyMark } from "@/components/app/logo";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/components/ui/toast";
-import { useStore, useMe } from "@/store/useStore";
+import { useStore } from "@/store/useStore";
 import { fetchInvite, acceptInvite, type InviteInfo } from "@/lib/api";
-import type { Expense, Group, Person } from "@/lib/types";
 
 function GoogleGlyph() {
   return (
@@ -32,10 +31,9 @@ export default function JoinPage() {
 
   const currentUserId = useStore((s) => s.currentUserId);
   const dataReady = useStore((s) => s.dataReady);
-  const mergeInvited = useStore((s) => s.mergeInvited);
-  const me = useMe();
+  const refetch = useStore((s) => s.refetch);
 
-  const [info, setInfo] = useState<InviteInfo | null | "loading" | "notfound">("loading");
+  const [info, setInfo] = useState<InviteInfo | "loading" | "notfound">("loading");
   const [signingIn, setSigningIn] = useState(false);
   const [phase, setPhase] = useState<"idle" | "joining" | "done">("idle");
 
@@ -47,34 +45,28 @@ export default function JoinPage() {
     };
   }, [id]);
 
-  // Once signed in and our own data has loaded, accept the invite.
   useEffect(() => {
-    if (info === "loading" || info === "notfound" || !info) return;
+    if (info === "loading" || info === "notfound") return;
     if (!currentUserId || !dataReady || phase !== "idle") return;
     setPhase("joining");
     (async () => {
-      const res = await acceptInvite(id, { name: me?.name, email: me?.email, photoURL: me?.photoURL });
+      const res = await acceptInvite(id);
       if (res?.self) {
         toast({ message: "That's your own invite link", tone: "info" });
         router.replace("/");
         return;
       }
-      if (res?.group) {
-        mergeInvited({
-          group: res.group as Group,
-          expenses: (res.expenses ?? []) as Expense[],
-          people: (res.people ?? []) as Person[],
-        });
-        setPhase("done");
-        toast({ message: `Joined ${(res.group as Group).name}` });
-        setTimeout(() => router.replace(`/groups/${(res.group as Group).id}`), 700);
+      await refetch();
+      setPhase("done");
+      if (res?.groupId) {
+        toast({ message: "You've joined the group" });
+        setTimeout(() => router.replace(`/groups/${res.groupId}`), 700);
       } else {
-        setPhase("done");
         toast({ message: "You're in 🎉" });
         setTimeout(() => router.replace("/"), 700);
       }
     })();
-  }, [info, currentUserId, dataReady, phase, id, me, mergeInvited, router, toast]);
+  }, [info, currentUserId, dataReady, phase, id, refetch, router, toast]);
 
   async function handleGoogle() {
     try {
@@ -89,12 +81,7 @@ export default function JoinPage() {
   return (
     <div className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-bg px-6">
       <div className="pointer-events-none absolute -top-40 left-1/2 h-80 w-[36rem] -translate-x-1/2 rounded-full bg-brand-soft blur-[90px] opacity-70" />
-
-      <motion.div
-        initial={{ opacity: 0, y: 14 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="relative z-10 w-full max-w-sm"
-      >
+      <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} className="relative z-10 w-full max-w-sm">
         <div className="mb-6 flex items-center justify-center gap-2.5">
           <TallyMark size={34} />
           <span className="font-display text-xl font-bold tracking-[-0.03em]">Tally</span>
@@ -120,9 +107,9 @@ export default function JoinPage() {
           </div>
         )}
 
-        {info && info !== "loading" && info !== "notfound" && (
+        {info !== "loading" && info !== "notfound" && (
           <div className="rounded-[22px] border border-border bg-surface p-6 text-center shadow-[var(--shadow-md)]">
-            {phase === "joining" || phase === "done" ? (
+            {phase !== "idle" ? (
               <div className="flex flex-col items-center gap-3 py-6">
                 {phase === "done" ? (
                   <PartyPopper className="h-8 w-8 text-brand" />
@@ -147,14 +134,7 @@ export default function JoinPage() {
                   {info.groupName ?? "join them on Tally"}
                 </h1>
                 <p className="mt-2 text-sm text-text-2">Split expenses and settle up over UPI.</p>
-                <Button
-                  variant="secondary"
-                  size="lg"
-                  fullWidth
-                  className="mt-6"
-                  loading={signingIn}
-                  onClick={handleGoogle}
-                >
+                <Button variant="secondary" size="lg" fullWidth className="mt-6" loading={signingIn} onClick={handleGoogle}>
                   {!signingIn && <GoogleGlyph />}
                   Continue with Google to join
                 </Button>

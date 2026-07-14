@@ -7,8 +7,7 @@ import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Donut } from "@/components/charts/donut";
 import { BarChart } from "@/components/charts/bar-chart";
-import { useStore } from "@/store/useStore";
-import { ME_ID } from "@/lib/seed";
+import { useStore, useMyId } from "@/store/useStore";
 import { CATEGORIES } from "@/lib/categories";
 import { categoryBreakdown, monthlySpend, monthlyTrend, myShare } from "@/lib/balances";
 import { formatINR, monthLabel, cn } from "@/lib/utils";
@@ -16,19 +15,20 @@ import { formatINR, monthLabel, cn } from "@/lib/utils";
 export default function AnalyticsPage() {
   const expenses = useStore((s) => s.expenses);
   const groups = useStore((s) => s.groups);
+  const myId = useMyId() ?? "";
 
   const now = new Date();
   const thisKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const prevKey = `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, "0")}`;
 
-  const thisSpend = monthlySpend(expenses, ME_ID, thisKey);
-  const lastSpend = monthlySpend(expenses, ME_ID, prevKey);
+  const thisSpend = monthlySpend(expenses, myId, thisKey);
+  const lastSpend = monthlySpend(expenses, myId, prevKey);
   const delta = lastSpend > 0 ? ((thisSpend - lastSpend) / lastSpend) * 100 : 0;
   const up = thisSpend > lastSpend;
 
-  const trend = monthlyTrend(expenses, ME_ID, 6).map((t) => ({ label: monthLabel(t.key), value: t.amount }));
-  const breakdown = categoryBreakdown(expenses, ME_ID, thisKey);
+  const trend = monthlyTrend(expenses, myId, 6).map((t) => ({ label: monthLabel(t.key), value: t.amount }));
+  const breakdown = categoryBreakdown(expenses, myId, thisKey);
   const totalBreakdown = breakdown.reduce((a, b) => a + b.amount, 0) || 1;
   const donutData = breakdown.map((b) => ({
     label: CATEGORIES[b.category].label,
@@ -41,7 +41,7 @@ export default function AnalyticsPage() {
     for (const e of expenses) {
       if (e.isSettlement) continue;
       const key = e.groupId ?? "personal";
-      map.set(key, (map.get(key) ?? 0) + myShare(e, ME_ID));
+      map.set(key, (map.get(key) ?? 0) + myShare(e, myId));
     }
     return [...map.entries()]
       .map(([k, v]) => ({
@@ -61,7 +61,7 @@ export default function AnalyticsPage() {
         `"${e.description.replace(/"/g, "'")}"`,
         e.category,
         String(e.amount),
-        String(myShare(e, ME_ID)),
+        String(myShare(e, myId)),
         groups.find((g) => g.id === e.groupId)?.name ?? "",
       ]);
     }
