@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { LogOut, ShieldCheck, Bell, Wallet, Check, BellRing } from "lucide-react";
+import Link from "next/link";
+import { LogOut, ShieldCheck, Bell, Wallet, Check, BellRing, Contact, ChevronRight } from "lucide-react";
 import { PageHeader } from "@/components/app/page-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Segmented } from "@/components/ui/segmented";
 import { Avatar } from "@/components/ui/avatar";
-import { useMe, useStore } from "@/store/useStore";
+import { useMe, useStore, useMyId } from "@/store/useStore";
 import { useAuth } from "@/hooks/use-auth";
 import { usePush } from "@/hooks/use-push";
 import { useTheme, type ThemeChoice } from "@/components/theme-provider";
@@ -22,6 +23,9 @@ function Row({ children }: { children: React.ReactNode }) {
 
 export default function AccountPage() {
   const me = useMe();
+  const people = useStore((s) => s.people);
+  const myId = useMyId() ?? "";
+  const friendCount = people.filter((p) => p.id !== myId).length;
   const updateProfile = useStore((s) => s.updateProfile);
   const { logout, isFirebaseConfigured } = useAuth();
   const { choice, setChoice } = useTheme();
@@ -57,6 +61,22 @@ export default function AccountPage() {
           <p className="truncate text-sm text-text-2">{me?.email ?? "Signed in"}</p>
         </div>
       </Card>
+
+      <Link
+        href="/friends"
+        className="flex items-center gap-3 rounded-[16px] border border-border bg-surface p-4 shadow-[var(--shadow-xs)] transition-all hover:-translate-y-0.5 hover:border-border-strong hover:shadow-[var(--shadow-sm)]"
+      >
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand">
+          <Contact className="h-5 w-5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-[0.92rem] font-medium text-text">Friends</p>
+          <p className="text-[0.76rem] text-text-3">
+            {friendCount} {friendCount === 1 ? "person" : "people"} you split with
+          </p>
+        </div>
+        <ChevronRight className="h-5 w-5 shrink-0 text-text-3" />
+      </Link>
 
       <section>
         <p className="mb-2 px-1 text-[0.7rem] font-semibold uppercase tracking-[0.08em] text-text-3">Your UPI ID</p>

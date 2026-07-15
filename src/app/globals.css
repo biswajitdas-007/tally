@@ -429,6 +429,35 @@ input[type="number"]::-webkit-inner-spin-button {
   animation: page-in 0.22s var(--ease-out) both;
 }
 
+/* Loader — tally strokes draw in one by one, like counting */
+@keyframes tally-draw {
+  0%,
+  6% {
+    stroke-dashoffset: 1;
+    opacity: 0.12;
+  }
+  12% {
+    opacity: 1;
+  }
+  36% {
+    stroke-dashoffset: 0;
+  }
+  70% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+  88%,
+  100% {
+    stroke-dashoffset: -1;
+    opacity: 0.12;
+  }
+}
+.tally-stroke {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: tally-draw 2.6s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
 .ledger-grid {
   background-image: linear-gradient(
     to right,
