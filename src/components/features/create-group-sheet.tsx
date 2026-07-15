@@ -71,7 +71,6 @@ export function CreateGroupSheet() {
             {icon}
           </div>
           <Input
-            autoFocus
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Group name (e.g. Goa Trip)"
@@ -81,14 +80,14 @@ export function CreateGroupSheet() {
 
         <div>
           <p className="mb-2 px-0.5 text-[0.8rem] font-semibold text-text-2">Icon</p>
-          <div className="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5">
+          <div className="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5 py-1.5">
             {EMOJIS.map((e) => (
               <button
                 key={e}
                 onClick={() => setIcon(e)}
                 className={cn(
                   "flex h-11 w-11 shrink-0 items-center justify-center rounded-[13px] text-xl transition-all",
-                  icon === e ? "bg-brand-soft ring-2 ring-brand" : "bg-surface-inset",
+                  icon === e ? "bg-brand-soft ring-2 ring-brand ring-offset-1 ring-offset-[var(--surface)]" : "bg-surface-inset",
                 )}
               >
                 {e}
