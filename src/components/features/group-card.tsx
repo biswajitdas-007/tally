@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useStore, useMyId } from "@/store/useStore";
-import { memberNet } from "@/lib/balances";
+import { myNetWithMembers } from "@/lib/balances";
 import { AvatarStack } from "@/components/ui/avatar";
 import { formatINR, cn } from "@/lib/utils";
 import type { Group } from "@/lib/types";
@@ -15,8 +15,7 @@ export function GroupCard({ group }: { group: Group }) {
   const members = group.memberIds.map((id) => people.find((p) => p.id === id)).filter(Boolean) as NonNullable<
     ReturnType<typeof people.find>
   >[];
-  const groupExpenses = expenses.filter((e) => e.groupId === group.id);
-  const net = memberNet(groupExpenses).get(myId ?? "") ?? 0;
+  const net = myNetWithMembers(expenses, myId ?? "", group.memberIds);
   const settled = Math.abs(net) < 0.5;
 
   return (
