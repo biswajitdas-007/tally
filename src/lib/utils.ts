@@ -101,7 +101,12 @@ export function monthLabel(key: string): string {
 }
 
 export function uid(prefix = ""): string {
-  return prefix + Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+  // Cryptographically random (invite ids double as capability tokens).
+  const rand =
+    typeof crypto !== "undefined" && crypto.randomUUID
+      ? crypto.randomUUID().replace(/-/g, "")
+      : Math.random().toString(36).slice(2) + Date.now().toString(36);
+  return prefix + rand.slice(0, 20);
 }
 
 export function clamp(n: number, min: number, max: number): number {

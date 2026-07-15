@@ -1,66 +1,92 @@
-import { NextResponse } from "next/server";
 import { verifyUser } from "@/lib/auth-server";
-import { collections, type ExpenseDoc } from "@/lib/db";
+import { collections, knownUids, type ExpenseDoc } from "@/lib/db";
 import { notifyChange } from "@/lib/notify";
 import { formatINR } from "@/lib/utils";
+import { badRequest, forbidden, isNum, isStr, json, serverError, unauthorized } from "@/lib/api-helpers";
+import type { CategoryKey, Split } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+const CATS: CategoryKey[] = ["food", "rent", "travel", "shopping", "bills", "fun", "health", "other"];
+
+function validSplits(v: unknown): v is Split[] {
+  return (
+    Array.isArray(v) &&
+    v.length > 0 &&
+    v.length <= 100 &&
+    v.every((s) => s && typeof s === "object" && isStr((s as Split).personId) && isNum((s as Split).amount))
+  );
+}
+
 export async function POST(req: Request) {
   const user = await verifyUser(req);
-  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!user) return unauthorized();
 
-  const b = (await req.json().catch(() => null)) as
-    | (Partial<ExpenseDoc> & { id: string; socketId?: string })
-    | null;
-  if (!b?.id || !b.description || !b.amount || !b.paidBy || !b.splits) {
-    return NextResponse.json({ error: "bad-request" }, { status: 400 });
+  try {
+    const b = (await req.json().catch(() => null)) as Record<string, unknown> | null;
+    if (
+      !b ||
+      !isStr(b.id) ||
+      !isStr(b.description) ||
+      !isNum(b.amount) ||
+      b.amount <= 0 ||
+      !isStr(b.paidBy) ||
+      !validSplits(b.splits) ||
+      (b.groupId != null && !isStr(b.groupId))
+    ) {
+      return badRequest();
+    }
+
+    const splits = b.splits as Split[];
+    const { expenses, groups, users } = await collections();
+
+    let memberUids: string[];
+    let groupName: string | null = null;
+    if (b.groupId) {
+      const g = await groups.findOne({ _id: b.groupId as string });
+      if (!g || !g.memberUids.includes(user.uid)) return forbidden();
+      memberUids = g.memberUids;
+      groupName = g.name;
+    } else {
+      const ids = [...new Set([b.paidBy as string, ...splits.map((s) => s.personId)])].filter(isStr);
+      const known = await knownUids(user.uid);
+      const found = await users.find({ _id: { $in: ids } }, { projection: { _id: 1 } }).toArray();
+      // Only people you already share a group with — prevents injecting into strangers.
+      memberUids = [...new Set([user.uid, ...found.map((u) => u._id).filter((id) => known.has(id))])];
+    }
+
+    const doc: ExpenseDoc = {
+      _id: b.id as string,
+      groupId: (b.groupId as string | null) ?? null,
+      memberUids,
+      description: (b.description as string).slice(0, 200),
+      amount: b.amount,
+      category: CATS.includes(b.category as CategoryKey) ? (b.category as CategoryKey) : "other",
+      paidBy: b.paidBy as string,
+      splits,
+      date: isStr(b.date) ? (b.date as string) : new Date().toISOString(),
+      notes: isStr(b.notes) ? (b.notes as string).slice(0, 500) : undefined,
+      recurring: b.recurring === "monthly" || b.recurring === "weekly" ? b.recurring : "none",
+      isSettlement: false,
+      createdBy: user.uid,
+      createdAt: new Date().toISOString(),
+    };
+    await expenses.insertOne(doc);
+
+    await notifyChange(
+      memberUids,
+      user.uid,
+      {
+        title: groupName ?? "Tally",
+        body: `${user.name || "Someone"} added ${(b.description as string).slice(0, 60)} · ${formatINR(b.amount)}`,
+        url: b.groupId ? `/groups/${b.groupId}` : "/",
+      },
+      isStr(b.socketId) ? (b.socketId as string) : undefined,
+    );
+
+    return json({ ok: true });
+  } catch {
+    return serverError();
   }
-
-  const { expenses, groups, users } = await collections();
-
-  let memberUids: string[];
-  let groupName: string | null = null;
-  if (b.groupId) {
-    const g = await groups.findOne({ _id: b.groupId });
-    if (!g || !g.memberUids.includes(user.uid)) return NextResponse.json({ error: "forbidden" }, { status: 403 });
-    memberUids = g.memberUids;
-    groupName = g.name;
-  } else {
-    const ids = [...new Set([b.paidBy, ...b.splits.map((s) => s.personId)])];
-    const found = await users.find({ _id: { $in: ids } }, { projection: { _id: 1 } }).toArray();
-    memberUids = [...new Set([user.uid, ...found.map((u) => u._id)])];
-  }
-
-  const doc: ExpenseDoc = {
-    _id: b.id,
-    groupId: b.groupId ?? null,
-    memberUids,
-    description: b.description,
-    amount: b.amount,
-    category: b.category ?? "other",
-    paidBy: b.paidBy,
-    splits: b.splits,
-    date: b.date ?? new Date().toISOString(),
-    notes: b.notes,
-    recurring: b.recurring ?? "none",
-    isSettlement: b.isSettlement ?? false,
-    createdBy: user.uid,
-    createdAt: new Date().toISOString(),
-  };
-  await expenses.insertOne(doc);
-
-  await notifyChange(
-    memberUids,
-    user.uid,
-    {
-      title: groupName ?? "Tally",
-      body: `${user.name || "Someone"} added ${b.description} · ${formatINR(b.amount)}`,
-      url: b.groupId ? `/groups/${b.groupId}` : "/",
-    },
-    b.socketId,
-  );
-
-  return NextResponse.json({ ok: true });
 }

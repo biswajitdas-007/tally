@@ -10,7 +10,8 @@ export async function POST(req: Request) {
   if (!uid) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const { endpoint } = (await req.json().catch(() => ({}))) as { endpoint?: string };
-  if (!endpoint) return NextResponse.json({ error: "bad-request" }, { status: 400 });
+  // Feeds a $pull query filter — must be a plain string, never an object.
+  if (typeof endpoint !== "string" || !endpoint) return NextResponse.json({ error: "bad-request" }, { status: 400 });
 
   const { users } = await collections();
   await users.updateOne(
