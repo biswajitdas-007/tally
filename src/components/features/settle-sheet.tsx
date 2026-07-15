@@ -12,6 +12,7 @@ import { useUI } from "@/store/useUI";
 import { useToast } from "@/components/ui/toast";
 import { buildAppUri, buildUpiUri, isValidVpa, UPI_APPS } from "@/lib/upi";
 import { formatINR } from "@/lib/utils";
+import { celebrate } from "@/lib/celebrate";
 
 export function SettleSheet() {
   const target = useUI((s) => s.settle);
@@ -49,6 +50,7 @@ export function SettleSheet() {
     if (youOwe) settleUp({ from: myId, to: person!.id, amount, groupId: target!.groupId ?? null });
     else settleUp({ from: person!.id, to: myId, amount, groupId: target!.groupId ?? null });
     toast({ message: youOwe ? `Settled up with ${person!.name.split(" ")[0]}` : "Payment recorded" });
+    celebrate();
     close();
   }
 
