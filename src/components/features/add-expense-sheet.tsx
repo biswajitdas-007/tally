@@ -183,15 +183,16 @@ export function AddExpenseSheet() {
       <div className="flex flex-col gap-5 pt-1">
         {/* Amount */}
         <div className="flex flex-col items-center rounded-[18px] bg-surface-inset py-5">
-          <span className="text-[0.72rem] font-semibold uppercase tracking-wide text-text-3">Amount</span>
-          <div className="mt-1 flex items-center gap-1">
+          <span className="text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-text-3">Amount</span>
+          <div className="mt-1.5 flex items-baseline justify-center gap-1">
             <span className="font-display text-3xl font-semibold text-text-2">₹</span>
             <input
               value={amount}
               onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
               inputMode="decimal"
               placeholder="0"
-              className="w-[8ch] bg-transparent text-center font-display text-5xl font-bold tracking-tight text-text tnum outline-none placeholder:text-text-3"
+              style={{ width: `${Math.max((amount || "0").length, 1)}ch`, outline: "none", boxShadow: "none" }}
+              className="bg-transparent text-left font-display text-[3.25rem] font-bold leading-none tracking-tight text-text tnum outline-none placeholder:text-text-3"
             />
           </div>
         </div>

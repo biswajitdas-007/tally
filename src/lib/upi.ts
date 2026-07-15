@@ -34,7 +34,7 @@ export const UPI_APPS = [
   { id: "gpay", label: "Google Pay", scheme: "tez://upi/pay", color: "#1a73e8" },
   { id: "phonepe", label: "PhonePe", scheme: "phonepe://pay", color: "#5f259f" },
   { id: "paytm", label: "Paytm", scheme: "paytmmp://pay", color: "#00baf2" },
-  { id: "bhim", label: "BHIM", scheme: "upi://pay", color: "#00888f" },
+  { id: "bhim", label: "BHIM", scheme: "bhim://upi/pay", color: "#00888f" },
 ] as const;
 
 export function buildAppUri(scheme: string, p: UpiParams): string {
