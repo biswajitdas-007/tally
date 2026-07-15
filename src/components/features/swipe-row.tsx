@@ -1,9 +1,8 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { motion, useMotionValue, useTransform } from "framer-motion";
 import { Trash2 } from "lucide-react";
-import { useMediaQuery } from "@/hooks/use-media-query";
 
 /** Wraps a row; on touch devices, swipe left past the threshold to delete. */
 export function SwipeRow({
@@ -15,7 +14,9 @@ export function SwipeRow({
   onDelete: () => void;
   className?: string;
 }) {
-  const canSwipe = useMediaQuery("(pointer: coarse)");
+  const [canSwipe] = useState(
+    () => typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches,
+  );
   const x = useMotionValue(0);
   const revealed = useRef(false);
   const iconOpacity = useTransform(x, [-80, -30], [1, 0]);
