@@ -29,19 +29,21 @@ export interface OverallSummary {
   byPerson: { personId: ID; amount: number }[];
 }
 
+/**
+ * Global settle-up summary: your net, and the *simplified* per-person amounts
+ * (from the minimal-transaction plan across everyone). Computed over all
+ * expenses + settlements, so a settle-up reflects consistently everywhere.
+ */
 export function overallSummary(expenses: Expense[], meId: ID): OverallSummary {
-  const map = pairwiseWithMe(expenses, meId);
+  const net = memberNet(expenses).get(meId) ?? 0;
+  const byPerson = mySettleRows(expenses, meId);
   let owedToYou = 0;
   let youOwe = 0;
-  const byPerson: { personId: ID; amount: number }[] = [];
-  for (const [personId, amount] of map) {
-    if (Math.abs(amount) < 0.01) continue;
-    if (amount > 0) owedToYou += amount;
-    else youOwe += -amount;
-    byPerson.push({ personId, amount });
+  for (const b of byPerson) {
+    if (b.amount > 0) owedToYou += b.amount;
+    else youOwe += -b.amount;
   }
-  byPerson.sort((a, b) => b.amount - a.amount);
-  return { net: owedToYou - youOwe, owedToYou, youOwe, byPerson };
+  return { net, owedToYou, youOwe, byPerson };
 }
 
 /** Net for each member within a scope (+ ⇒ owed). */
@@ -84,6 +86,34 @@ export function simplifyDebts(net: Map<ID, number>): Transfer[] {
     if (creditors[j].amt < 0.01) j++;
   }
   return transfers;
+}
+
+/** Minimal settle-up transactions across everyone (globally optimal). */
+export function simplifiedPlan(expenses: Expense[]): Transfer[] {
+  return simplifyDebts(memberNet(expenses));
+}
+
+/**
+ * Your rows from the global simplified plan: `+amount` ⇒ they pay you,
+ * `−amount` ⇒ you pay them. Payments are optimally routed (Splitwise-style).
+ */
+export function mySettleRows(expenses: Expense[], meId: ID): { personId: ID; amount: number }[] {
+  const plan = simplifiedPlan(expenses);
+  const map = new Map<ID, number>();
+  for (const t of plan) {
+    if (t.to === meId) map.set(t.from, (map.get(t.from) ?? 0) + t.amount);
+    else if (t.from === meId) map.set(t.to, (map.get(t.to) ?? 0) - t.amount);
+  }
+  return [...map.entries()]
+    .map(([personId, amount]) => ({ personId, amount }))
+    .filter((r) => Math.abs(r.amount) > 0.01)
+    .sort((a, b) => b.amount - a.amount);
+}
+
+/** Your total net with the members of a group (global — reflects settlements). */
+export function myNetWithMembers(expenses: Expense[], meId: ID, memberIds: ID[]): number {
+  const pw = pairwiseWithMe(expenses, meId);
+  return memberIds.reduce((sum, m) => (m === meId ? sum : sum + (pw.get(m) ?? 0)), 0);
 }
 
 /** Your personal share of one expense (0 for settlements). */
