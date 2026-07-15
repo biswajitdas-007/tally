@@ -34,11 +34,18 @@ export const UPI_APPS = [
   { id: "gpay", label: "Google Pay", scheme: "tez://upi/pay", color: "#1a73e8" },
   { id: "phonepe", label: "PhonePe", scheme: "phonepe://pay", color: "#5f259f" },
   { id: "paytm", label: "Paytm", scheme: "paytmmp://pay", color: "#00baf2" },
-  { id: "bhim", label: "BHIM", scheme: "bhim://upi/pay", color: "#00888f" },
+  // BHIM has no working custom scheme — target its package with a standard upi:// intent.
+  { id: "bhim", label: "BHIM", scheme: "upi://pay", color: "#00888f", pkg: "in.org.npci.upiapp" },
 ] as const;
 
-export function buildAppUri(scheme: string, p: UpiParams): string {
-  return buildUpiUri(p).replace(/^upi:\/\/pay/, scheme);
+export function buildAppUri(app: { scheme: string; pkg?: string }, p: UpiParams): string {
+  const upi = buildUpiUri(p);
+  if (app.pkg) {
+    // Android intent that opens a specific app using the standard upi:// scheme.
+    const ssp = upi.replace(/^upi:\/\//, "");
+    return `intent://${ssp}#Intent;scheme=upi;package=${app.pkg};end`;
+  }
+  return upi.replace(/^upi:\/\/pay/, app.scheme);
 }
 
 export function isAndroid(): boolean {
