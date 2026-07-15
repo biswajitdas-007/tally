@@ -22,7 +22,7 @@ import {
 import { useStore, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { useToast } from "@/components/ui/toast";
-import { memberNet, pairwiseWithMe, simplifyDebts } from "@/lib/balances";
+import { myNetWithMembers, mySettleRows, simplifiedPlan } from "@/lib/balances";
 import { formatINR } from "@/lib/utils";
 
 export default function GroupDetailPage() {
@@ -61,13 +61,13 @@ export default function GroupDetailPage() {
   const groupExpenses = expenses
     .filter((e) => e.groupId === group.id)
     .sort((a, b) => +new Date(b.date) - +new Date(a.date));
-  const myNet = memberNet(groupExpenses).get(myId) ?? 0;
-  const pairwise = pairwiseWithMe(groupExpenses, myId);
-  const myBalances = members
-    .filter((m) => m.id !== myId && Math.abs(pairwise.get(m.id) ?? 0) > 0.5)
-    .map((m) => ({ personId: m.id, amount: pairwise.get(m.id) ?? 0 }));
 
-  const transfers = simplifyDebts(memberNet(groupExpenses));
+  // Balances are global (across all expenses + settlements) so settle-ups
+  // reflect here too — filtered to this group's members.
+  const memberSet = new Set(group.memberIds);
+  const myNet = myNetWithMembers(expenses, myId, group.memberIds);
+  const myBalances = mySettleRows(expenses, myId).filter((r) => memberSet.has(r.personId));
+  const transfers = simplifiedPlan(expenses).filter((t) => memberSet.has(t.from) && memberSet.has(t.to));
   const nameOf = (pid: string) => (pid === myId ? "You" : people.find((p) => p.id === pid)?.name.split(" ")[0] ?? "—");
 
   return (
