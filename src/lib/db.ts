@@ -179,3 +179,12 @@ export async function pushSubsFor(
   const docs = await users.find({ _id: { $in: uids } }).toArray();
   return docs.map((d) => ({ uid: d._id, subs: d.pushSubs ?? [] }));
 }
+
+/** Every uid the actor already shares a group with (their trust circle), incl. self. */
+export async function knownUids(actorUid: string): Promise<Set<string>> {
+  const { groups } = await collections();
+  const gs = await groups.find({ memberUids: actorUid }, { projection: { memberUids: 1 } }).toArray();
+  const set = new Set<string>([actorUid]);
+  for (const g of gs) for (const u of g.memberUids) set.add(u);
+  return set;
+}
