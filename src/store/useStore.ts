@@ -49,6 +49,10 @@ interface State {
   updateProfile: (patch: { name?: string; upiId?: string }) => void;
 }
 
+let lastLoadHash = "";
+const stateHash = (s: { people: unknown[]; groups: unknown[]; expenses: unknown[] }) =>
+  JSON.stringify([s.people, s.groups, s.expenses]);
+
 const now = () => new Date().toISOString();
 const reconcile = (res: Response | null, get: () => State) => {
   if (!res || !res.ok) get().refetch();
@@ -69,7 +73,8 @@ export const useStore = create<State>()((set, get) => ({
   setLoadError: (v) => set({ loadError: v }),
   setUser: (id) => set({ currentUserId: id }),
 
-  loadState: (state) =>
+  loadState: (state) => {
+    lastLoadHash = stateHash(state);
     set({
       me: state.me,
       people: state.people,
@@ -77,7 +82,8 @@ export const useStore = create<State>()((set, get) => ({
       expenses: state.expenses,
       dataReady: true,
       loadError: false,
-    }),
+    });
+  },
 
   signOut: () =>
     set({
@@ -93,7 +99,9 @@ export const useStore = create<State>()((set, get) => ({
 
   refetch: async () => {
     const data = await api.fetchState();
-    if (data && data.me) get().loadState(data);
+    if (!data || !data.me) return;
+    if (stateHash(data) === lastLoadHash) return; // unchanged — skip the re-render
+    get().loadState(data);
   },
 
   addExpense: (input) => {
