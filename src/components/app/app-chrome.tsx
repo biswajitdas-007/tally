@@ -7,18 +7,13 @@ import { isFirebaseConfigured } from "@/lib/firebase";
 import { AppShell } from "./app-shell";
 import { LoginScreen } from "./login-screen";
 import { TallyMark } from "./logo";
+import { TallyLoader } from "./tally-loader";
 import { Button } from "@/components/ui/button";
 
 function Splash() {
   return (
-    <div className="fixed inset-0 flex flex-col items-center justify-center gap-6 bg-bg">
-      <div className="flex items-center gap-2.5 animate-breathe">
-        <TallyMark size={54} />
-        <span className="font-display text-2xl font-bold tracking-[-0.03em] text-text">Tally</span>
-      </div>
-      <div className="h-1 w-24 overflow-hidden rounded-full bg-surface-inset">
-        <div className="animate-loader-slide h-full w-1/3 rounded-full bg-brand" />
-      </div>
+    <div className="fixed inset-0 flex flex-col items-center justify-center bg-bg">
+      <TallyLoader />
     </div>
   );
 }
