@@ -11,6 +11,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { ThemeToggle } from "./theme-toggle";
 import { useUI } from "@/store/useUI";
 import { useMe } from "@/store/useStore";
+import { usePendingNav } from "@/hooks/use-pending-nav";
 
 function isActive(pathname: string, href: string) {
   return href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -18,6 +19,7 @@ function isActive(pathname: string, href: string) {
 
 export function Sidebar() {
   const pathname = usePathname();
+  const [pending, setPending] = usePendingNav();
   const openAdd = useUI((s) => s.openAdd);
   const me = useMe();
 
@@ -35,13 +37,15 @@ export function Sidebar() {
 
       <nav className="flex flex-col gap-1">
         {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
-          const active = isActive(pathname, href);
+          const active = pending === href || (!pending && isActive(pathname, href));
           return (
             <Link
               key={href}
               href={href}
+              prefetch
+              onClick={() => setPending(href)}
               className={cn(
-                "group flex items-center gap-3 rounded-[13px] px-3 py-2.5 text-[0.92rem] font-medium transition-colors",
+                "group flex items-center gap-3 rounded-[13px] px-3 py-2.5 text-[0.92rem] font-medium transition-all active:scale-[0.98]",
                 active
                   ? "bg-brand-soft text-brand-on-soft"
                   : "text-text-2 hover:bg-surface-inset hover:text-text",
