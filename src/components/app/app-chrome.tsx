@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { motion } from "framer-motion";
 import { useStore } from "@/store/useStore";
 import { isFirebaseConfigured } from "@/lib/firebase";
 import { AppShell } from "./app-shell";
@@ -12,21 +11,14 @@ import { Button } from "@/components/ui/button";
 
 function Splash() {
   return (
-    <div className="fixed inset-0 flex flex-col items-center justify-center gap-5 bg-bg">
-      <motion.div
-        initial={{ scale: 0.85, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ type: "spring", stiffness: 260, damping: 20 }}
-      >
-        <TallyMark size={64} />
-      </motion.div>
-      <motion.div className="h-1 w-24 overflow-hidden rounded-full bg-surface-inset" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-        <motion.div
-          className="h-full w-1/2 rounded-full bg-brand"
-          animate={{ x: ["-100%", "220%"] }}
-          transition={{ duration: 1.1, repeat: Infinity, ease: "easeInOut" }}
-        />
-      </motion.div>
+    <div className="fixed inset-0 flex flex-col items-center justify-center gap-6 bg-bg">
+      <div className="flex items-center gap-2.5 animate-breathe">
+        <TallyMark size={54} />
+        <span className="font-display text-2xl font-bold tracking-[-0.03em] text-text">Tally</span>
+      </div>
+      <div className="h-1 w-24 overflow-hidden rounded-full bg-surface-inset">
+        <div className="animate-loader-slide h-full w-1/3 rounded-full bg-brand" />
+      </div>
     </div>
   );
 }
