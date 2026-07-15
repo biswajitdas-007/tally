@@ -25,6 +25,7 @@ export async function verifyUser(req: Request): Promise<AuthUser | null> {
     const { payload } = await jwtVerify(token, JWKS, {
       issuer: `https://securetoken.google.com/${projectId}`,
       audience: projectId,
+      algorithms: ["RS256"], // Firebase signs with RS256 — reject anything else
     });
     if (typeof payload.sub !== "string") return null;
     return {

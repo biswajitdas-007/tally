@@ -1,28 +1,32 @@
-import { NextResponse } from "next/server";
 import { verifyUser } from "@/lib/auth-server";
 import { collections, type UserDoc } from "@/lib/db";
 import { notifyChange } from "@/lib/notify";
+import { badRequest, isStr, json, serverError, unauthorized } from "@/lib/api-helpers";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
   const user = await verifyUser(req);
-  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!user) return unauthorized();
 
-  const b = (await req.json().catch(() => null)) as { name?: string; upiId?: string; socketId?: string } | null;
-  if (!b) return NextResponse.json({ error: "bad-request" }, { status: 400 });
+  try {
+    const b = (await req.json().catch(() => null)) as Record<string, unknown> | null;
+    if (!b) return badRequest();
 
-  const { users, groups } = await collections();
-  const set: Partial<UserDoc> = { updatedAt: new Date() };
-  if (typeof b.name === "string" && b.name.trim()) set.name = b.name.trim();
-  if (typeof b.upiId === "string") set.upiId = b.upiId.trim();
-  await users.updateOne({ _id: user.uid }, { $set: set }, { upsert: true });
+    const { users, groups } = await collections();
+    const set: Partial<UserDoc> = { updatedAt: new Date() };
+    if (isStr(b.name) && (b.name as string).trim()) set.name = (b.name as string).trim().slice(0, 80);
+    if (isStr(b.upiId)) set.upiId = (b.upiId as string).trim().slice(0, 120);
+    await users.updateOne({ _id: user.uid }, { $set: set }, { upsert: true });
 
-  // Let people who share groups with me refresh my profile.
-  const myGroups = await groups.find({ memberUids: user.uid }, { projection: { memberUids: 1 } }).toArray();
-  const all = [...new Set(myGroups.flatMap((g) => g.memberUids))];
-  await notifyChange(all, user.uid, undefined, b.socketId);
+    // Let people who share groups with me refresh my profile.
+    const myGroups = await groups.find({ memberUids: user.uid }, { projection: { memberUids: 1 } }).toArray();
+    const all = [...new Set(myGroups.flatMap((g) => g.memberUids))];
+    await notifyChange(all, user.uid, undefined, isStr(b.socketId) ? (b.socketId as string) : undefined);
 
-  return NextResponse.json({ ok: true });
+    return json({ ok: true });
+  } catch {
+    return serverError();
+  }
 }
