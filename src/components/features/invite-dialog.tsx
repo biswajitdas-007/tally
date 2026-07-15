@@ -115,8 +115,8 @@ export function InviteDialog() {
       ) : (
         <div className="flex flex-col gap-4 pt-2">
           <div className="flex items-center gap-3 rounded-[14px] bg-brand-soft p-3.5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand text-on-brand">
-              <Mail className="h-5 w-5" />
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand text-on-brand">
+              <Mail className="h-5 w-5 shrink-0" />
             </div>
             <p className="text-[0.85rem] leading-snug text-brand-on-soft">
               Your friend signs in with Google — no passwords, and balances sync automatically.
@@ -127,7 +127,6 @@ export function InviteDialog() {
             <Input
               type="email"
               inputMode="email"
-              autoFocus
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="friend@gmail.com"
