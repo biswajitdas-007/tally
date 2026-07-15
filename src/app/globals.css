@@ -387,6 +387,48 @@ input[type="number"]::-webkit-inner-spin-button {
   animation: fade-up 0.45s var(--ease-out) both;
 }
 
+/* Splash — visible from first paint (no opacity-0 flash) */
+@keyframes loader-slide {
+  0% {
+    transform: translateX(-130%);
+  }
+  100% {
+    transform: translateX(280%);
+  }
+}
+.animate-loader-slide {
+  animation: loader-slide 1.05s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+@keyframes breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 1;
+  }
+}
+.animate-breathe {
+  animation: breathe 1.9s ease-in-out infinite;
+}
+
+/* Fast page transition */
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-page-in {
+  animation: page-in 0.22s var(--ease-out) both;
+}
+
 .ledger-grid {
   background-image: linear-gradient(
     to right,
