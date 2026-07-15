@@ -164,7 +164,7 @@ export function SettleSheet() {
               {UPI_APPS.map((app) => (
                 <a
                   key={app.id}
-                  href={buildAppUri(app.scheme, { vpa: payee!.upiId!, name: payee!.name, amount, note })}
+                  href={buildAppUri(app, { vpa: payee!.upiId!, name: payee!.name, amount, note })}
                   className="flex items-center justify-center gap-2 rounded-[13px] border border-border bg-surface py-3.5 text-[0.9rem] font-semibold text-text transition-all hover:border-border-strong hover:bg-surface-2 active:scale-[0.98]"
                 >
                   <span className="h-2.5 w-2.5 rounded-full" style={{ background: app.color }} />
