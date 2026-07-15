@@ -58,8 +58,12 @@ export function SyncManager() {
       }
     }
 
+    let lastVisRefetch = 0;
     const onVisible = () => {
-      if (document.visibilityState === "visible") debouncedRefetch();
+      if (document.visibilityState !== "visible") return;
+      if (Date.now() - lastVisRefetch < 8000) return; // don't refetch on every glance
+      lastVisRefetch = Date.now();
+      debouncedRefetch();
     };
     document.addEventListener("visibilitychange", onVisible);
 
