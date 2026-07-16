@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Check, Copy, Share2, QrCode as QrIcon } from "lucide-react";
 import { Sheet } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -10,9 +10,12 @@ import { UpiQR } from "./upi-qr";
 import { useStore, useMe, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { useToast } from "@/components/ui/toast";
+import { scopedDebts, type ScopeAmount, type ScopeId } from "@/lib/balances";
 import { buildAppUri, buildUpiUri, isValidVpa, UPI_APPS } from "@/lib/upi";
-import { formatINR } from "@/lib/utils";
+import { formatINR, cn } from "@/lib/utils";
 import { celebrate } from "@/lib/celebrate";
+
+const scopeKey = (id: ScopeId) => id ?? "__direct__";
 
 export function SettleSheet() {
   const target = useUI((s) => s.settle);
@@ -20,36 +23,73 @@ export function SettleSheet() {
   const settleUp = useStore((s) => s.settleUp);
   const updateProfile = useStore((s) => s.updateProfile);
   const people = useStore((s) => s.people);
+  const expenses = useStore((s) => s.expenses);
+  const groups = useStore((s) => s.groups);
   const me = useMe();
   const myId = useMyId() ?? "";
   const { toast } = useToast();
 
   const [upiDraft, setUpiDraft] = useState("");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [lastTarget, setLastTarget] = useState(target);
 
-  useEffect(() => {
-    if (target) setUpiDraft("");
-  }, [target]);
+  // Which ledgers this settle covers. `groupId === undefined` ⇒ person-level:
+  // pull every scope you share with them. Otherwise it's a single scope.
+  const scopes = useMemo<ScopeAmount[]>(() => {
+    if (!target) return [];
+    if (target.groupId === undefined) {
+      const debt = scopedDebts(expenses, myId).find((d) => d.personId === target.personId);
+      return debt?.scopes ?? [];
+    }
+    return [{ scopeId: target.groupId ?? null, amount: target.amount }];
+  }, [target, expenses, myId]);
+
+  // Reset selection (all scopes) + draft whenever the sheet opens for a new
+  // target — adjusting state during render, no effect needed.
+  if (target !== lastTarget) {
+    setLastTarget(target);
+    setSelected(new Set(scopes.map((s) => scopeKey(s.scopeId))));
+    setUpiDraft("");
+  }
 
   const person = target ? people.find((p) => p.id === target.personId) ?? null : null;
-  const youOwe = (target?.amount ?? 0) < 0;
-  const amount = Math.abs(target?.amount ?? 0);
+  const multiScope = scopes.length > 1;
+  const scopeLabel = (id: ScopeId) => (id === null ? "Direct" : groups.find((g) => g.id === id)?.name ?? "Group");
+
+  const activeScopes = scopes.filter((s) => selected.has(scopeKey(s.scopeId)));
+  const selectedNet = activeScopes.reduce((a, s) => a + s.amount, 0);
+  const youPay = selectedNet < -0.01;
+  const amount = Math.abs(selectedNet);
 
   // Who receives the money in this settlement.
-  const payee = youOwe ? person : me;
-  const payer = youOwe ? me : person;
+  const payee = youPay ? person : me;
+  const payer = youPay ? me : person;
   const note = "Tally settle up";
 
   const upiUri = useMemo(() => {
-    if (!payee?.upiId || !isValidVpa(payee.upiId)) return null;
+    if (!payee?.upiId || !isValidVpa(payee.upiId) || amount < 0.01) return null;
     return buildUpiUri({ vpa: payee.upiId, name: payee.name, amount, note });
   }, [payee, amount]);
 
   if (!target || !person) return null;
 
+  function toggle(id: ScopeId) {
+    const key = scopeKey(id);
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
   function confirmSettled() {
-    if (youOwe) settleUp({ from: myId, to: person!.id, amount, groupId: target!.groupId ?? null });
-    else settleUp({ from: person!.id, to: myId, amount, groupId: target!.groupId ?? null });
-    toast({ message: youOwe ? `Settled up with ${person!.name.split(" ")[0]}` : "Payment recorded" });
+    // Record a settlement in each selected ledger so only those scopes clear.
+    for (const s of activeScopes) {
+      if (s.amount < -0.01) settleUp({ from: myId, to: person!.id, amount: Math.abs(s.amount), groupId: s.scopeId });
+      else if (s.amount > 0.01) settleUp({ from: person!.id, to: myId, amount: s.amount, groupId: s.scopeId });
+    }
+    toast({ message: youPay ? `Settled up with ${person!.name.split(" ")[0]}` : "Payment recorded" });
     celebrate();
     close();
   }
@@ -66,10 +106,11 @@ export function SettleSheet() {
     }
   }
 
-  const needsOwnUpi = !youOwe && !upiUri; // they owe you but you have no UPI id
+  const needsOwnUpi = !youPay && amount >= 0.01 && !upiUri; // they owe you but you have no UPI id
+  const nothingSelected = activeScopes.length === 0;
 
   return (
-    <Sheet open onClose={close} title={youOwe ? "Settle up" : "Request payment"}>
+    <Sheet open onClose={close} title={youPay ? "Settle up" : "Request payment"}>
       <div className="flex flex-col gap-5 pt-1">
         {/* Direction summary */}
         <div className="flex items-center justify-center gap-3">
@@ -87,6 +128,45 @@ export function SettleSheet() {
             <span className="text-[0.72rem] text-text-3">{payee?.id === myId ? "You" : payee?.name.split(" ")[0]}</span>
           </div>
         </div>
+
+        {/* Pick which ledgers to settle (only when there's more than one) */}
+        {multiScope && (
+          <div>
+            <p className="mb-2 px-0.5 text-[0.8rem] font-semibold text-text-2">What to settle</p>
+            <div className="flex flex-col gap-1.5">
+              {scopes.map((s) => {
+                const on = selected.has(scopeKey(s.scopeId));
+                const owe = s.amount < 0;
+                return (
+                  <button
+                    key={scopeKey(s.scopeId)}
+                    onClick={() => toggle(s.scopeId)}
+                    className={cn(
+                      "flex items-center gap-3 rounded-[13px] border px-3.5 py-3 text-left transition-all",
+                      on ? "border-brand/50 bg-brand-soft" : "border-border bg-surface",
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-colors",
+                        on ? "border-brand bg-brand text-on-brand" : "border-border-strong",
+                      )}
+                    >
+                      {on && <Check className="h-3.5 w-3.5" strokeWidth={3} />}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate text-[0.9rem] font-medium text-text">
+                      {scopeLabel(s.scopeId)}
+                    </span>
+                    <span className={cn("tnum text-[0.85rem] font-semibold", owe ? "text-negative" : "text-positive")}>
+                      {owe ? "you owe " : "owes you "}
+                      {formatINR(Math.abs(s.amount))}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {needsOwnUpi ? (
           /* You need a UPI id to receive */
@@ -118,7 +198,7 @@ export function SettleSheet() {
           <div className="relative mx-auto w-full max-w-[300px] overflow-hidden rounded-[20px] bg-white text-[#15201a] shadow-[var(--shadow-md)]">
             <div className="px-5 pb-3 pt-4 text-center">
               <p className="text-[0.7rem] font-semibold uppercase tracking-[0.12em] text-[#8b958c]">
-                {youOwe ? "Paying" : "Pay to"}
+                {youPay ? "Paying" : "Pay to"}
               </p>
               <p className="mt-0.5 font-display text-lg font-bold">{payee?.name}</p>
               <p className="text-[0.8rem] text-[#58645c]">{payee?.upiId}</p>
@@ -148,18 +228,10 @@ export function SettleSheet() {
               <p className="mt-3 font-display text-3xl font-bold tracking-tight tnum">{formatINR(amount)}</p>
             </div>
           </div>
-        ) : (
-          /* Paying someone with no UPI id on file */
-          <div className="rounded-[16px] border border-border bg-surface-2 p-4 text-center">
-            <p className="text-sm text-text-2">
-              {person.name.split(" ")[0]} hasn&apos;t added a UPI ID yet. Pay them another way, then mark
-              it settled below.
-            </p>
-          </div>
-        )}
+        ) : null}
 
         {/* Pick a UPI app to pay with (opens that exact app, prefilled) */}
-        {youOwe && upiUri && (
+        {youPay && upiUri && (
           <div>
             <p className="mb-2 px-0.5 text-[0.8rem] font-semibold text-text-2">Pay with your UPI app</p>
             <div className="grid grid-cols-2 gap-2">
@@ -193,7 +265,7 @@ export function SettleSheet() {
               <Copy className="h-4 w-4" /> Copy ID
             </Button>
           )}
-          {!youOwe && (
+          {!youPay && amount >= 0.01 && (
             <Button variant="secondary" size="md" className="flex-1" onClick={shareReminder}>
               <Share2 className="h-4 w-4" /> Remind
             </Button>
@@ -202,9 +274,13 @@ export function SettleSheet() {
 
         {/* Confirm */}
         <div className="sticky bottom-0 -mx-5 border-t border-border bg-surface px-5 pb-1 pt-3">
-          <Button variant="primary" size="lg" fullWidth onClick={confirmSettled}>
+          <Button variant="primary" size="lg" fullWidth disabled={nothingSelected} onClick={confirmSettled}>
             <Check className="h-4.5 w-4.5" />
-            {youOwe ? `I've paid ${formatINR(amount)}` : `Mark ${formatINR(amount)} received`}
+            {amount < 0.01
+              ? "Mark settled"
+              : youPay
+                ? `I've paid ${formatINR(amount)}`
+                : `Mark ${formatINR(amount)} received`}
           </Button>
         </div>
       </div>

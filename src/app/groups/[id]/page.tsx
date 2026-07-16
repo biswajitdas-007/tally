@@ -1,10 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { ChevronLeft, Plus, UserPlus, MoreVertical, Trash2, ArrowLeftRight, Receipt } from "lucide-react";
-import { PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Segmented } from "@/components/ui/segmented";
@@ -22,7 +21,7 @@ import {
 import { useStore, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { useToast } from "@/components/ui/toast";
-import { myNetWithMembers, mySettleRows, simplifiedPlan } from "@/lib/balances";
+import { memberNet, mySettleRows, simplifiedPlan } from "@/lib/balances";
 import { formatINR } from "@/lib/utils";
 
 export default function GroupDetailPage() {
@@ -42,6 +41,16 @@ export default function GroupDetailPage() {
 
   const group = groups.find((g) => g.id === id);
 
+  // Scoped to THIS group's ledger only — a settlement here won't touch your
+  // balances elsewhere, and simplification runs within the group.
+  const groupExpenses = useMemo(
+    () => expenses.filter((e) => e.groupId === id).sort((a, b) => +new Date(b.date) - +new Date(a.date)),
+    [expenses, id],
+  );
+  const myNet = useMemo(() => memberNet(groupExpenses).get(myId) ?? 0, [groupExpenses, myId]);
+  const myBalances = useMemo(() => mySettleRows(groupExpenses, myId), [groupExpenses, myId]);
+  const transfers = useMemo(() => simplifiedPlan(groupExpenses), [groupExpenses]);
+
   if (!group) {
     return (
       <Card>
@@ -58,16 +67,6 @@ export default function GroupDetailPage() {
   const members = group.memberIds
     .map((mid) => people.find((p) => p.id === mid))
     .filter(Boolean) as NonNullable<ReturnType<typeof people.find>>[];
-  const groupExpenses = expenses
-    .filter((e) => e.groupId === group.id)
-    .sort((a, b) => +new Date(b.date) - +new Date(a.date));
-
-  // Balances are global (across all expenses + settlements) so settle-ups
-  // reflect here too — filtered to this group's members.
-  const memberSet = new Set(group.memberIds);
-  const myNet = myNetWithMembers(expenses, myId, group.memberIds);
-  const myBalances = mySettleRows(expenses, myId).filter((r) => memberSet.has(r.personId));
-  const transfers = simplifiedPlan(expenses).filter((t) => memberSet.has(t.from) && memberSet.has(t.to));
   const nameOf = (pid: string) => (pid === myId ? "You" : people.find((p) => p.id === pid)?.name.split(" ")[0] ?? "—");
 
   return (
