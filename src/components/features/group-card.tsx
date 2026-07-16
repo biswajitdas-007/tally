@@ -1,8 +1,9 @@
 "use client";
 
+import { useMemo } from "react";
 import Link from "next/link";
 import { useStore, useMyId } from "@/store/useStore";
-import { myNetWithMembers } from "@/lib/balances";
+import { myScopeNet } from "@/lib/balances";
 import { AvatarStack } from "@/components/ui/avatar";
 import { formatINR, cn } from "@/lib/utils";
 import type { Group } from "@/lib/types";
@@ -15,7 +16,7 @@ export function GroupCard({ group }: { group: Group }) {
   const members = group.memberIds.map((id) => people.find((p) => p.id === id)).filter(Boolean) as NonNullable<
     ReturnType<typeof people.find>
   >[];
-  const net = myNetWithMembers(expenses, myId ?? "", group.memberIds);
+  const net = useMemo(() => myScopeNet(expenses, myId ?? "", group.id), [expenses, myId, group.id]);
   const settled = Math.abs(net) < 0.5;
 
   return (
