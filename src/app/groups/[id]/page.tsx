@@ -58,7 +58,7 @@ export default function GroupDetailPage() {
           icon={Receipt}
           title="Group not found"
           description="This group may have been deleted."
-          action={<Button onClick={() => router.push("/groups")}>Back to groups</Button>}
+          action={<Button onClick={() => router.push("/groups")}>Back to ledgers</Button>}
         />
       </Card>
     );
@@ -72,7 +72,7 @@ export default function GroupDetailPage() {
   return (
     <div className="flex flex-col gap-5">
       <Link href="/groups" className="-mb-1 flex w-fit items-center gap-1 text-sm font-medium text-text-2 hover:text-text">
-        <ChevronLeft className="h-4 w-4" /> Groups
+        <ChevronLeft className="h-4 w-4" /> Ledgers
       </Link>
 
       {/* Group header */}
