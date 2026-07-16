@@ -53,18 +53,21 @@ export function Sheet({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: 0.22, ease: "easeOut" }}
             onClick={() => dismissable && onClose()}
           />
           <motion.div
             className={cn(
-              "relative mt-auto flex w-full max-h-[92vh] flex-col overflow-hidden border border-border bg-surface shadow-[var(--shadow-lg)]",
-              "rounded-t-[26px] md:mt-0 md:max-w-[440px] md:rounded-[24px]",
+              // Cap height against the top safe-area inset so the sheet (and its
+              // close button) never rides up under the notch / status bar.
+              "relative mt-auto flex w-full max-h-[calc(100dvh-max(env(safe-area-inset-top),20px))] flex-col overflow-hidden border border-border bg-surface shadow-[var(--shadow-lg)]",
+              "rounded-t-[26px] md:mt-0 md:max-h-[88vh] md:max-w-[440px] md:rounded-[24px]",
               className,
             )}
             initial={isDesktop ? { opacity: 0, scale: 0.96, y: 8 } : { y: "100%" }}
             animate={isDesktop ? { opacity: 1, scale: 1, y: 0 } : { y: 0 }}
             exit={isDesktop ? { opacity: 0, scale: 0.97, y: 8 } : { y: "100%" }}
-            transition={{ type: "spring", stiffness: 380, damping: 36 }}
+            transition={{ type: "spring", stiffness: 340, damping: 34, mass: 0.9 }}
             drag={isDesktop || !dismissable ? false : "y"}
             dragConstraints={{ top: 0, bottom: 0 }}
             dragElastic={{ top: 0, bottom: 0.6 }}
