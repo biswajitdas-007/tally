@@ -30,9 +30,20 @@ export async function POST(req: Request) {
     // You may only record settlements that you're a party to.
     if (from !== user.uid && to !== user.uid) return forbidden();
 
-    const { expenses, users } = await collections();
-    const found = await users.find({ _id: { $in: [from, to] } }, { projection: { _id: 1 } }).toArray();
-    const memberUids = [...new Set([user.uid, ...found.map((u) => u._id)])];
+    const { expenses, users, groups } = await collections();
+    const gid = (b.groupId as string | null) ?? null;
+
+    let memberUids: string[];
+    if (gid) {
+      // A group settlement is part of that group's ledger — visible to everyone
+      // in it, and only recordable by a member.
+      const g = await groups.findOne({ _id: gid });
+      if (!g || !g.memberUids.includes(user.uid)) return forbidden();
+      memberUids = g.memberUids;
+    } else {
+      const found = await users.find({ _id: { $in: [from, to] } }, { projection: { _id: 1 } }).toArray();
+      memberUids = [...new Set([user.uid, ...found.map((u) => u._id)])];
+    }
 
     const doc: ExpenseDoc = {
       _id: b.id as string,
