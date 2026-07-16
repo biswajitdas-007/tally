@@ -1,16 +1,20 @@
 "use client";
 
+import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { ArrowDownLeft, ArrowUpRight, Check } from "lucide-react";
 import { useStore, useMyId } from "@/store/useStore";
-import { overallSummary } from "@/lib/balances";
+import { scopedDebts, scopedTotals } from "@/lib/balances";
 import { AnimatedAmount } from "@/components/ui/animated-number";
 import { formatINR } from "@/lib/utils";
 
 export function BalanceHero() {
   const expenses = useStore((s) => s.expenses);
   const myId = useMyId();
-  const { net, owedToYou, youOwe } = overallSummary(expenses, myId ?? "");
+  const { net, owedToYou, youOwe } = useMemo(
+    () => scopedTotals(scopedDebts(expenses, myId ?? "")),
+    [expenses, myId],
+  );
   const settled = Math.abs(net) < 0.5;
   const positive = net >= 0;
 
