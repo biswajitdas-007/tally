@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { CalendarDays, Check, Trash2, Repeat, StickyNote } from "lucide-react";
 import { Sheet } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { Segmented } from "@/components/ui/segmented";
-import { Switch } from "@/components/ui/switch";
 import { Avatar } from "@/components/ui/avatar";
 import { CategoryIcon } from "@/components/ui/chip";
 import { Calendar } from "@/components/ui/calendar";
@@ -74,11 +73,13 @@ export function AddExpenseSheet() {
   const pool: ID[] = useMemo(() => {
     if (groupId) return groups.find((g) => g.id === groupId)?.memberIds ?? [myId];
     return [myId, ...friends.map((f) => f.id)];
-  }, [groupId, groups, friends]);
+  }, [groupId, groups, friends, myId]);
 
-  // Initialize when the sheet opens.
-  useEffect(() => {
-    if (!open) return;
+  // Initialize the moment the sheet opens — during render, so there's never a
+  // flash of the previous expense's values before an effect corrects them.
+  const [wasOpen, setWasOpen] = useState(false);
+  if (open && !wasOpen) {
+    setWasOpen(true);
     if (editing) {
       setAmount(String(editing.amount));
       setDescription(editing.description);
@@ -92,6 +93,7 @@ export function AddExpenseSheet() {
       setShowNotes(Boolean(editing.notes));
       setRecurring(editing.recurring === "monthly");
       setSplitMode("equal");
+      setExact({});
     } else {
       setAmount("");
       setDescription("");
@@ -99,10 +101,7 @@ export function AddExpenseSheet() {
       setCatTouched(false);
       setGroupId(groupCtx);
       setPaidBy(myId);
-      const initPool = groupCtx
-        ? groups.find((g) => g.id === groupCtx)?.memberIds ?? [myId]
-        : [myId];
-      setParticipants(initPool);
+      setParticipants(groupCtx ? groups.find((g) => g.id === groupCtx)?.memberIds ?? [myId] : [myId]);
       setDate(new Date());
       setNotes("");
       setShowNotes(false);
@@ -110,8 +109,9 @@ export function AddExpenseSheet() {
       setSplitMode("equal");
       setExact({});
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  } else if (!open && wasOpen) {
+    setWasOpen(false);
+  }
 
   const total = parseFloat(amount) || 0;
 
