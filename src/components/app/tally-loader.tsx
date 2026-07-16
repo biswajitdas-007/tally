@@ -1,23 +1,37 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 const MESSAGES = [
-  "Splitting the bill…",
-  "Counting the chai ☕",
-  "Settling the score…",
-  "Balancing the books…",
-  "Tallying it up 🧮",
-  "Who owes whom…",
+  "Splitting the bill, not the friendship 🤝",
+  "Chasing that last ₹10…",
+  "Doing the awkward money math 🧮",
+  "Who ordered the extra naan? 🫓",
+  "Counting chai money ☕",
+  "Untangling who owes whom…",
+  "Rounding up the rupees 🪙",
+  "Settling scores, keeping friends 😎",
+  "Making sure nobody underpays 👀",
+  "Balancing the books 📒",
 ];
+
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
 
 /** Branded loader: the tally marks draw in one-by-one, with a rotating message. */
 export function TallyLoader({ size = 78 }: { size?: number }) {
+  const messages = useMemo(() => shuffle(MESSAGES), []);
   const [i, setI] = useState(0);
   useEffect(() => {
-    const t = setInterval(() => setI((v) => (v + 1) % MESSAGES.length), 1400);
+    const t = setInterval(() => setI((v) => (v + 1) % messages.length), 1300);
     return () => clearInterval(t);
-  }, []);
+  }, [messages.length]);
 
   return (
     <div className="flex flex-col items-center gap-5">
@@ -48,9 +62,9 @@ export function TallyLoader({ size = 78 }: { size?: number }) {
           strokeLinecap="round"
         />
       </svg>
-      <div className="h-5 overflow-hidden text-center">
-        <p key={i} className="animate-fade-up text-sm font-medium text-text-2">
-          {MESSAGES[i]}
+      <div className="flex min-h-[2.4rem] items-start justify-center px-6 text-center">
+        <p key={i} className="animate-fade-up max-w-[17rem] text-sm font-medium text-text-2">
+          {messages[i]}
         </p>
       </div>
     </div>
