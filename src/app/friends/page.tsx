@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/chip";
 import { EmptyState } from "@/components/ui/empty-state";
+import { useMemo } from "react";
 import { useStore, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
-import { mySettleRows } from "@/lib/balances";
+import { scopedDebts } from "@/lib/balances";
 import { formatINR } from "@/lib/utils";
 
 export default function FriendsPage() {
@@ -19,8 +20,14 @@ export default function FriendsPage() {
   const openInvite = useUI((s) => s.openInvite);
   const openSettle = useUI((s) => s.openSettle);
 
-  const friends = people.filter((p) => p.id !== myId).sort((a, b) => a.name.localeCompare(b.name));
-  const balMap = new Map(mySettleRows(expenses, myId).map((r) => [r.personId, r.amount]));
+  const friends = useMemo(
+    () => people.filter((p) => p.id !== myId).sort((a, b) => a.name.localeCompare(b.name)),
+    [people, myId],
+  );
+  const balMap = useMemo(
+    () => new Map(scopedDebts(expenses, myId).map((d) => [d.personId, d.total])),
+    [expenses, myId],
+  );
 
   return (
     <div>

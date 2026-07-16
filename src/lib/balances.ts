@@ -7,45 +7,6 @@ import { monthKey } from "./utils";
  * Positive net ⇒ they are owed money.
  */
 
-/** Net balance between YOU and every other person (+ ⇒ they owe you). */
-export function pairwiseWithMe(expenses: Expense[], meId: ID): Map<ID, number> {
-  const map = new Map<ID, number>();
-  const add = (id: ID, v: number) => map.set(id, (map.get(id) ?? 0) + v);
-
-  for (const e of expenses) {
-    for (const s of e.splits) {
-      if (s.personId === e.paidBy) continue;
-      if (e.paidBy === meId) add(s.personId, s.amount); // they owe you
-      else if (s.personId === meId) add(e.paidBy, -s.amount); // you owe them
-    }
-  }
-  return map;
-}
-
-export interface OverallSummary {
-  net: number;
-  owedToYou: number;
-  youOwe: number;
-  byPerson: { personId: ID; amount: number }[];
-}
-
-/**
- * Global settle-up summary: your net, and the *simplified* per-person amounts
- * (from the minimal-transaction plan across everyone). Computed over all
- * expenses + settlements, so a settle-up reflects consistently everywhere.
- */
-export function overallSummary(expenses: Expense[], meId: ID): OverallSummary {
-  const net = memberNet(expenses).get(meId) ?? 0;
-  const byPerson = mySettleRows(expenses, meId);
-  let owedToYou = 0;
-  let youOwe = 0;
-  for (const b of byPerson) {
-    if (b.amount > 0) owedToYou += b.amount;
-    else youOwe += -b.amount;
-  }
-  return { net, owedToYou, youOwe, byPerson };
-}
-
 /** Net for each member within a scope (+ ⇒ owed). */
 export function memberNet(expenses: Expense[]): Map<ID, number> {
   const net = new Map<ID, number>();
@@ -110,10 +71,88 @@ export function mySettleRows(expenses: Expense[], meId: ID): { personId: ID; amo
     .sort((a, b) => b.amount - a.amount);
 }
 
-/** Your total net with the members of a group (global — reflects settlements). */
-export function myNetWithMembers(expenses: Expense[], meId: ID, memberIds: ID[]): number {
-  const pw = pairwiseWithMe(expenses, meId);
-  return memberIds.reduce((sum, m) => (m === meId ? sum : sum + (pw.get(m) ?? 0)), 0);
+/* ---------- scoped balances ---------- *
+ * Each group is its own ledger; non-group expenses are the "direct" ledger.
+ * Simplification runs *within* a scope, so a group's settle-up is independent
+ * of your direct dealings with the same person, and a settlement recorded in
+ * one scope only clears that scope. `scopeId === null` means the direct ledger.
+ */
+
+export type ScopeId = ID | null;
+
+export interface ScopeAmount {
+  scopeId: ScopeId; // null ⇒ direct (non-group)
+  amount: number; // + they owe you, − you owe them, within this scope
+}
+
+export interface PersonDebt {
+  personId: ID;
+  total: number; // sum across scopes
+  scopes: ScopeAmount[]; // nonzero scopes, largest first
+}
+
+const DIRECT_KEY = "__direct__";
+
+function bucketByScope(expenses: Expense[]): Map<string, Expense[]> {
+  const m = new Map<string, Expense[]>();
+  for (const e of expenses) {
+    const key = e.groupId ?? DIRECT_KEY;
+    const arr = m.get(key);
+    if (arr) arr.push(e);
+    else m.set(key, [e]);
+  }
+  return m;
+}
+
+/** Your net within a single scope (a group id, or null for the direct ledger). */
+export function myScopeNet(expenses: Expense[], meId: ID, scopeId: ScopeId): number {
+  let net = 0;
+  for (const e of expenses) {
+    if ((e.groupId ?? null) !== scopeId) continue;
+    if (e.paidBy === meId) net += e.amount;
+    for (const s of e.splits) if (s.personId === meId) net -= s.amount;
+  }
+  return net;
+}
+
+/** Per-person debts, broken down by scope and simplified within each scope. */
+export function scopedDebts(expenses: Expense[], meId: ID): PersonDebt[] {
+  const byPerson = new Map<ID, ScopeAmount[]>();
+  for (const [key, list] of bucketByScope(expenses)) {
+    const scopeId: ScopeId = key === DIRECT_KEY ? null : key;
+    for (const row of mySettleRows(list, meId)) {
+      const arr = byPerson.get(row.personId);
+      const entry: ScopeAmount = { scopeId, amount: row.amount };
+      if (arr) arr.push(entry);
+      else byPerson.set(row.personId, [entry]);
+    }
+  }
+
+  const out: PersonDebt[] = [];
+  for (const [personId, scopes] of byPerson) {
+    const nonzero = scopes.filter((s) => Math.abs(s.amount) > 0.01);
+    if (!nonzero.length) continue;
+    nonzero.sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount));
+    out.push({ personId, total: nonzero.reduce((a, s) => a + s.amount, 0), scopes: nonzero });
+  }
+  return out.sort((a, b) => b.total - a.total);
+}
+
+export interface ScopedTotals {
+  net: number;
+  owedToYou: number;
+  youOwe: number;
+}
+
+/** Roll a person-debt list up into your overall net / owed / owe. */
+export function scopedTotals(debts: PersonDebt[]): ScopedTotals {
+  let owedToYou = 0;
+  let youOwe = 0;
+  for (const d of debts) {
+    if (d.total > 0.01) owedToYou += d.total;
+    else if (d.total < -0.01) youOwe += -d.total;
+  }
+  return { net: owedToYou - youOwe, owedToYou, youOwe };
 }
 
 /** Your personal share of one expense (0 for settlements). */

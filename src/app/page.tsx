@@ -1,17 +1,18 @@
 "use client";
 
+import { useMemo } from "react";
 import Link from "next/link";
 import { Plus, ArrowLeftRight, Users, UserPlus, ChevronRight, Receipt } from "lucide-react";
 import { BalanceHero } from "@/components/features/balance-hero";
 import { GroupCard } from "@/components/features/group-card";
 import { ExpenseRow } from "@/components/features/expense-row";
-import { PersonBalanceRow } from "@/components/features/person-balance-row";
+import { PersonDebtRow } from "@/components/features/person-debt-row";
 import { Card, SectionHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useStore, useMe, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { useToast } from "@/components/ui/toast";
-import { overallSummary } from "@/lib/balances";
+import { scopedDebts } from "@/lib/balances";
 
 function greeting() {
   const h = new Date().getHours();
@@ -58,13 +59,16 @@ export default function HomePage() {
   const openSettle = useUI((s) => s.openSettle);
   const { toast } = useToast();
 
-  const summary = overallSummary(expenses, myId ?? "");
-  const recent = [...expenses].sort((a, b) => +new Date(b.date) - +new Date(a.date)).slice(0, 6);
+  const debts = useMemo(() => scopedDebts(expenses, myId ?? ""), [expenses, myId]);
+  const recent = useMemo(
+    () => [...expenses].sort((a, b) => +new Date(b.date) - +new Date(a.date)).slice(0, 6),
+    [expenses],
+  );
   const topGroups = groups.slice(0, 3);
 
   function quickSettle() {
-    const debt = summary.byPerson.find((b) => b.amount < 0);
-    if (debt) openSettle({ personId: debt.personId, amount: debt.amount });
+    const debt = debts.find((b) => b.total < 0);
+    if (debt) openSettle({ personId: debt.personId, amount: debt.total });
     else toast({ message: "You're all settled up 🎉", tone: "info" });
   }
 
@@ -89,11 +93,11 @@ export default function HomePage() {
       {/* Balances by person */}
       <section>
         <SectionHeader title="Who owes whom" />
-        {summary.byPerson.length > 0 ? (
+        {debts.length > 0 ? (
           <Card className="overflow-hidden">
             <div className="divide-y divide-border">
-              {summary.byPerson.slice(0, 5).map((b) => (
-                <PersonBalanceRow key={b.personId} personId={b.personId} amount={b.amount} />
+              {debts.slice(0, 5).map((d) => (
+                <PersonDebtRow key={d.personId} debt={d} />
               ))}
             </div>
           </Card>
