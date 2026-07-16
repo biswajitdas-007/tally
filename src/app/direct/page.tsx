@@ -32,7 +32,7 @@ export default function DirectPage() {
   return (
     <div className="flex flex-col gap-5">
       <Link href="/groups" className="-mb-1 flex w-fit items-center gap-1 text-sm font-medium text-text-2 hover:text-text">
-        <ChevronLeft className="h-4 w-4" /> Groups
+        <ChevronLeft className="h-4 w-4" /> Ledgers
       </Link>
 
       {/* Header */}
