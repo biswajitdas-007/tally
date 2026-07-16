@@ -17,8 +17,8 @@ export default function GroupsPage() {
   return (
     <div className="flex flex-col gap-5">
       <PageHeader
-        title="Groups"
-        subtitle={`${groups.length} ${groups.length === 1 ? "group" : "groups"}`}
+        title="Ledgers"
+        subtitle="Direct splits & your groups"
         action={
           <Button size="sm" onClick={openCreateGroup}>
             <Plus className="h-4 w-4" /> New
