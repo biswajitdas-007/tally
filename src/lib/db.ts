@@ -46,6 +46,7 @@ export interface ExpenseDoc {
   isSettlement?: boolean;
   createdBy: string;
   createdAt: string;
+  accountId?: string;
 }
 
 /** Private personal money entry — belongs to exactly one user, never shared. */
@@ -58,6 +59,8 @@ export interface FinanceDoc {
   date: string;
   note?: string;
   createdAt: string;
+  accountId?: string;
+  transfer?: boolean;
 }
 
 export async function collections() {
@@ -135,6 +138,7 @@ function toClientExpense(e: ExpenseDoc): Expense {
     isSettlement: e.isSettlement,
     createdBy: e.createdBy,
     createdAt: e.createdAt,
+    accountId: e.accountId,
   };
 }
 
@@ -147,6 +151,8 @@ function toClientFinance(f: FinanceDoc): FinanceEntry {
     date: f.date,
     note: f.note,
     createdAt: f.createdAt,
+    accountId: f.accountId,
+    transfer: f.transfer,
   };
 }
 

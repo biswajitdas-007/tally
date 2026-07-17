@@ -9,7 +9,8 @@ import { Segmented } from "@/components/ui/segmented";
 import { Switch } from "@/components/ui/switch";
 import { ACCOUNT_KIND_META, ACCOUNT_KINDS, LIABILITY_KIND_META, LIABILITY_KINDS } from "@/lib/categories";
 import { nextDueDate } from "@/lib/liabilities";
-import { useStore } from "@/store/useStore";
+import { linkedDelta } from "@/lib/accounts";
+import { useStore, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { useToast } from "@/components/ui/toast";
 import { cn, uid as newId } from "@/lib/utils";
@@ -24,7 +25,10 @@ export function WealthSheet() {
   const close = useUI((s) => s.closeWealth);
   const accounts = useStore((s) => s.accounts);
   const liabilities = useStore((s) => s.liabilities);
+  const finance = useStore((s) => s.finance);
+  const expenses = useStore((s) => s.expenses);
   const setWealth = useStore((s) => s.setWealth);
+  const myId = useMyId() ?? "";
   const { toast } = useToast();
 
   const editingAccount = editId ? accounts.find((a) => a.id === editId) ?? null : null;
@@ -57,7 +61,8 @@ export function WealthSheet() {
       setMode("asset");
       setName(editingAccount.name);
       setKind(editingAccount.kind);
-      setAmount(String(editingAccount.balance));
+      // Show the live balance (baseline + everything logged against it).
+      setAmount(String(editingAccount.balance + linkedDelta(editingAccount.id, finance, expenses, myId)));
     } else if (editingLiability) {
       const el = editingLiability;
       setMode("liability");
@@ -96,7 +101,9 @@ export function WealthSheet() {
     if (!valid) return;
     const id = editing?.id ?? newId(isAsset ? "acc_" : "liab_");
     if (isAsset) {
-      const acc: Account = { id, name: name.trim(), kind: kind as AccountKind, balance: total };
+      // Store the baseline: what you entered minus what's already logged against it.
+      const baseline = editingAccount ? total - linkedDelta(id, finance, expenses, myId) : total;
+      const acc: Account = { id, name: name.trim(), kind: kind as AccountKind, balance: baseline };
       setWealth({ accounts: editingAccount ? accounts.map((a) => (a.id === id ? acc : a)) : [acc, ...accounts] });
     } else {
       const liab: Liability = { id, name: name.trim(), kind: kind as LiabilityKind, outstanding: total };
