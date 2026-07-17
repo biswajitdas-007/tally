@@ -72,6 +72,8 @@ export async function POST(req: Request) {
       isSettlement: false,
       createdBy: user.uid,
       createdAt: new Date().toISOString(),
+      // Only the payer's own account is attached (it's their private cash source).
+      accountId: isStr(b.accountId) && b.paidBy === user.uid ? (b.accountId as string).slice(0, 40) : undefined,
     };
     await expenses.insertOne(doc);
 

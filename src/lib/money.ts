@@ -21,7 +21,7 @@ export function monthlyMoney(finance: FinanceEntry[], expenses: Expense[], meId:
   let income = 0;
   let personalSpend = 0;
   for (const f of finance) {
-    if (monthKey(f.date) !== mKey) continue;
+    if (f.transfer || monthKey(f.date) !== mKey) continue;
     if (f.type === "income") income += f.amount;
     else personalSpend += f.amount;
   }
@@ -42,7 +42,7 @@ export function activeMonths(finance: FinanceEntry[], expenses: Expense[], meId:
 /** Personal entries logged for a month, newest first. */
 export function financeForMonth(finance: FinanceEntry[], mKey: string): FinanceEntry[] {
   return finance
-    .filter((f) => monthKey(f.date) === mKey)
+    .filter((f) => !f.transfer && monthKey(f.date) === mKey)
     .sort((a, b) => +new Date(b.date) - +new Date(a.date));
 }
 
@@ -62,7 +62,7 @@ export function spendByCategory(
     if (share > 0) add(e.category, share);
   }
   for (const f of finance) {
-    if (f.type !== "expense" || monthKey(f.date) !== mKey) continue;
+    if (f.type !== "expense" || f.transfer || monthKey(f.date) !== mKey) continue;
     add(f.category as CategoryKey, f.amount);
   }
 
