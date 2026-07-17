@@ -1,6 +1,6 @@
 import type { Collection } from "mongodb";
 import { getDb } from "./mongodb";
-import type { Expense, Group, Person } from "./types";
+import type { Expense, FinanceEntry, Group, Person } from "./types";
 import type { PushSubscription } from "web-push";
 
 /* ---------- server document shapes ---------- */
@@ -45,12 +45,25 @@ export interface ExpenseDoc {
   createdAt: string;
 }
 
+/** Private personal money entry — belongs to exactly one user, never shared. */
+export interface FinanceDoc {
+  _id: string;
+  uid: string;
+  type: FinanceEntry["type"];
+  amount: number;
+  category: string;
+  date: string;
+  note?: string;
+  createdAt: string;
+}
+
 export async function collections() {
   const db = await getDb();
   return {
     users: db.collection<UserDoc>("users"),
     groups: db.collection<GroupDoc>("groups"),
     expenses: db.collection<ExpenseDoc>("expenses"),
+    finance: db.collection<FinanceDoc>("finance"),
     invites: db.collection<{ _id: string }>("invites"),
   };
 }
@@ -122,20 +135,34 @@ function toClientExpense(e: ExpenseDoc): Expense {
   };
 }
 
+function toClientFinance(f: FinanceDoc): FinanceEntry {
+  return {
+    id: f._id,
+    type: f.type,
+    amount: f.amount,
+    category: f.category,
+    date: f.date,
+    note: f.note,
+    createdAt: f.createdAt,
+  };
+}
+
 export interface ClientState {
   me: Person;
   people: Person[];
   groups: Group[];
   expenses: Expense[];
+  finance: FinanceEntry[];
 }
 
 /** The full view for one user: profile, everyone they share with, groups, expenses. */
 export async function buildState(uid: string): Promise<ClientState> {
-  const { users, groups, expenses } = await collections();
+  const { users, groups, expenses, finance } = await collections();
   const meDoc = ((await users.findOne({ _id: uid })) ?? { _id: uid, name: "You" }) as UserDoc;
 
   const groupDocs = await groups.find({ memberUids: uid }).toArray();
   const expenseDocs = await expenses.find({ memberUids: uid }).sort({ date: -1 }).toArray();
+  const financeDocs = await finance.find({ uid }).sort({ date: -1 }).toArray();
 
   const placeholders = new Map<string, Person>();
   const realIds = new Set<string>([uid]);
@@ -164,6 +191,7 @@ export async function buildState(uid: string): Promise<ClientState> {
     people: [...byId.values()],
     groups: groupDocs.map(toClientGroup),
     expenses: expenseDocs.map(toClientExpense),
+    finance: financeDocs.map(toClientFinance),
   };
 }
 
