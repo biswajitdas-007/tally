@@ -11,6 +11,7 @@ import { CategoryIcon } from "@/components/ui/chip";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CATEGORY_LIST } from "@/lib/categories";
+import { AccountPicker } from "./account-picker";
 import { useStore, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { useToast } from "@/components/ui/toast";
@@ -63,6 +64,7 @@ export function AddExpenseSheet() {
   const [notes, setNotes] = useState("");
   const [showNotes, setShowNotes] = useState(false);
   const [recurring, setRecurring] = useState(false);
+  const [accountId, setAccountId] = useState<ID | null>(null);
 
   const friends = people.filter((p) => p.id !== myId);
   const inGroup = Boolean(groupCtx);
@@ -94,6 +96,7 @@ export function AddExpenseSheet() {
       setRecurring(editing.recurring === "monthly");
       setSplitMode("equal");
       setExact({});
+      setAccountId(editing.accountId ?? null);
     } else {
       setAmount("");
       setDescription("");
@@ -108,6 +111,7 @@ export function AddExpenseSheet() {
       setRecurring(false);
       setSplitMode("equal");
       setExact({});
+      setAccountId(null);
     }
   } else if (!open && wasOpen) {
     setWasOpen(false);
@@ -164,6 +168,7 @@ export function AddExpenseSheet() {
       date: date.toISOString(),
       notes: notes.trim() || undefined,
       recurring: (recurring ? "monthly" : "none") as "monthly" | "none",
+      accountId: paidBy === myId ? accountId ?? undefined : undefined,
     };
     if (editing) {
       updateExpense(editing.id, payload);
@@ -296,6 +301,9 @@ export function AddExpenseSheet() {
             })}
           </div>
         </div>
+
+        {/* Paid from (your account) */}
+        {paidBy === myId && <AccountPicker value={accountId} onChange={setAccountId} label="Paid from" />}
 
         {/* Participants + split */}
         <div>

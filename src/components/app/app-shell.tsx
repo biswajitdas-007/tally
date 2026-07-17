@@ -8,6 +8,7 @@ import { AddExpenseSheet } from "@/components/features/add-expense-sheet";
 import { AddMoneySheet } from "@/components/features/add-money-sheet";
 import { BudgetSheet } from "@/components/features/budget-sheet";
 import { WealthSheet } from "@/components/features/wealth-sheet";
+import { ParkSheet } from "@/components/features/park-sheet";
 import { SettleSheet } from "@/components/features/settle-sheet";
 import { InviteDialog } from "@/components/features/invite-dialog";
 import { CreateGroupSheet } from "@/components/features/create-group-sheet";
@@ -36,6 +37,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <AddMoneySheet />
       <BudgetSheet />
       <WealthSheet />
+      <ParkSheet />
       <SettleSheet />
       <InviteDialog />
       <CreateGroupSheet />
