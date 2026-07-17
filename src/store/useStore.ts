@@ -1,7 +1,7 @@
 "use client";
 
 import { create } from "zustand";
-import type { CategoryKey, Expense, Group, ID, Person, Split } from "@/lib/types";
+import type { CategoryKey, Expense, FinanceEntry, FinanceType, Group, ID, Person, Split } from "@/lib/types";
 import type { ServerState } from "@/lib/api";
 import * as api from "@/lib/api";
 import { avatarColor, uid } from "@/lib/utils";
@@ -27,6 +27,7 @@ interface State {
   people: Person[];
   groups: Group[];
   expenses: Expense[];
+  finance: FinanceEntry[];
   lastDeleted: Expense | null;
 
   setAuthReady: () => void;
@@ -47,11 +48,15 @@ interface State {
 
   settleUp: (input: { from: ID; to: ID; amount: number; groupId?: ID | null; note?: string }) => void;
   updateProfile: (patch: { name?: string; upiId?: string }) => void;
+
+  addFinance: (input: { type: FinanceType; amount: number; category: string; date?: string; note?: string }) => void;
+  updateFinance: (id: ID, patch: Partial<FinanceEntry>) => void;
+  deleteFinance: (id: ID) => void;
 }
 
 let lastLoadHash = "";
-const stateHash = (s: { people: unknown[]; groups: unknown[]; expenses: unknown[] }) =>
-  JSON.stringify([s.people, s.groups, s.expenses]);
+const stateHash = (s: { people: unknown[]; groups: unknown[]; expenses: unknown[]; finance: unknown[] }) =>
+  JSON.stringify([s.people, s.groups, s.expenses, s.finance]);
 
 const now = () => new Date().toISOString();
 const reconcile = (res: Response | null, get: () => State) => {
@@ -67,6 +72,7 @@ export const useStore = create<State>()((set, get) => ({
   people: [],
   groups: [],
   expenses: [],
+  finance: [],
   lastDeleted: null,
 
   setAuthReady: () => set({ authReady: true }),
@@ -80,6 +86,7 @@ export const useStore = create<State>()((set, get) => ({
       people: state.people,
       groups: state.groups,
       expenses: state.expenses,
+      finance: state.finance,
       dataReady: true,
       loadError: false,
     });
@@ -92,6 +99,7 @@ export const useStore = create<State>()((set, get) => ({
       people: [],
       groups: [],
       expenses: [],
+      finance: [],
       lastDeleted: null,
       dataReady: false,
       loadError: false,
@@ -196,6 +204,30 @@ export const useStore = create<State>()((set, get) => ({
       people: s.people.map((p) => (p.id === meId ? { ...p, ...patch } : p)),
     }));
     api.updateProfileApi({ ...patch }).then((res) => reconcile(res, get));
+  },
+
+  addFinance: ({ type, amount, category, date, note }) => {
+    const e: FinanceEntry = {
+      id: uid("f_"),
+      type,
+      amount,
+      category,
+      date: date ?? now(),
+      note,
+      createdAt: now(),
+    };
+    set((s) => ({ finance: [e, ...s.finance] }));
+    api.addFinanceApi({ ...e }).then((res) => reconcile(res, get));
+  },
+
+  updateFinance: (id, patch) => {
+    set((s) => ({ finance: s.finance.map((f) => (f.id === id ? { ...f, ...patch } : f)) }));
+    api.updateFinanceApi(id, { ...patch }).then((res) => reconcile(res, get));
+  },
+
+  deleteFinance: (id) => {
+    set((s) => ({ finance: s.finance.filter((f) => f.id !== id) }));
+    api.deleteFinanceApi(id).then((res) => reconcile(res, get));
   },
 }));
 
