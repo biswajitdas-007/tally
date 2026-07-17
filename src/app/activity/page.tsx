@@ -50,7 +50,7 @@ export default function ActivityPage() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search expenses"
-          className="h-12 w-full rounded-[14px] border border-border bg-surface-2 pl-11 pr-4 text-[0.95rem] text-text placeholder:text-text-3 focus:border-brand focus:bg-surface focus:outline-none focus:ring-4 focus:ring-[color-mix(in_srgb,var(--brand)_16%,transparent)]"
+          className="h-12 w-full rounded-[14px] border border-border bg-surface-2 pl-11 pr-4 text-[0.95rem] text-text placeholder:text-text-3 transition-colors focus:border-border-strong focus:bg-surface focus:outline-none"
         />
       </div>
 
