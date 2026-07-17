@@ -3,6 +3,7 @@
 import { Sidebar } from "./sidebar";
 import { BottomNav } from "./bottom-nav";
 import { TopBar } from "./top-bar";
+import { MenuDrawer } from "./menu-drawer";
 import { AddExpenseSheet } from "@/components/features/add-expense-sheet";
 import { SettleSheet } from "@/components/features/settle-sheet";
 import { InviteDialog } from "@/components/features/invite-dialog";
@@ -25,6 +26,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </div>
 
       <BottomNav />
+      <MenuDrawer />
 
       {/* Global surfaces */}
       <AddExpenseSheet />
