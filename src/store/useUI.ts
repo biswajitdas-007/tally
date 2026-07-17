@@ -31,6 +31,10 @@ interface UIState {
   groupOpen: boolean;
   openCreateGroup: () => void;
   closeCreateGroup: () => void;
+
+  menuOpen: boolean;
+  openMenu: () => void;
+  closeMenu: () => void;
 }
 
 export const useUI = create<UIState>((set) => ({
@@ -53,4 +57,8 @@ export const useUI = create<UIState>((set) => ({
   groupOpen: false,
   openCreateGroup: () => set({ groupOpen: true }),
   closeCreateGroup: () => set({ groupOpen: false }),
+
+  menuOpen: false,
+  openMenu: () => set({ menuOpen: true }),
+  closeMenu: () => set({ menuOpen: false }),
 }));
