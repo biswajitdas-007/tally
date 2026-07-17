@@ -3,16 +3,41 @@
 import { useMemo } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ChevronLeft, Plus, Wallet, Scale, TrendingUp } from "lucide-react";
+import { ChevronLeft, Plus, Wallet, Scale, TrendingUp, CalendarClock, AlertTriangle, Lightbulb, Sparkles, type LucideIcon } from "lucide-react";
 import { Card, SectionHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useStore, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { ACCOUNT_KIND_META, LIABILITY_KIND_META } from "@/lib/categories";
 import { BankBadge } from "@/components/features/bank-badge";
-import { healthScore, netWorth, gradeColor } from "@/lib/health";
+import { healthScore, netWorth, gradeColor, avgMonthly } from "@/lib/health";
+import { budgetIncome } from "@/lib/money";
+import { debtSuggestions, monthlyLiability, type DebtSuggestion } from "@/lib/debt";
 import { formatINR, cn } from "@/lib/utils";
 import type { AccountKind, LiabilityKind } from "@/lib/types";
+
+const SUGGESTION_ICON: Record<DebtSuggestion["tone"], LucideIcon> = { warn: AlertTriangle, info: Lightbulb, good: Sparkles };
+
+function SuggestionCard({ s }: { s: DebtSuggestion }) {
+  const Icon = SUGGESTION_ICON[s.tone];
+  const styles =
+    s.tone === "warn"
+      ? "bg-negative-soft text-negative"
+      : s.tone === "good"
+        ? "bg-positive-soft text-positive"
+        : "bg-brand-soft text-brand";
+  return (
+    <div className="flex gap-3 rounded-[15px] border border-border bg-surface p-3.5 shadow-[var(--shadow-xs)]">
+      <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full", styles)}>
+        <Icon className="h-[18px] w-[18px]" />
+      </span>
+      <div className="min-w-0">
+        <p className="text-[0.88rem] font-semibold leading-snug text-text">{s.title}</p>
+        <p className="mt-0.5 text-[0.8rem] leading-snug text-text-2">{s.detail}</p>
+      </div>
+    </div>
+  );
+}
 
 export default function WealthPage() {
   const finance = useStore((s) => s.finance);
@@ -28,6 +53,25 @@ export default function WealthPage() {
     [finance, expenses, myId, budget, accounts, liabilities],
   );
   const nw = useMemo(() => netWorth(accounts, liabilities), [accounts, liabilities]);
+
+  const avg = useMemo(() => avgMonthly(finance, expenses, myId), [finance, expenses, myId]);
+  const income = budgetIncome(budget, avg.income);
+  const emiTotal = useMemo(() => monthlyLiability(liabilities), [liabilities]);
+  const liquid = useMemo(
+    () => accounts.filter((a) => a.kind !== "investment").reduce((s, a) => s + a.balance, 0),
+    [accounts],
+  );
+  const dti = income > 0 ? emiTotal / income : 0;
+  const suggestions = useMemo(
+    () => debtSuggestions({ liabilities, income, spend: avg.spend, liquid }),
+    [liabilities, income, avg.spend, liquid],
+  );
+  const dtiStyle =
+    dti >= 0.4
+      ? { background: "var(--negative-soft)", color: "var(--negative)" }
+      : dti >= 0.2
+        ? { background: "color-mix(in srgb, var(--warn) 16%, transparent)", color: "var(--warn)" }
+        : { background: "var(--positive-soft)", color: "var(--positive)" };
 
   return (
     <div className="flex flex-col gap-6">
@@ -120,6 +164,38 @@ export default function WealthPage() {
           </div>
         </div>
       </Card>
+
+      {/* Monthly commitments */}
+      {emiTotal > 0 && (
+        <Card className="flex items-center justify-between p-4">
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-inset text-text-2">
+              <CalendarClock className="h-5 w-5" />
+            </span>
+            <div>
+              <p className="text-[0.72rem] font-semibold uppercase tracking-wide text-text-3">Monthly EMIs</p>
+              <p className="mt-0.5 font-display text-xl font-bold tnum text-text">{formatINR(emiTotal)}</p>
+            </div>
+          </div>
+          {income > 0 && (
+            <span className="rounded-full px-2.5 py-1 text-[0.76rem] font-semibold" style={dtiStyle}>
+              {Math.round(dti * 100)}% of income
+            </span>
+          )}
+        </Card>
+      )}
+
+      {/* Suggestions */}
+      {suggestions.length > 0 && (
+        <section>
+          <SectionHeader title="Suggestions" />
+          <div className="flex flex-col gap-2.5">
+            {suggestions.map((s) => (
+              <SuggestionCard key={s.key} s={s} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Accounts */}
       <section>
