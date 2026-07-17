@@ -5,6 +5,7 @@ import type { Account, Budget, CategoryKey, Expense, FinanceEntry, FinanceType, 
 import type { ServerState } from "@/lib/api";
 import * as api from "@/lib/api";
 import { avatarColor, uid } from "@/lib/utils";
+import { catchUpLiabilities } from "@/lib/liabilities";
 
 interface AddExpenseInput {
   groupId: ID | null;
@@ -96,19 +97,23 @@ export const useStore = create<State>()((set, get) => ({
   setUser: (id) => set({ currentUserId: id }),
 
   loadState: (state) => {
-    lastLoadHash = stateHash(state);
+    // Apply any elapsed auto-debit payments the moment data loads, and persist.
+    const { list, changed } = catchUpLiabilities(state.liabilities);
+    const next: ServerState = { ...state, liabilities: list };
+    lastLoadHash = stateHash(next);
     set({
-      me: state.me,
-      people: state.people,
-      groups: state.groups,
-      expenses: state.expenses,
-      finance: state.finance,
-      budget: state.budget,
-      accounts: state.accounts,
-      liabilities: state.liabilities,
+      me: next.me,
+      people: next.people,
+      groups: next.groups,
+      expenses: next.expenses,
+      finance: next.finance,
+      budget: next.budget,
+      accounts: next.accounts,
+      liabilities: next.liabilities,
       dataReady: true,
       loadError: false,
     });
+    if (changed) api.setWealthApi({ accounts: next.accounts, liabilities: next.liabilities }).then((res) => reconcile(res, get));
   },
 
   signOut: () =>
