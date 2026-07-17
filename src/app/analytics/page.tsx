@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { TrendingDown, TrendingUp, Download, ChartPie } from "lucide-react";
+import { TrendingDown, TrendingUp, Download, ChartPie, AlertTriangle, Sparkles, Lightbulb, type LucideIcon } from "lucide-react";
 import { PageHeader } from "@/components/app/page-header";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -9,11 +9,38 @@ import { Donut } from "@/components/charts/donut";
 import { BarChart } from "@/components/charts/bar-chart";
 import { useStore, useMyId } from "@/store/useStore";
 import { CATEGORIES } from "@/lib/categories";
-import { categoryBreakdown, monthlySpend, monthlyTrend, myShare } from "@/lib/balances";
+import { myShare } from "@/lib/balances";
+import { monthlyMoney, spendByCategory } from "@/lib/money";
+import { insights, type Insight } from "@/lib/insights";
 import { formatINR, monthLabel, cn } from "@/lib/utils";
+
+const INSIGHT_ICON: Record<Insight["tone"], LucideIcon> = { warn: AlertTriangle, good: Sparkles, info: Lightbulb };
+
+function InsightCard({ ins }: { ins: Insight }) {
+  const Icon = INSIGHT_ICON[ins.tone];
+  const styles =
+    ins.tone === "warn"
+      ? "bg-negative-soft text-negative"
+      : ins.tone === "good"
+        ? "bg-positive-soft text-positive"
+        : "bg-brand-soft text-brand";
+  return (
+    <div className="flex gap-3 rounded-[15px] border border-border bg-surface p-3.5 shadow-[var(--shadow-xs)]">
+      <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full", styles)}>
+        <Icon className="h-[18px] w-[18px]" />
+      </span>
+      <div className="min-w-0">
+        <p className="text-[0.88rem] font-semibold leading-snug text-text">{ins.title}</p>
+        <p className="mt-0.5 text-[0.8rem] leading-snug text-text-2">{ins.detail}</p>
+      </div>
+    </div>
+  );
+}
 
 export default function AnalyticsPage() {
   const expenses = useStore((s) => s.expenses);
+  const finance = useStore((s) => s.finance);
+  const budget = useStore((s) => s.budget);
   const groups = useStore((s) => s.groups);
   const myId = useMyId() ?? "";
 
@@ -22,13 +49,25 @@ export default function AnalyticsPage() {
   const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const prevKey = `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, "0")}`;
 
-  const thisSpend = monthlySpend(expenses, myId, thisKey);
-  const lastSpend = monthlySpend(expenses, myId, prevKey);
+  const tips = useMemo(() => insights(finance, expenses, budget, myId), [finance, expenses, budget, myId]);
+
+  const thisSpend = useMemo(() => monthlyMoney(finance, expenses, myId, thisKey).spend, [finance, expenses, myId, thisKey]);
+  const lastSpend = useMemo(() => monthlyMoney(finance, expenses, myId, prevKey).spend, [finance, expenses, myId, prevKey]);
   const delta = lastSpend > 0 ? ((thisSpend - lastSpend) / lastSpend) * 100 : 0;
   const up = thisSpend > lastSpend;
 
-  const trend = monthlyTrend(expenses, myId, 6).map((t) => ({ label: monthLabel(t.key), value: t.amount }));
-  const breakdown = categoryBreakdown(expenses, myId, thisKey);
+  const trend = useMemo(() => {
+    const base = new Date();
+    const out: { label: string; value: number }[] = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(base.getFullYear(), base.getMonth() - i, 1);
+      const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      out.push({ label: monthLabel(k), value: monthlyMoney(finance, expenses, myId, k).spend });
+    }
+    return out;
+  }, [finance, expenses, myId]);
+
+  const breakdown = useMemo(() => spendByCategory(finance, expenses, myId, thisKey), [finance, expenses, myId, thisKey]);
   const totalBreakdown = breakdown.reduce((a, b) => a + b.amount, 0) || 1;
   const donutData = breakdown.map((b) => ({
     label: CATEGORIES[b.category].label,
@@ -49,8 +88,9 @@ export default function AnalyticsPage() {
         icon: k === "personal" ? "👤" : groups.find((g) => g.id === k)?.icon ?? "•",
         amount: v,
       }))
+      .filter((g) => g.amount > 0.5)
       .sort((a, b) => b.amount - a.amount);
-  }, [expenses, groups]);
+  }, [expenses, groups, myId]);
   const byGroupTotal = byGroup.reduce((a, g) => a + g.amount, 0) || 1;
 
   function exportCsv() {
@@ -78,7 +118,7 @@ export default function AnalyticsPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Insights"
-        subtitle="Your spending, split-adjusted"
+        subtitle="Your full spending picture"
         action={
           <button
             onClick={exportCsv}
@@ -89,13 +129,20 @@ export default function AnalyticsPage() {
         }
       />
 
+      {/* Smart insights */}
+      {tips.length > 0 && (
+        <section className="flex flex-col gap-2.5">
+          {tips.map((t) => (
+            <InsightCard key={t.key} ins={t} />
+          ))}
+        </section>
+      )}
+
       {/* This month */}
       <Card className="p-5">
         <p className="text-[0.72rem] font-semibold uppercase tracking-wide text-text-3">You spent this month</p>
         <div className="mt-1 flex items-end gap-3">
-          <p className="font-display text-[2.4rem] font-bold leading-none tracking-[-0.03em] tnum">
-            {formatINR(thisSpend)}
-          </p>
+          <p className="font-display text-[2.4rem] font-bold leading-none tracking-[-0.03em] tnum">{formatINR(thisSpend)}</p>
           {lastSpend > 0 && (
             <span
               className={cn(
@@ -109,9 +156,7 @@ export default function AnalyticsPage() {
           )}
         </div>
         <p className="mt-1 text-[0.82rem] text-text-2">
-          {lastSpend > 0
-            ? `${up ? "Up" : "Down"} from ${formatINR(lastSpend)} last month`
-            : "Your share across all expenses"}
+          {lastSpend > 0 ? `${up ? "Up" : "Down"} from ${formatINR(lastSpend)} last month` : "Personal spending + your share of splits"}
         </p>
 
         <div className="mt-5 border-t border-border pt-4">
@@ -151,26 +196,25 @@ export default function AnalyticsPage() {
       </Card>
 
       {/* By group */}
-      <Card className="p-5">
-        <p className="mb-3 text-[0.72rem] font-semibold uppercase tracking-wide text-text-3">Spending by group</p>
-        <div className="flex flex-col gap-3.5">
-          {byGroup.map((g) => (
-            <div key={g.name}>
-              <div className="mb-1.5 flex items-center gap-2">
-                <span>{g.icon}</span>
-                <span className="flex-1 text-[0.85rem] font-medium text-text">{g.name}</span>
-                <span className="text-[0.85rem] font-semibold text-text tnum">{formatINR(g.amount)}</span>
+      {byGroup.length > 0 && (
+        <Card className="p-5">
+          <p className="mb-3 text-[0.72rem] font-semibold uppercase tracking-wide text-text-3">Split spending by group</p>
+          <div className="flex flex-col gap-3.5">
+            {byGroup.map((g) => (
+              <div key={g.name}>
+                <div className="mb-1.5 flex items-center gap-2">
+                  <span>{g.icon}</span>
+                  <span className="flex-1 text-[0.85rem] font-medium text-text">{g.name}</span>
+                  <span className="text-[0.85rem] font-semibold text-text tnum">{formatINR(g.amount)}</span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-surface-inset">
+                  <div className="h-full rounded-full bg-brand transition-all" style={{ width: `${(g.amount / byGroupTotal) * 100}%` }} />
+                </div>
               </div>
-              <div className="h-2 overflow-hidden rounded-full bg-surface-inset">
-                <div
-                  className="h-full rounded-full bg-brand transition-all"
-                  style={{ width: `${(g.amount / byGroupTotal) * 100}%` }}
-                />
-              </div>
-            </div>
-          ))}
-        </div>
-      </Card>
+            ))}
+          </div>
+        </Card>
+      )}
     </div>
   );
 }
