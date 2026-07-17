@@ -1,7 +1,7 @@
 "use client";
 
 import { create } from "zustand";
-import type { ID } from "@/lib/types";
+import type { FinanceType, ID } from "@/lib/types";
 
 export interface SettleTarget {
   /** The person on the other side of the balance. */
@@ -35,6 +35,12 @@ interface UIState {
   menuOpen: boolean;
   openMenu: () => void;
   closeMenu: () => void;
+
+  moneyOpen: boolean;
+  moneyType: FinanceType;
+  moneyEditId: ID | null;
+  openMoney: (type?: FinanceType, editId?: ID | null) => void;
+  closeMoney: () => void;
 }
 
 export const useUI = create<UIState>((set) => ({
@@ -61,4 +67,10 @@ export const useUI = create<UIState>((set) => ({
   menuOpen: false,
   openMenu: () => set({ menuOpen: true }),
   closeMenu: () => set({ menuOpen: false }),
+
+  moneyOpen: false,
+  moneyType: "expense",
+  moneyEditId: null,
+  openMoney: (type = "expense", editId = null) => set({ moneyOpen: true, moneyType: type, moneyEditId: editId }),
+  closeMoney: () => set({ moneyOpen: false, moneyEditId: null }),
 }));
