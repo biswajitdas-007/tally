@@ -89,3 +89,9 @@ export interface FinanceEntry {
   note?: string;
   createdAt: string;
 }
+
+/** Private monthly budget: typical take-home (for 50/30/20) + optional caps. */
+export interface Budget {
+  income?: number;
+  limits: Partial<Record<CategoryKey, number>>;
+}
