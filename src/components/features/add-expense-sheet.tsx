@@ -356,7 +356,7 @@ export function AddExpenseSheet() {
                         }
                         inputMode="decimal"
                         placeholder="0"
-                        className="w-16 rounded-lg bg-surface-inset px-2 py-1 text-right text-[0.9rem] tnum outline-none focus:ring-2 focus:ring-brand"
+                        className="w-16 rounded-lg bg-surface-inset px-2 py-1 text-right text-[0.9rem] tnum outline-none transition-colors focus:bg-surface"
                       />
                     </div>
                   ) : (
