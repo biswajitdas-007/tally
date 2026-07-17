@@ -1,7 +1,7 @@
 "use client";
 
 import { create } from "zustand";
-import type { CategoryKey, Expense, FinanceEntry, FinanceType, Group, ID, Person, Split } from "@/lib/types";
+import type { Budget, CategoryKey, Expense, FinanceEntry, FinanceType, Group, ID, Person, Split } from "@/lib/types";
 import type { ServerState } from "@/lib/api";
 import * as api from "@/lib/api";
 import { avatarColor, uid } from "@/lib/utils";
@@ -28,6 +28,7 @@ interface State {
   groups: Group[];
   expenses: Expense[];
   finance: FinanceEntry[];
+  budget: Budget;
   lastDeleted: Expense | null;
 
   setAuthReady: () => void;
@@ -52,11 +53,13 @@ interface State {
   addFinance: (input: { type: FinanceType; amount: number; category: string; date?: string; note?: string }) => void;
   updateFinance: (id: ID, patch: Partial<FinanceEntry>) => void;
   deleteFinance: (id: ID) => void;
+
+  setBudget: (patch: Partial<Budget>) => void;
 }
 
 let lastLoadHash = "";
-const stateHash = (s: { people: unknown[]; groups: unknown[]; expenses: unknown[]; finance: unknown[] }) =>
-  JSON.stringify([s.people, s.groups, s.expenses, s.finance]);
+const stateHash = (s: { people: unknown[]; groups: unknown[]; expenses: unknown[]; finance: unknown[]; budget: unknown }) =>
+  JSON.stringify([s.people, s.groups, s.expenses, s.finance, s.budget]);
 
 const now = () => new Date().toISOString();
 const reconcile = (res: Response | null, get: () => State) => {
@@ -73,6 +76,7 @@ export const useStore = create<State>()((set, get) => ({
   groups: [],
   expenses: [],
   finance: [],
+  budget: { limits: {} },
   lastDeleted: null,
 
   setAuthReady: () => set({ authReady: true }),
@@ -87,6 +91,7 @@ export const useStore = create<State>()((set, get) => ({
       groups: state.groups,
       expenses: state.expenses,
       finance: state.finance,
+      budget: state.budget,
       dataReady: true,
       loadError: false,
     });
@@ -100,6 +105,7 @@ export const useStore = create<State>()((set, get) => ({
       groups: [],
       expenses: [],
       finance: [],
+      budget: { limits: {} },
       lastDeleted: null,
       dataReady: false,
       loadError: false,
@@ -228,6 +234,12 @@ export const useStore = create<State>()((set, get) => ({
   deleteFinance: (id) => {
     set((s) => ({ finance: s.finance.filter((f) => f.id !== id) }));
     api.deleteFinanceApi(id).then((res) => reconcile(res, get));
+  },
+
+  setBudget: (patch) => {
+    set((s) => ({ budget: { ...s.budget, ...patch } }));
+    const next = get().budget;
+    api.setBudgetApi({ income: next.income, limits: next.limits }).then((res) => reconcile(res, get));
   },
 }));
 

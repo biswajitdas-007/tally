@@ -41,6 +41,10 @@ interface UIState {
   moneyEditId: ID | null;
   openMoney: (type?: FinanceType, editId?: ID | null) => void;
   closeMoney: () => void;
+
+  budgetOpen: boolean;
+  openBudget: () => void;
+  closeBudget: () => void;
 }
 
 export const useUI = create<UIState>((set) => ({
@@ -73,4 +77,8 @@ export const useUI = create<UIState>((set) => ({
   moneyEditId: null,
   openMoney: (type = "expense", editId = null) => set({ moneyOpen: true, moneyType: type, moneyEditId: editId }),
   closeMoney: () => set({ moneyOpen: false, moneyEditId: null }),
+
+  budgetOpen: false,
+  openBudget: () => set({ budgetOpen: true }),
+  closeBudget: () => set({ budgetOpen: false }),
 }));
