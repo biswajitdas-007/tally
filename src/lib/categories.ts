@@ -7,9 +7,15 @@ import {
   PartyPopper,
   HeartPulse,
   Shapes,
+  Wallet,
+  Gift,
+  TrendingUp,
+  Undo2,
+  HandCoins,
+  Coins,
   type LucideIcon,
 } from "lucide-react";
-import type { CategoryKey } from "./types";
+import type { CategoryKey, IncomeCategory } from "./types";
 
 export interface CategoryMeta {
   key: CategoryKey;
@@ -30,3 +36,20 @@ export const CATEGORIES: Record<CategoryKey, CategoryMeta> = {
 };
 
 export const CATEGORY_LIST = Object.values(CATEGORIES);
+
+export interface IncomeMeta {
+  key: IncomeCategory;
+  label: string;
+  icon: LucideIcon;
+}
+
+export const INCOME_CATEGORIES: Record<IncomeCategory, IncomeMeta> = {
+  salary: { key: "salary", label: "Salary", icon: Wallet },
+  bonus: { key: "bonus", label: "Bonus", icon: HandCoins },
+  investment: { key: "investment", label: "Investment", icon: TrendingUp },
+  refund: { key: "refund", label: "Refund", icon: Undo2 },
+  gift: { key: "gift", label: "Gift", icon: Gift },
+  other: { key: "other", label: "Other", icon: Coins },
+};
+
+export const INCOME_LIST = Object.values(INCOME_CATEGORIES);
