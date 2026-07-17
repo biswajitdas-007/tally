@@ -24,6 +24,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     if (isStr(b.category)) set.category = (b.category as string).slice(0, 40);
     if (isStr(b.date)) set.date = b.date as string;
     if (b.note !== undefined) set.note = isStr(b.note) ? (b.note as string).slice(0, 300) : undefined;
+    if (b.accountId !== undefined) set.accountId = isStr(b.accountId) ? (b.accountId as string).slice(0, 40) : undefined;
 
     if (Object.keys(set).length) await finance.updateOne({ _id: id, uid: user.uid }, { $set: set });
     return json({ ok: true });

@@ -9,6 +9,7 @@ import { Segmented } from "@/components/ui/segmented";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CATEGORIES, CATEGORY_LIST, INCOME_LIST } from "@/lib/categories";
+import { AccountPicker } from "./account-picker";
 import { useStore, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { useToast } from "@/components/ui/toast";
@@ -38,6 +39,7 @@ export function AddMoneySheet() {
   const [date, setDate] = useState<Date>(new Date());
   const [dateOpen, setDateOpen] = useState(false);
   const [note, setNote] = useState("");
+  const [accountId, setAccountId] = useState<string | null>(null);
 
   // Initialize during render when the sheet opens — no flash of stale values.
   const [wasOpen, setWasOpen] = useState(false);
@@ -49,12 +51,14 @@ export function AddMoneySheet() {
       setCategory(editing.category);
       setDate(new Date(editing.date));
       setNote(editing.note ?? "");
+      setAccountId(editing.accountId ?? null);
     } else {
       setType(initialType);
       setAmount("");
       setCategory(initialType === "income" ? "salary" : "food");
       setDate(new Date());
       setNote("");
+      setAccountId(null);
     }
   } else if (!open && wasOpen) {
     setWasOpen(false);
@@ -88,7 +92,7 @@ export function AddMoneySheet() {
 
   function save() {
     if (!valid) return;
-    const payload = { type, amount: total, category, date: date.toISOString(), note: note.trim() || undefined };
+    const payload = { type, amount: total, category, date: date.toISOString(), note: note.trim() || undefined, accountId: accountId ?? undefined };
     if (editing) {
       updateFinance(editing.id, payload);
       toast({ message: "Entry updated" });
@@ -161,6 +165,9 @@ export function AddMoneySheet() {
             })}
           </div>
         </div>
+
+        {/* Account */}
+        <AccountPicker value={accountId} onChange={setAccountId} label={isIncome ? "Into which account?" : "Paid from"} />
 
         {/* Date + note */}
         <div>

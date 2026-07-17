@@ -84,15 +84,18 @@ export function healthScore(opts: {
   budget: Budget;
   accounts: Account[];
   liabilities: Liability[];
+  unparked?: number;
 }): Health {
   const { finance, expenses, meId, budget, accounts, liabilities } = opts;
+  const unparked = opts.unparked ?? 0;
   const avg = avgMonthly(finance, expenses, meId);
   const income = budgetIncome(budget, avg.income);
   const spend = avg.spend;
-  const nw = netWorth(accounts, liabilities);
-  const liquid = accounts.filter((a) => a.kind !== "investment").reduce((a, x) => a + x.balance, 0);
+  const base = netWorth(accounts, liabilities);
+  const nw = { ...base, net: base.net + unparked };
+  const liquid = accounts.filter((a) => a.kind !== "investment").reduce((a, x) => a + x.balance, 0) + unparked;
   const totalEmi = liabilities.reduce((a, x) => a + (x.emi ?? 0), 0);
-  const hasHoldings = accounts.length > 0 || liabilities.length > 0;
+  const hasHoldings = accounts.length > 0 || liabilities.length > 0 || unparked > 0;
   const enough = income > 0 || hasHoldings;
 
   const pillars: Pillar[] = [];

@@ -43,6 +43,8 @@ export interface Expense {
   createdAt: string;
   isSettlement?: boolean;
   recurring?: "none" | "monthly" | "weekly";
+  /** The recorder's private account this cash moved through (payer paid, or payee received). */
+  accountId?: ID;
 }
 
 export interface Group {
@@ -88,6 +90,10 @@ export interface FinanceEntry {
   date: string;
   note?: string;
   createdAt: string;
+  /** Account this money moved through — income adds to it, expense subtracts. */
+  accountId?: ID;
+  /** True for internal "park" transfers — affects account balances, not your income/spend. */
+  transfer?: boolean;
 }
 
 /** Private monthly budget: typical take-home (for 50/30/20) + optional caps. */
