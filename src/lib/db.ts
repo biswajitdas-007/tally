@@ -1,6 +1,6 @@
 import type { Collection } from "mongodb";
 import { getDb } from "./mongodb";
-import type { Budget, Expense, FinanceEntry, Group, Person } from "./types";
+import type { Account, Budget, Expense, FinanceEntry, Group, Liability, Person } from "./types";
 import type { PushSubscription } from "web-push";
 
 /* ---------- server document shapes ---------- */
@@ -15,6 +15,8 @@ export interface UserDoc {
   contacts?: Person[];
   pushSubs?: PushSubscription[];
   budget?: Budget;
+  accounts?: Account[];
+  liabilities?: Liability[];
   updatedAt?: Date;
 }
 
@@ -155,6 +157,8 @@ export interface ClientState {
   expenses: Expense[];
   finance: FinanceEntry[];
   budget: Budget;
+  accounts: Account[];
+  liabilities: Liability[];
 }
 
 /** The full view for one user: profile, everyone they share with, groups, expenses. */
@@ -195,6 +199,8 @@ export async function buildState(uid: string): Promise<ClientState> {
     expenses: expenseDocs.map(toClientExpense),
     finance: financeDocs.map(toClientFinance),
     budget: meDoc.budget ?? { limits: {} },
+    accounts: meDoc.accounts ?? [],
+    liabilities: meDoc.liabilities ?? [],
   };
 }
 
