@@ -8,12 +8,13 @@ import { Textarea } from "@/components/ui/input";
 import { Segmented } from "@/components/ui/segmented";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CATEGORY_LIST, INCOME_LIST } from "@/lib/categories";
-import { useStore } from "@/store/useStore";
+import { CATEGORIES, CATEGORY_LIST, INCOME_LIST } from "@/lib/categories";
+import { useStore, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { useToast } from "@/components/ui/toast";
-import { cn, formatDate } from "@/lib/utils";
-import type { FinanceType } from "@/lib/types";
+import { budgetIncome, crossingWarning, monthlyMoney, spendByCategory } from "@/lib/money";
+import { cn, formatDate, monthKey } from "@/lib/utils";
+import type { CategoryKey, FinanceType } from "@/lib/types";
 
 export function AddMoneySheet() {
   const open = useUI((s) => s.moneyOpen);
@@ -21,9 +22,12 @@ export function AddMoneySheet() {
   const editId = useUI((s) => s.moneyEditId);
   const close = useUI((s) => s.closeMoney);
   const finance = useStore((s) => s.finance);
+  const expenses = useStore((s) => s.expenses);
+  const budget = useStore((s) => s.budget);
   const addFinance = useStore((s) => s.addFinance);
   const updateFinance = useStore((s) => s.updateFinance);
   const deleteFinance = useStore((s) => s.deleteFinance);
+  const myId = useMyId() ?? "";
   const { toast } = useToast();
 
   const editing = editId ? finance.find((f) => f.id === editId) ?? null : null;
@@ -66,6 +70,22 @@ export function AddMoneySheet() {
     setCategory(t === "income" ? "salary" : "food");
   }
 
+  // A nudge if a new current-month expense crosses a category cap or your income.
+  function budgetWarning(): string | null {
+    if (isIncome) return null;
+    const mKey = monthKey(date.toISOString());
+    if (mKey !== monthKey(new Date().toISOString())) return null;
+    const mm = monthlyMoney(finance, expenses, myId, mKey);
+
+    const cap = budget.limits[category as CategoryKey];
+    if (cap) {
+      const catBefore = spendByCategory(finance, expenses, myId, mKey).find((c) => c.category === category)?.amount ?? 0;
+      const w = crossingWarning(catBefore, catBefore + total, cap, CATEGORIES[category as CategoryKey]?.label ?? "category");
+      if (w) return w;
+    }
+    return crossingWarning(mm.spend, mm.spend + total, budgetIncome(budget, mm.income), "monthly income");
+  }
+
   function save() {
     if (!valid) return;
     const payload = { type, amount: total, category, date: date.toISOString(), note: note.trim() || undefined };
@@ -73,8 +93,9 @@ export function AddMoneySheet() {
       updateFinance(editing.id, payload);
       toast({ message: "Entry updated" });
     } else {
+      const warn = budgetWarning();
       addFinance(payload);
-      toast({ message: isIncome ? "Income added" : "Expense added" });
+      toast(warn ? { message: warn, tone: "info" } : { message: isIncome ? "Income added" : "Expense added" });
     }
     close();
   }
