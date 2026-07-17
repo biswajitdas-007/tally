@@ -103,7 +103,7 @@ export function BudgetSheet() {
                       onChange={(e) => setLimits((p) => ({ ...p, [c.key]: e.target.value.replace(/[^0-9.]/g, "") }))}
                       inputMode="decimal"
                       placeholder="—"
-                      className="w-20 rounded-lg bg-surface-inset px-2 py-1 text-right text-[0.9rem] tnum outline-none focus:ring-2 focus:ring-brand"
+                      className="w-20 rounded-lg bg-surface-inset px-2 py-1 text-right text-[0.9rem] tnum outline-none transition-colors focus:bg-surface"
                     />
                   </div>
                 </div>
