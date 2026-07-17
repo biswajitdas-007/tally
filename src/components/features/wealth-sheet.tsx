@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Trash2, type LucideIcon } from "lucide-react";
+import { Check, Trash2, Info, type LucideIcon } from "lucide-react";
 import { Sheet } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Segmented } from "@/components/ui/segmented";
+import { Switch } from "@/components/ui/switch";
 import { ACCOUNT_KIND_META, ACCOUNT_KINDS, LIABILITY_KIND_META, LIABILITY_KINDS } from "@/lib/categories";
+import { nextDueDate } from "@/lib/liabilities";
 import { useStore } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { useToast } from "@/components/ui/toast";
@@ -35,24 +37,40 @@ export function WealthSheet() {
   const [amount, setAmount] = useState("");
   const [emi, setEmi] = useState("");
   const [rate, setRate] = useState("");
+  const [lender, setLender] = useState("");
+  const [term, setTerm] = useState("");
+  const [remaining, setRemaining] = useState("");
+  const [autoDebit, setAutoDebit] = useState(false);
+  const [dueDay, setDueDay] = useState("");
 
   const [wasOpen, setWasOpen] = useState(false);
   if (open && !wasOpen) {
     setWasOpen(true);
     setEmi("");
     setRate("");
+    setLender("");
+    setTerm("");
+    setRemaining("");
+    setAutoDebit(false);
+    setDueDay("");
     if (editingAccount) {
       setMode("asset");
       setName(editingAccount.name);
       setKind(editingAccount.kind);
       setAmount(String(editingAccount.balance));
     } else if (editingLiability) {
+      const el = editingLiability;
       setMode("liability");
-      setName(editingLiability.name);
-      setKind(editingLiability.kind);
-      setAmount(String(editingLiability.outstanding));
-      setEmi(editingLiability.emi ? String(editingLiability.emi) : "");
-      setRate(editingLiability.rate ? String(editingLiability.rate) : "");
+      setName(el.name);
+      setKind(el.kind);
+      setAmount(String(el.outstanding));
+      setEmi(el.emi ? String(el.emi) : "");
+      setRate(el.rate ? String(el.rate) : "");
+      setLender(el.lender ?? "");
+      setTerm(el.termMonths ? String(el.termMonths) : "");
+      setRemaining(el.remainingMonths != null ? String(el.remainingMonths) : "");
+      setAutoDebit(Boolean(el.autoDebit));
+      setDueDay(el.dueDay ? String(el.dueDay) : "");
     } else {
       setMode(initialMode);
       setName("");
@@ -86,6 +104,21 @@ export function WealthSheet() {
       if (emiN > 0) liab.emi = emiN;
       const rateN = parseFloat(rate);
       if (rate !== "" && rateN >= 0) liab.rate = rateN;
+      if (lender.trim()) liab.lender = lender.trim();
+      const termN = parseInt(term, 10);
+      if (termN > 0) liab.termMonths = termN;
+      const remN = remaining !== "" ? parseInt(remaining, 10) : termN > 0 ? termN : NaN;
+      if (!Number.isNaN(remN) && remN >= 0) liab.remainingMonths = remN;
+      const dueN = parseInt(dueDay, 10);
+      if (autoDebit && dueN >= 1) {
+        liab.autoDebit = true;
+        liab.dueDay = Math.min(Math.max(dueN, 1), 28);
+        // Keep the running schedule if it's unchanged; otherwise start fresh.
+        liab.nextDue =
+          editingLiability?.autoDebit && editingLiability.nextDue && editingLiability.dueDay === liab.dueDay
+            ? editingLiability.nextDue
+            : nextDueDate(liab.dueDay);
+      }
       setWealth({ liabilities: editingLiability ? liabilities.map((l) => (l.id === id ? liab : l)) : [liab, ...liabilities] });
     }
     toast({ message: editing ? "Saved" : isAsset ? "Account added" : "Liability added" });
@@ -193,6 +226,73 @@ export function WealthSheet() {
               </div>
             </div>
           </div>
+        )}
+
+        {!isAsset && (
+          <>
+            <div>
+              <p className="mb-2 px-0.5 text-[0.8rem] font-semibold text-text-2">Lender (optional)</p>
+              <Input value={lender} onChange={(e) => setLender(e.target.value)} placeholder="HDFC Bank" className="h-11" />
+            </div>
+
+            <div className="flex gap-3">
+              <div className="flex-1">
+                <p className="mb-2 px-0.5 text-[0.8rem] font-semibold text-text-2">Total months</p>
+                <div className="flex items-center rounded-[14px] border border-border bg-surface px-3 py-3">
+                  <input
+                    value={term}
+                    onChange={(e) => setTerm(e.target.value.replace(/[^0-9]/g, ""))}
+                    inputMode="numeric"
+                    placeholder="60"
+                    className="w-full bg-transparent font-display text-[0.98rem] font-bold tnum outline-none placeholder:text-text-3"
+                  />
+                </div>
+              </div>
+              <div className="flex-1">
+                <p className="mb-2 px-0.5 text-[0.8rem] font-semibold text-text-2">Months left</p>
+                <div className="flex items-center rounded-[14px] border border-border bg-surface px-3 py-3">
+                  <input
+                    value={remaining}
+                    onChange={(e) => setRemaining(e.target.value.replace(/[^0-9]/g, ""))}
+                    inputMode="numeric"
+                    placeholder={term || "—"}
+                    className="w-full bg-transparent font-display text-[0.98rem] font-bold tnum outline-none placeholder:text-text-3"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-[16px] border border-border bg-surface-2 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[0.9rem] font-semibold text-text">Auto-debit</p>
+                  <p className="text-[0.78rem] text-text-2">Reduce the balance &amp; months automatically each month.</p>
+                </div>
+                <Switch checked={autoDebit} onChange={setAutoDebit} label="Auto-debit" />
+              </div>
+              {autoDebit && (
+                <>
+                  <div className="mt-3 flex items-center gap-3">
+                    <span className="text-[0.84rem] text-text-2">Payment day</span>
+                    <div className="flex items-center gap-1 rounded-lg border border-border bg-surface px-2.5 py-1.5">
+                      <input
+                        value={dueDay}
+                        onChange={(e) => setDueDay(e.target.value.replace(/[^0-9]/g, ""))}
+                        inputMode="numeric"
+                        placeholder="5"
+                        className="w-8 bg-transparent text-center text-[0.9rem] font-semibold tnum outline-none placeholder:text-text-3"
+                      />
+                      <span className="text-[0.76rem] text-text-3">of month</span>
+                    </div>
+                  </div>
+                  <p className="mt-2.5 flex items-start gap-1.5 text-[0.76rem] leading-snug text-text-3">
+                    <Info className="mt-px h-3.5 w-3.5 shrink-0" />
+                    On day {dueDay || "—"} each month we&apos;ll take one EMI off the balance and a month off the term. Made a partial or extra payment? Just update the amount here.
+                  </p>
+                </>
+              )}
+            </div>
+          </>
         )}
 
         <div className="sticky bottom-0 -mx-5 flex gap-3 border-t border-border bg-surface px-5 pb-1 pt-3">
