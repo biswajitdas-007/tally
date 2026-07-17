@@ -16,6 +16,7 @@ import { useUI } from "@/store/useUI";
 import { CATEGORIES, INCOME_CATEGORIES } from "@/lib/categories";
 import { monthlyMoney, financeForMonth, spendByCategory, monthLabel, budgetView, budgetIncome } from "@/lib/money";
 import { healthScore, netWorth, gradeColor } from "@/lib/health";
+import { withLiveBalances, unparkedAmount } from "@/lib/accounts";
 import { formatINR, monthKey, cn } from "@/lib/utils";
 import type { CategoryKey, FinanceEntry, IncomeCategory } from "@/lib/types";
 
@@ -74,11 +75,19 @@ export default function MoneyPage() {
   const byCat = useMemo(() => spendByCategory(finance, expenses, myId, mKey), [finance, expenses, myId, mKey]);
   const eInc = budgetIncome(budget, m.income);
   const bv = useMemo(() => budgetView(budget, byCat, eInc), [budget, byCat, eInc]);
-  const health = useMemo(
-    () => healthScore({ finance, expenses, meId: myId, budget, accounts, liabilities }),
-    [finance, expenses, myId, budget, accounts, liabilities],
+  const liveAccounts = useMemo(
+    () => withLiveBalances(accounts, finance, expenses, myId),
+    [accounts, finance, expenses, myId],
   );
-  const nw = useMemo(() => netWorth(accounts, liabilities), [accounts, liabilities]);
+  const unparked = useMemo(() => unparkedAmount(finance, expenses, accounts, myId), [finance, expenses, accounts, myId]);
+  const health = useMemo(
+    () => healthScore({ finance, expenses, meId: myId, budget, accounts: liveAccounts, liabilities, unparked }),
+    [finance, expenses, myId, budget, liveAccounts, liabilities, unparked],
+  );
+  const nw = useMemo(
+    () => ({ net: netWorth(liveAccounts, liabilities).net + unparked }),
+    [liveAccounts, liabilities, unparked],
+  );
 
   const overspent = m.net < -0.5;
   const hasData = m.income > 0 || m.spend > 0;

@@ -58,6 +58,7 @@ export async function POST(req: Request) {
       isSettlement: true,
       createdBy: user.uid,
       createdAt: new Date().toISOString(),
+      accountId: isStr(b.accountId) ? (b.accountId as string).slice(0, 40) : undefined,
     };
     await expenses.insertOne(doc);
 
