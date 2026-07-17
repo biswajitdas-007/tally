@@ -71,3 +71,21 @@ export interface Balance {
   personId: ID;
   amount: number;
 }
+
+/* ---------- personal money (Tally Money) ---------- */
+
+export type FinanceType = "income" | "expense";
+
+export type IncomeCategory = "salary" | "bonus" | "investment" | "refund" | "gift" | "other";
+
+/** A private personal money entry — money in (income) or out (a solo expense). */
+export interface FinanceEntry {
+  id: ID;
+  type: FinanceType;
+  amount: number;
+  /** CategoryKey for an expense, IncomeCategory for income. */
+  category: string;
+  date: string;
+  note?: string;
+  createdAt: string;
+}
