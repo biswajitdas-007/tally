@@ -1,10 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   Plus, Minus, ChevronLeft, ChevronRight, ArrowUpRight, ArrowDownLeft,
-  TrendingUp, AlertTriangle, Wallet, Coins, Target,
+  TrendingUp, AlertTriangle, Wallet, Coins, Target, Scale,
 } from "lucide-react";
 import { PageHeader } from "@/components/app/page-header";
 import { Card, SectionHeader } from "@/components/ui/card";
@@ -14,6 +15,7 @@ import { useStore, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { CATEGORIES, INCOME_CATEGORIES } from "@/lib/categories";
 import { monthlyMoney, financeForMonth, spendByCategory, monthLabel, budgetView, budgetIncome } from "@/lib/money";
+import { healthScore, netWorth, gradeColor } from "@/lib/health";
 import { formatINR, monthKey, cn } from "@/lib/utils";
 import type { CategoryKey, FinanceEntry, IncomeCategory } from "@/lib/types";
 
@@ -53,6 +55,8 @@ export default function MoneyPage() {
   const finance = useStore((s) => s.finance);
   const expenses = useStore((s) => s.expenses);
   const budget = useStore((s) => s.budget);
+  const accounts = useStore((s) => s.accounts);
+  const liabilities = useStore((s) => s.liabilities);
   const openMoney = useUI((s) => s.openMoney);
   const openBudget = useUI((s) => s.openBudget);
   const myId = useMyId() ?? "";
@@ -70,6 +74,11 @@ export default function MoneyPage() {
   const byCat = useMemo(() => spendByCategory(finance, expenses, myId, mKey), [finance, expenses, myId, mKey]);
   const eInc = budgetIncome(budget, m.income);
   const bv = useMemo(() => budgetView(budget, byCat, eInc), [budget, byCat, eInc]);
+  const health = useMemo(
+    () => healthScore({ finance, expenses, meId: myId, budget, accounts, liabilities }),
+    [finance, expenses, myId, budget, accounts, liabilities],
+  );
+  const nw = useMemo(() => netWorth(accounts, liabilities), [accounts, liabilities]);
 
   const overspent = m.net < -0.5;
   const hasData = m.income > 0 || m.spend > 0;
@@ -246,6 +255,30 @@ export default function MoneyPage() {
           </Card>
         )}
       </section>
+
+      {/* Net worth & health */}
+      <Link
+        href="/wealth"
+        className="flex items-center gap-3.5 rounded-[16px] border border-border bg-surface p-4 shadow-[var(--shadow-xs)] transition-all hover:-translate-y-0.5 hover:border-border-strong hover:shadow-[var(--shadow-md)]"
+      >
+        <div
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white"
+          style={{ background: health.enough ? gradeColor(health.grade) : "var(--brand)" }}
+        >
+          {health.enough ? (
+            <span className="font-display text-lg font-bold">{health.grade}</span>
+          ) : (
+            <Scale className="h-5 w-5" />
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-[0.9rem] font-semibold text-text">Wealth health</p>
+          <p className="text-[0.76rem] text-text-3">
+            {health.enough ? `Net worth ${formatINR(nw.net)}` : "Set up net worth & health score"}
+          </p>
+        </div>
+        <ChevronRight className="h-5 w-5 shrink-0 text-text-3" />
+      </Link>
 
       {/* Spending by category */}
       {byCat.length > 0 && (
