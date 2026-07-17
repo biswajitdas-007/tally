@@ -4,19 +4,41 @@ import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Plus, Minus, ChevronLeft, ChevronRight, ArrowUpRight, ArrowDownLeft,
-  TrendingUp, AlertTriangle, Wallet, Coins,
+  TrendingUp, AlertTriangle, Wallet, Coins, Target,
 } from "lucide-react";
 import { PageHeader } from "@/components/app/page-header";
 import { Card, SectionHeader } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useStore, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { CATEGORIES, INCOME_CATEGORIES } from "@/lib/categories";
-import { monthlyMoney, financeForMonth, spendByCategory, monthLabel } from "@/lib/money";
+import { monthlyMoney, financeForMonth, spendByCategory, monthLabel, budgetView, budgetIncome } from "@/lib/money";
 import { formatINR, monthKey, cn } from "@/lib/utils";
 import type { CategoryKey, FinanceEntry, IncomeCategory } from "@/lib/types";
 
 const NOW_KEY = monthKey(new Date().toISOString());
+
+function BudgetBar({ label, spent, limit }: { label: string; spent: number; limit: number }) {
+  const ratio = limit > 0 ? spent / limit : 0;
+  const pct = Math.min(ratio * 100, 100);
+  const color = ratio > 1 ? "var(--negative)" : ratio >= 0.8 ? "var(--warn)" : "var(--brand)";
+  return (
+    <div>
+      <div className="flex items-center justify-between text-[0.84rem]">
+        <span className="font-medium text-text">{label}</span>
+        <span className="tnum text-text-2">
+          <span className={cn("font-semibold", ratio > 1 ? "text-negative" : "text-text")}>{formatINR(spent)}</span>
+          {" / "}
+          {formatINR(limit)}
+        </span>
+      </div>
+      <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-surface-inset">
+        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: color }} />
+      </div>
+    </div>
+  );
+}
 
 function entryMeta(e: FinanceEntry) {
   if (e.type === "income") {
@@ -30,7 +52,9 @@ function entryMeta(e: FinanceEntry) {
 export default function MoneyPage() {
   const finance = useStore((s) => s.finance);
   const expenses = useStore((s) => s.expenses);
+  const budget = useStore((s) => s.budget);
   const openMoney = useUI((s) => s.openMoney);
+  const openBudget = useUI((s) => s.openBudget);
   const myId = useMyId() ?? "";
 
   const [mDate, setMDate] = useState(() => {
@@ -44,6 +68,8 @@ export default function MoneyPage() {
   const m = useMemo(() => monthlyMoney(finance, expenses, myId, mKey), [finance, expenses, myId, mKey]);
   const entries = useMemo(() => financeForMonth(finance, mKey), [finance, mKey]);
   const byCat = useMemo(() => spendByCategory(finance, expenses, myId, mKey), [finance, expenses, myId, mKey]);
+  const eInc = budgetIncome(budget, m.income);
+  const bv = useMemo(() => budgetView(budget, byCat, eInc), [budget, byCat, eInc]);
 
   const overspent = m.net < -0.5;
   const hasData = m.income > 0 || m.spend > 0;
@@ -168,6 +194,58 @@ export default function MoneyPage() {
           Add income
         </button>
       </div>
+
+      {/* Budget */}
+      <section>
+        <SectionHeader
+          title="Budget"
+          action={
+            bv.hasBudget ? (
+              <button onClick={openBudget} className="text-[0.78rem] font-semibold text-brand">Edit</button>
+            ) : undefined
+          }
+        />
+        {bv.hasBudget ? (
+          <Card className="flex flex-col gap-4 p-4">
+            {eInc > 0 && (
+              <>
+                <BudgetBar label="Needs" spent={bv.needs.spent} limit={bv.needs.limit} />
+                <BudgetBar label="Wants" spent={bv.wants.spent} limit={bv.wants.limit} />
+                <div className="flex items-center justify-between rounded-[12px] bg-surface-inset px-3 py-2.5">
+                  <span className="text-[0.84rem] font-medium text-text">
+                    Savings <span className="text-text-3">· target {formatINR(bv.savings.target)}</span>
+                  </span>
+                  <span
+                    className={cn(
+                      "tnum text-[0.9rem] font-bold",
+                      bv.savings.actual >= bv.savings.target ? "text-positive" : "text-text",
+                    )}
+                  >
+                    {formatINR(Math.max(0, bv.savings.actual))}
+                  </span>
+                </div>
+              </>
+            )}
+            {bv.categories.length > 0 && (
+              <div className="flex flex-col gap-3">
+                {eInc > 0 && <div className="h-px bg-border" />}
+                {bv.categories.map((c) => (
+                  <BudgetBar key={c.category} label={CATEGORIES[c.category].label} spent={c.spent} limit={c.limit} />
+                ))}
+              </div>
+            )}
+          </Card>
+        ) : (
+          <Card className="flex flex-col items-center gap-3 p-5 text-center">
+            <p className="max-w-[17rem] text-[0.88rem] text-text-2">
+              Set a budget to track your spending against the 50/30/20 rule and get nudged before you overspend.
+            </p>
+            <Button size="sm" onClick={openBudget}>
+              <Target className="h-4 w-4" /> Set a budget
+            </Button>
+          </Card>
+        )}
+      </section>
 
       {/* Spending by category */}
       {byCat.length > 0 && (

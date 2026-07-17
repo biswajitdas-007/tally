@@ -1,6 +1,6 @@
 import { firebaseAuth } from "@/lib/firebase";
 import { socketId } from "@/lib/pusher-client";
-import type { Expense, FinanceEntry, Group, Person } from "@/lib/types";
+import type { Budget, Expense, FinanceEntry, Group, Person } from "@/lib/types";
 
 export interface ServerState {
   me: Person | null;
@@ -8,6 +8,7 @@ export interface ServerState {
   groups: Group[];
   expenses: Expense[];
   finance: FinanceEntry[];
+  budget: Budget;
 }
 
 async function token(): Promise<string | null> {
@@ -58,6 +59,7 @@ export const updateProfileApi = (p: Record<string, unknown>) => req("POST", "/ap
 export const addFinanceApi = (f: Record<string, unknown>) => req("POST", "/api/finance", f);
 export const updateFinanceApi = (id: string, patch: Record<string, unknown>) => req("PATCH", `/api/finance/${id}`, patch);
 export const deleteFinanceApi = (id: string) => req("DELETE", `/api/finance/${id}`);
+export const setBudgetApi = (b: Record<string, unknown>) => req("POST", "/api/budget", b);
 export const subscribePushApi = (subscription: unknown) => req("POST", "/api/push/subscribe", { subscription });
 export const unsubscribePushApi = (endpoint: string) => req("POST", "/api/push/unsubscribe", { endpoint });
 
