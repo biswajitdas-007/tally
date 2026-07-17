@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { useStore, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { ACCOUNT_KIND_META, LIABILITY_KIND_META } from "@/lib/categories";
+import { BankBadge } from "@/components/features/bank-badge";
 import { healthScore, netWorth, gradeColor } from "@/lib/health";
 import { formatINR, cn } from "@/lib/utils";
 import type { AccountKind, LiabilityKind } from "@/lib/types";
@@ -141,9 +142,7 @@ export default function WealthPage() {
                     onClick={() => openWealth("asset", a.id)}
                     className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-2 active:bg-surface-inset"
                   >
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-positive-soft text-positive">
-                      <Icon className="h-[18px] w-[18px]" />
-                    </span>
+                    <BankBadge name={a.name} fallback={Icon} tone="positive" className="h-9 w-9" />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-[0.9rem] font-medium text-text">{a.name}</p>
                       <p className="text-[0.76rem] text-text-3">{ACCOUNT_KIND_META[a.kind as AccountKind].label}</p>
@@ -176,21 +175,34 @@ export default function WealthPage() {
             <div className="divide-y divide-border">
               {liabilities.map((l) => {
                 const Icon = LIABILITY_KIND_META[l.kind as LiabilityKind].icon;
+                const meta = [
+                  l.lender,
+                  l.remainingMonths != null && l.termMonths
+                    ? `${l.remainingMonths}/${l.termMonths} mo`
+                    : l.remainingMonths != null
+                      ? `${l.remainingMonths} mo left`
+                      : null,
+                  l.emi ? `${formatINR(l.emi)}/mo` : null,
+                ]
+                  .filter(Boolean)
+                  .join(" · ");
                 return (
                   <button
                     key={l.id}
                     onClick={() => openWealth("liability", l.id)}
                     className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-2 active:bg-surface-inset"
                   >
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-negative-soft text-negative">
-                      <Icon className="h-[18px] w-[18px]" />
-                    </span>
+                    <BankBadge name={l.lender ?? l.name} fallback={Icon} tone="negative" className="h-9 w-9" />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-[0.9rem] font-medium text-text">{l.name}</p>
-                      <p className="text-[0.76rem] text-text-3">
-                        {LIABILITY_KIND_META[l.kind as LiabilityKind].label}
-                        {l.emi ? ` · ${formatINR(l.emi)}/mo` : ""}
-                      </p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="truncate text-[0.9rem] font-medium text-text">{l.name}</p>
+                        {l.autoDebit && (
+                          <span className="shrink-0 rounded-full bg-brand-soft px-1.5 py-0.5 text-[0.58rem] font-bold uppercase tracking-wide text-brand">
+                            Auto
+                          </span>
+                        )}
+                      </div>
+                      <p className="truncate text-[0.76rem] text-text-3">{meta || LIABILITY_KIND_META[l.kind as LiabilityKind].label}</p>
                     </div>
                     <span className="tnum text-[0.92rem] font-semibold text-text">{formatINR(l.outstanding)}</span>
                   </button>
