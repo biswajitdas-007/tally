@@ -13,9 +13,15 @@ import {
   Undo2,
   HandCoins,
   Coins,
+  Landmark,
+  Banknote,
+  Smartphone,
+  LineChart,
+  CreditCard,
+  CalendarClock,
   type LucideIcon,
 } from "lucide-react";
-import type { CategoryKey, IncomeCategory } from "./types";
+import type { AccountKind, CategoryKey, IncomeCategory, LiabilityKind } from "./types";
 
 export interface CategoryMeta {
   key: CategoryKey;
@@ -53,3 +59,19 @@ export const INCOME_CATEGORIES: Record<IncomeCategory, IncomeMeta> = {
 };
 
 export const INCOME_LIST = Object.values(INCOME_CATEGORIES);
+
+export const ACCOUNT_KIND_META: Record<AccountKind, { label: string; icon: LucideIcon }> = {
+  bank: { label: "Bank", icon: Landmark },
+  cash: { label: "Cash", icon: Banknote },
+  wallet: { label: "Wallet", icon: Smartphone },
+  investment: { label: "Investment", icon: LineChart },
+};
+
+export const LIABILITY_KIND_META: Record<LiabilityKind, { label: string; icon: LucideIcon }> = {
+  loan: { label: "Loan", icon: HandCoins },
+  card: { label: "Credit card", icon: CreditCard },
+  emi: { label: "EMI", icon: CalendarClock },
+};
+
+export const ACCOUNT_KINDS = Object.keys(ACCOUNT_KIND_META) as AccountKind[];
+export const LIABILITY_KINDS = Object.keys(LIABILITY_KIND_META) as LiabilityKind[];

@@ -95,3 +95,27 @@ export interface Budget {
   income?: number;
   limits: Partial<Record<CategoryKey, number>>;
 }
+
+/* ---------- wealth (assets & liabilities) ---------- */
+
+export type AccountKind = "bank" | "cash" | "wallet" | "investment";
+
+/** Something you own — its current balance counts toward net worth. */
+export interface Account {
+  id: ID;
+  name: string;
+  kind: AccountKind;
+  balance: number;
+}
+
+export type LiabilityKind = "loan" | "card" | "emi";
+
+/** Something you owe — the outstanding amount reduces net worth. */
+export interface Liability {
+  id: ID;
+  name: string;
+  kind: LiabilityKind;
+  outstanding: number;
+  emi?: number; // monthly payment, for debt-to-income
+  rate?: number; // annual interest %
+}
