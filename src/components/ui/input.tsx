@@ -34,7 +34,7 @@ export function Field({
 }
 
 const baseInput =
-  "w-full rounded-[14px] border border-border bg-surface-2 px-3.5 text-[0.95rem] text-text placeholder:text-text-3 transition-all focus:border-brand focus:bg-surface focus:outline-none focus:ring-4 focus:ring-[color-mix(in_srgb,var(--brand)_16%,transparent)] disabled:opacity-50";
+  "w-full rounded-[14px] border border-border bg-surface-2 px-3.5 text-[0.95rem] text-text placeholder:text-text-3 transition-colors focus:border-border-strong focus:bg-surface focus:outline-none disabled:opacity-50";
 
 export const Input = forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>(
   function Input({ className, ...props }, ref) {
