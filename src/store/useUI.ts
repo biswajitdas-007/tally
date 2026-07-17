@@ -45,6 +45,12 @@ interface UIState {
   budgetOpen: boolean;
   openBudget: () => void;
   closeBudget: () => void;
+
+  wealthOpen: boolean;
+  wealthMode: "asset" | "liability";
+  wealthEditId: ID | null;
+  openWealth: (mode?: "asset" | "liability", editId?: ID | null) => void;
+  closeWealth: () => void;
 }
 
 export const useUI = create<UIState>((set) => ({
@@ -81,4 +87,10 @@ export const useUI = create<UIState>((set) => ({
   budgetOpen: false,
   openBudget: () => set({ budgetOpen: true }),
   closeBudget: () => set({ budgetOpen: false }),
+
+  wealthOpen: false,
+  wealthMode: "asset",
+  wealthEditId: null,
+  openWealth: (mode = "asset", editId = null) => set({ wealthOpen: true, wealthMode: mode, wealthEditId: editId }),
+  closeWealth: () => set({ wealthOpen: false, wealthEditId: null }),
 }));

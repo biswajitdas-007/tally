@@ -1,7 +1,7 @@
 "use client";
 
 import { create } from "zustand";
-import type { Budget, CategoryKey, Expense, FinanceEntry, FinanceType, Group, ID, Person, Split } from "@/lib/types";
+import type { Account, Budget, CategoryKey, Expense, FinanceEntry, FinanceType, Group, ID, Liability, Person, Split } from "@/lib/types";
 import type { ServerState } from "@/lib/api";
 import * as api from "@/lib/api";
 import { avatarColor, uid } from "@/lib/utils";
@@ -29,6 +29,8 @@ interface State {
   expenses: Expense[];
   finance: FinanceEntry[];
   budget: Budget;
+  accounts: Account[];
+  liabilities: Liability[];
   lastDeleted: Expense | null;
 
   setAuthReady: () => void;
@@ -55,11 +57,19 @@ interface State {
   deleteFinance: (id: ID) => void;
 
   setBudget: (patch: Partial<Budget>) => void;
+  setWealth: (patch: { accounts?: Account[]; liabilities?: Liability[] }) => void;
 }
 
 let lastLoadHash = "";
-const stateHash = (s: { people: unknown[]; groups: unknown[]; expenses: unknown[]; finance: unknown[]; budget: unknown }) =>
-  JSON.stringify([s.people, s.groups, s.expenses, s.finance, s.budget]);
+const stateHash = (s: {
+  people: unknown[];
+  groups: unknown[];
+  expenses: unknown[];
+  finance: unknown[];
+  budget: unknown;
+  accounts: unknown[];
+  liabilities: unknown[];
+}) => JSON.stringify([s.people, s.groups, s.expenses, s.finance, s.budget, s.accounts, s.liabilities]);
 
 const now = () => new Date().toISOString();
 const reconcile = (res: Response | null, get: () => State) => {
@@ -77,6 +87,8 @@ export const useStore = create<State>()((set, get) => ({
   expenses: [],
   finance: [],
   budget: { limits: {} },
+  accounts: [],
+  liabilities: [],
   lastDeleted: null,
 
   setAuthReady: () => set({ authReady: true }),
@@ -92,6 +104,8 @@ export const useStore = create<State>()((set, get) => ({
       expenses: state.expenses,
       finance: state.finance,
       budget: state.budget,
+      accounts: state.accounts,
+      liabilities: state.liabilities,
       dataReady: true,
       loadError: false,
     });
@@ -106,6 +120,8 @@ export const useStore = create<State>()((set, get) => ({
       expenses: [],
       finance: [],
       budget: { limits: {} },
+      accounts: [],
+      liabilities: [],
       lastDeleted: null,
       dataReady: false,
       loadError: false,
@@ -240,6 +256,15 @@ export const useStore = create<State>()((set, get) => ({
     set((s) => ({ budget: { ...s.budget, ...patch } }));
     const next = get().budget;
     api.setBudgetApi({ income: next.income, limits: next.limits }).then((res) => reconcile(res, get));
+  },
+
+  setWealth: (patch) => {
+    set((s) => ({
+      accounts: patch.accounts ?? s.accounts,
+      liabilities: patch.liabilities ?? s.liabilities,
+    }));
+    const s = get();
+    api.setWealthApi({ accounts: s.accounts, liabilities: s.liabilities }).then((res) => reconcile(res, get));
   },
 }));
 
