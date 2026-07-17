@@ -32,6 +32,8 @@ export async function POST(req: Request) {
       date: isStr(b.date) ? (b.date as string) : new Date().toISOString(),
       note: isStr(b.note) ? (b.note as string).slice(0, 300) : undefined,
       createdAt: new Date().toISOString(),
+      accountId: isStr(b.accountId) ? (b.accountId as string).slice(0, 40) : undefined,
+      transfer: b.transfer === true ? true : undefined,
     };
     await finance.insertOne(doc);
 

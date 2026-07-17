@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar } from "@/components/ui/avatar";
 import { UpiQR } from "./upi-qr";
+import { AccountPicker } from "./account-picker";
 import { useStore, useMe, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { useToast } from "@/components/ui/toast";
@@ -31,6 +32,7 @@ export function SettleSheet() {
 
   const [upiDraft, setUpiDraft] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [accountId, setAccountId] = useState<string | null>(null);
   const [lastTarget, setLastTarget] = useState(target);
 
   // Which ledgers this settle covers. `groupId === undefined` ⇒ person-level:
@@ -50,6 +52,7 @@ export function SettleSheet() {
     setLastTarget(target);
     setSelected(new Set(scopes.map((s) => scopeKey(s.scopeId))));
     setUpiDraft("");
+    setAccountId(null);
   }
 
   const person = target ? people.find((p) => p.id === target.personId) ?? null : null;
@@ -86,8 +89,10 @@ export function SettleSheet() {
   function confirmSettled() {
     // Record a settlement in each selected ledger so only those scopes clear.
     for (const s of activeScopes) {
-      if (s.amount < -0.01) settleUp({ from: myId, to: person!.id, amount: Math.abs(s.amount), groupId: s.scopeId });
-      else if (s.amount > 0.01) settleUp({ from: person!.id, to: myId, amount: s.amount, groupId: s.scopeId });
+      if (s.amount < -0.01)
+        settleUp({ from: myId, to: person!.id, amount: Math.abs(s.amount), groupId: s.scopeId, accountId: accountId ?? undefined });
+      else if (s.amount > 0.01)
+        settleUp({ from: person!.id, to: myId, amount: s.amount, groupId: s.scopeId, accountId: accountId ?? undefined });
     }
     toast({ message: youPay ? `Settled up with ${person!.name.split(" ")[0]}` : "Payment recorded" });
     celebrate();
@@ -271,6 +276,11 @@ export function SettleSheet() {
             </Button>
           )}
         </div>
+
+        {/* Which account this cash moved through */}
+        {amount >= 0.01 && (
+          <AccountPicker value={accountId} onChange={setAccountId} label={youPay ? "Paid from" : "Received into (optional)"} />
+        )}
 
         {/* Confirm */}
         <div className="sticky bottom-0 -mx-5 border-t border-border bg-surface px-5 pb-1 pt-3">
