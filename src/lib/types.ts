@@ -118,4 +118,10 @@ export interface Liability {
   outstanding: number;
   emi?: number; // monthly payment, for debt-to-income
   rate?: number; // annual interest %
+  lender?: string; // who it's from (e.g. "HDFC Bank")
+  termMonths?: number; // total duration
+  remainingMonths?: number; // months left
+  autoDebit?: boolean; // reduce automatically on the due date each month
+  dueDay?: number; // day of month the payment goes out (1–28)
+  nextDue?: string; // internal: ISO date of the next auto-debit to apply
 }

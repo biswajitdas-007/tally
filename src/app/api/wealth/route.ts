@@ -41,6 +41,14 @@ function cleanLiabilities(v: unknown): Liability[] {
       };
       if (isNum(l.emi) && (l.emi as number) > 0) item.emi = l.emi as number;
       if (isNum(l.rate) && (l.rate as number) >= 0) item.rate = l.rate as number;
+      if (isStr(l.lender)) item.lender = (l.lender as string).slice(0, 60);
+      if (isNum(l.termMonths) && (l.termMonths as number) > 0) item.termMonths = Math.round(l.termMonths as number);
+      if (isNum(l.remainingMonths) && (l.remainingMonths as number) >= 0) {
+        item.remainingMonths = Math.round(l.remainingMonths as number);
+      }
+      if (l.autoDebit === true) item.autoDebit = true;
+      if (isNum(l.dueDay)) item.dueDay = Math.min(Math.max(Math.round(l.dueDay as number), 1), 28);
+      if (isStr(l.nextDue)) item.nextDue = (l.nextDue as string).slice(0, 40);
       out.push(item);
     }
     if (out.length >= 50) break;
