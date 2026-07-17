@@ -85,7 +85,7 @@ export function AccountPicker({
               onChange={(e) => setNewName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && createAccount()}
               placeholder="Account name"
-              className="h-10 flex-1 rounded-[12px] border border-border bg-surface px-3 text-[0.9rem] outline-none focus:ring-2 focus:ring-brand"
+              className="h-10 flex-1 rounded-[12px] border border-border bg-surface px-3 text-[0.9rem] outline-none transition-colors focus:border-border-strong"
             />
             <Button size="md" onClick={createAccount} disabled={!newName.trim()}>
               Add
