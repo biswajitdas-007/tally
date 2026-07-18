@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 🔒 Report a security vulnerability
+    url: https://github.com/biswajitdas-007/tally/security/advisories/new
+    about: Please report security issues privately, never as a public issue.
+  - name: 💬 Questions & discussions
+    url: https://github.com/biswajitdas-007/tally/discussions
+    about: Ask questions and share ideas with the community.
