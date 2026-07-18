@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Segmented } from "@/components/ui/segmented";
 import { Switch } from "@/components/ui/switch";
 import { ACCOUNT_KIND_META, ACCOUNT_KINDS, LIABILITY_KIND_META, LIABILITY_KINDS } from "@/lib/categories";
-import { nextDueDate } from "@/lib/liabilities";
+import { DEFAULT_DUE_DAY, stampNow } from "@/lib/liabilities";
 import { linkedDelta } from "@/lib/accounts";
 import { useStore, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
@@ -73,11 +73,7 @@ export function WealthSheet() {
       setRate(el.rate ? String(el.rate) : "");
       setLender(el.lender ?? "");
       setTerm(el.termMonths ? String(el.termMonths) : "");
-      setPaid(
-        el.termMonths != null && el.remainingMonths != null
-          ? String(Math.max(0, el.termMonths - el.remainingMonths))
-          : "",
-      );
+      setPaid(el.emisPaid != null ? String(el.emisPaid) : "");
       setAutoDebit(Boolean(el.autoDebit));
       setDueDay(el.dueDay ? String(el.dueDay) : "");
     } else {
@@ -118,21 +114,21 @@ export function WealthSheet() {
       if (lender.trim()) liab.lender = lender.trim();
       const termN = parseInt(term, 10);
       if (termN > 0) liab.termMonths = termN;
-      // Store months-left, derived from how many EMIs the user has paid.
-      if (termN > 0) {
-        const paidN = paid !== "" ? parseInt(paid, 10) : 0;
-        liab.remainingMonths = Math.max(0, termN - (Number.isNaN(paidN) ? 0 : paidN));
-      }
+      const paidN = paid !== "" ? parseInt(paid, 10) : 0;
+      if (!Number.isNaN(paidN) && paidN >= 0) liab.emisPaid = termN > 0 ? Math.min(paidN, termN) : paidN;
+
+      // Payment day drives auto-updates or reminders (defaults to the 3rd).
       const dueN = parseInt(dueDay, 10);
-      if (autoDebit && dueN >= 1) {
-        liab.autoDebit = true;
-        liab.dueDay = Math.min(Math.max(dueN, 1), 28);
-        // Keep the running schedule if it's unchanged; otherwise start fresh.
-        liab.nextDue =
-          editingLiability?.autoDebit && editingLiability.nextDue && editingLiability.dueDay === liab.dueDay
-            ? editingLiability.nextDue
-            : nextDueDate(liab.dueDay);
-      }
+      liab.dueDay = Number.isNaN(dueN) ? DEFAULT_DUE_DAY : Math.min(Math.max(dueN, 1), 28);
+      if (autoDebit) liab.autoDebit = true;
+
+      // Stamp this month as already counted when creating, or when you change the
+      // paid count — so the monthly job never double-counts the same month.
+      liab.lastPaidMonth =
+        !editingLiability || liab.emisPaid !== editingLiability.emisPaid
+          ? stampNow()
+          : editingLiability.lastPaidMonth;
+
       setWealth({ liabilities: editingLiability ? liabilities.map((l) => (l.id === id ? liab : l)) : [liab, ...liabilities] });
     }
     toast({ message: editing ? "Saved" : isAsset ? "Account added" : "Liability added" });
@@ -276,35 +272,34 @@ export function WealthSheet() {
               </div>
             </div>
 
+            <div>
+              <p className="mb-2 px-0.5 text-[0.8rem] font-semibold text-text-2">EMI payment day</p>
+              <div className="flex items-center gap-2 rounded-[14px] border border-border bg-surface px-4 py-3">
+                <input
+                  value={dueDay}
+                  onChange={(e) => setDueDay(e.target.value.replace(/[^0-9]/g, ""))}
+                  inputMode="numeric"
+                  placeholder="3"
+                  className="w-9 bg-transparent text-center font-display text-[0.98rem] font-bold tnum outline-none placeholder:text-text-3"
+                />
+                <span className="text-[0.82rem] text-text-3">of every month{dueDay ? "" : " · defaults to the 3rd"}</span>
+              </div>
+            </div>
+
             <div className="rounded-[16px] border border-border bg-surface-2 p-4">
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-[0.9rem] font-semibold text-text">Auto-debit</p>
-                  <p className="text-[0.78rem] text-text-2">Reduce the balance &amp; months automatically each month.</p>
+                  <p className="text-[0.9rem] font-semibold text-text">Update automatically</p>
+                  <p className="text-[0.78rem] text-text-2">Mark one EMI paid each month on its own.</p>
                 </div>
-                <Switch checked={autoDebit} onChange={setAutoDebit} label="Auto-debit" />
+                <Switch checked={autoDebit} onChange={setAutoDebit} label="Auto-update" />
               </div>
-              {autoDebit && (
-                <>
-                  <div className="mt-3 flex items-center gap-3">
-                    <span className="text-[0.84rem] text-text-2">Payment day</span>
-                    <div className="flex items-center gap-1 rounded-lg border border-border bg-surface px-2.5 py-1.5">
-                      <input
-                        value={dueDay}
-                        onChange={(e) => setDueDay(e.target.value.replace(/[^0-9]/g, ""))}
-                        inputMode="numeric"
-                        placeholder="5"
-                        className="w-8 bg-transparent text-center text-[0.9rem] font-semibold tnum outline-none placeholder:text-text-3"
-                      />
-                      <span className="text-[0.76rem] text-text-3">of month</span>
-                    </div>
-                  </div>
-                  <p className="mt-2.5 flex items-start gap-1.5 text-[0.76rem] leading-snug text-text-3">
-                    <Info className="mt-px h-3.5 w-3.5 shrink-0" />
-                    On day {dueDay || "—"} each month we&apos;ll take one EMI off the balance and a month off the term. Made a partial or extra payment? Just update the amount here.
-                  </p>
-                </>
-              )}
+              <p className="mt-2.5 flex items-start gap-1.5 text-[0.76rem] leading-snug text-text-3">
+                <Info className="mt-px h-3.5 w-3.5 shrink-0" />
+                {autoDebit
+                  ? `On day ${dueDay || DEFAULT_DUE_DAY} each month we'll mark one EMI paid, drop it from the balance, and email you a receipt. Made a partial or extra payment? Just update the count.`
+                  : `We'll remind you on day ${dueDay || DEFAULT_DUE_DAY} each month to confirm you paid — nothing changes until you confirm it.`}
+              </p>
             </div>
           </>
         )}
