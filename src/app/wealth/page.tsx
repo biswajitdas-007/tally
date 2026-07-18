@@ -48,6 +48,7 @@ export default function WealthPage() {
   const liabilities = useStore((s) => s.liabilities);
   const openWealth = useUI((s) => s.openWealth);
   const openPark = useUI((s) => s.openPark);
+  const openAccountDetail = useUI((s) => s.openAccountDetail);
   const myId = useMyId() ?? "";
 
   const liveAccounts = useMemo(
@@ -241,7 +242,7 @@ export default function WealthPage() {
                 return (
                   <button
                     key={a.id}
-                    onClick={() => openWealth("asset", a.id)}
+                    onClick={() => openAccountDetail(a.id)}
                     className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-2 active:bg-surface-inset"
                   >
                     <BankBadge name={a.name} fallback={Icon} tone="positive" className="h-9 w-9" />
