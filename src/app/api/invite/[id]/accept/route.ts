@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { verifyUser } from "@/lib/auth-server";
-import { collections, upsertUser } from "@/lib/db";
+import { addContact, collections, upsertUser } from "@/lib/db";
 import { notifyChange } from "@/lib/notify";
 import type { Person } from "@/lib/types";
 
@@ -27,7 +27,31 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   if (inv.inviterUid === user.uid) return NextResponse.json({ ok: true, self: true });
 
-  await upsertUser(users, user.uid, { name: user.name, email: user.email, photoURL: user.picture });
+  const meDoc = await upsertUser(users, user.uid, { name: user.name, email: user.email, photoURL: user.picture });
+
+  // Make the two people friends on both sides, so a joined invitee shows up in
+  // the inviter's friends list (and vice-versa) even for non-group invites.
+  const inviterDoc = await users.findOne({ _id: inv.inviterUid });
+  if (inviterDoc) {
+    const mePerson: Person = {
+      id: meDoc._id,
+      name: meDoc.name,
+      email: meDoc.email,
+      photoURL: meDoc.photoURL,
+      upiId: meDoc.upiId,
+      avatarColor: meDoc.avatarColor ?? "#1c6b52",
+    };
+    const inviterPerson: Person = {
+      id: inviterDoc._id,
+      name: inviterDoc.name,
+      email: inviterDoc.email,
+      photoURL: inviterDoc.photoURL,
+      upiId: inviterDoc.upiId,
+      avatarColor: inviterDoc.avatarColor ?? "#1c6b52",
+    };
+    await addContact(users, inv.inviterUid, mePerson);
+    await addContact(users, user.uid, inviterPerson);
+  }
 
   let groupId: string | null = null;
   if (inv.groupId) {

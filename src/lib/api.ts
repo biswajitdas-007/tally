@@ -11,6 +11,7 @@ export interface ServerState {
   budget: Budget;
   accounts: Account[];
   liabilities: Liability[];
+  removedFriends: string[];
 }
 
 async function token(): Promise<string | null> {
@@ -93,6 +94,19 @@ export async function sendInvite(input: {
 } | null> {
   const res = await req("POST", "/api/invite", input);
   return res?.ok ? await res.json() : null;
+}
+
+export async function deleteFriend(
+  id: string,
+): Promise<{ ok: boolean; unsettled?: boolean; amount?: number }> {
+  const res = await req("DELETE", `/api/friends/${encodeURIComponent(id)}`);
+  if (!res) return { ok: false };
+  if (res.ok) return { ok: true };
+  if (res.status === 409) {
+    const body = (await res.json().catch(() => ({}))) as { amount?: number };
+    return { ok: false, unsettled: true, amount: body.amount };
+  }
+  return { ok: false };
 }
 
 export async function fetchInvite(id: string): Promise<InviteInfo | null> {
