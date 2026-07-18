@@ -12,7 +12,9 @@ export function ExpenseRow({ expense, showGroup = false }: { expense: Expense; s
   const people = useStore((s) => s.people);
   const groups = useStore((s) => s.groups);
   const openEdit = useUI((s) => s.openEdit);
+  const openDetail = useUI((s) => s.openDetail);
   const myId = useMyId();
+  const mine = expense.createdBy === myId;
 
   const nameOf = (id: string) =>
     id === myId ? "You" : people.find((p) => p.id === id)?.name.split(" ")[0] ?? "Someone";
@@ -22,7 +24,10 @@ export function ExpenseRow({ expense, showGroup = false }: { expense: Expense; s
     const payer = nameOf(expense.paidBy);
     const payee = nameOf(expense.splits[0]?.personId ?? "");
     return (
-      <div className="flex items-center gap-3 px-4 py-3">
+      <button
+        onClick={() => openDetail(expense.id)}
+        className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-2 active:bg-surface-inset"
+      >
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] bg-positive-soft text-positive">
           <ArrowLeftRight className="h-[18px] w-[18px]" />
         </div>
@@ -30,10 +35,12 @@ export function ExpenseRow({ expense, showGroup = false }: { expense: Expense; s
           <p className="truncate text-[0.92rem] font-medium text-text">
             {payer} paid {payee}
           </p>
-          <p className="truncate text-[0.78rem] text-text-3">{formatDate(expense.date)} · Settlement</p>
+          <p className="truncate text-[0.78rem] text-text-3">
+            {formatDate(expense.date)} · Settlement{mine ? "" : " · tap to view"}
+          </p>
         </div>
         <span className="tnum text-[0.92rem] font-semibold text-positive">{formatINR(expense.amount)}</span>
-      </div>
+      </button>
     );
   }
 
@@ -44,7 +51,7 @@ export function ExpenseRow({ expense, showGroup = false }: { expense: Expense; s
 
   return (
     <button
-      onClick={() => openEdit(expense.id)}
+      onClick={() => (mine ? openEdit(expense.id) : openDetail(expense.id))}
       className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-2 active:bg-surface-inset"
     >
       <CategoryIcon category={expense.category} size={40} />
