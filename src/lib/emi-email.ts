@@ -1,15 +1,14 @@
 import { formatINR } from "./utils";
 import { escapeHtml } from "./api-helpers";
+import { sendEmail } from "./email";
 import type { Liability } from "./types";
 
 /**
  * Sends a polished "EMI paid" receipt after an auto-update. Best-effort: only
- * fires when Resend is configured (RESEND_API_KEY + INVITE_FROM_EMAIL).
+ * fires when Gmail SMTP is configured (GMAIL_USER + GMAIL_APP_PASSWORD).
  */
 export async function sendEmiEmail(to: string, name: string, l: Liability): Promise<boolean> {
-  const key = process.env.RESEND_API_KEY;
-  const from = process.env.INVITE_FROM_EMAIL;
-  if (!key || !from || !to) return false;
+  if (!to) return false;
 
   const paid = l.emisPaid ?? 0;
   const total = l.termMonths ?? 0;
@@ -67,19 +66,6 @@ export async function sendEmiEmail(to: string, name: string, l: Liability): Prom
   </div>
 </div>`;
 
-  try {
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${key}`, "content-type": "application/json" },
-      body: JSON.stringify({
-        from,
-        to,
-        subject: done ? `${l.lender || l.name} loan cleared 🎉` : `EMI paid · ${l.lender || l.name} · ${paid}/${total}`,
-        html,
-      }),
-    });
-    return res.ok;
-  } catch {
-    return false;
-  }
+  const subject = done ? `${l.lender || l.name} loan cleared 🎉` : `EMI paid · ${l.lender || l.name} · ${paid}/${total}`;
+  return sendEmail({ to, subject, html });
 }

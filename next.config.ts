@@ -31,7 +31,7 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
-  serverExternalPackages: ["mongodb"],
+  serverExternalPackages: ["mongodb", "nodemailer"],
   async headers() {
     return [
       { source: "/(.*)", headers: securityHeaders },
