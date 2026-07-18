@@ -42,6 +42,7 @@ export function AddExpenseSheet() {
   const people = useStore((s) => s.people);
   const groups = useStore((s) => s.groups);
   const expenses = useStore((s) => s.expenses);
+  const accounts = useStore((s) => s.accounts);
   const addExpense = useStore((s) => s.addExpense);
   const updateExpense = useStore((s) => s.updateExpense);
   const deleteExpense = useStore((s) => s.deleteExpense);
@@ -111,7 +112,7 @@ export function AddExpenseSheet() {
       setRecurring(false);
       setSplitMode("equal");
       setExact({});
-      setAccountId(null);
+      setAccountId(accounts[0]?.id ?? null);
     }
   } else if (!open && wasOpen) {
     setWasOpen(false);
