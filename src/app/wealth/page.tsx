@@ -280,11 +280,7 @@ export default function WealthPage() {
                 const Icon = LIABILITY_KIND_META[l.kind as LiabilityKind].icon;
                 const meta = [
                   l.lender,
-                  l.remainingMonths != null && l.termMonths
-                    ? `${l.remainingMonths}/${l.termMonths} mo`
-                    : l.remainingMonths != null
-                      ? `${l.remainingMonths} mo left`
-                      : null,
+                  l.termMonths ? `${l.emisPaid ?? 0}/${l.termMonths} EMIs paid` : null,
                   l.emi ? `${formatINR(l.emi)}/mo` : null,
                 ]
                   .filter(Boolean)
