@@ -67,5 +67,9 @@ export async function sendEmiEmail(to: string, name: string, l: Liability): Prom
 </div>`;
 
   const subject = done ? `${l.lender || l.name} loan cleared 🎉` : `EMI paid · ${l.lender || l.name} · ${paid}/${total}`;
-  return sendEmail({ to, subject, html });
+  const label = l.lender || l.name;
+  const text = done
+    ? `Your ${label} loan is fully cleared — all ${total} EMIs paid. Outstanding: ₹0. 🎉\n\n— Tally`
+    : `EMI paid on ${label}: ${formatINR(l.emi ?? 0)}.\nProgress: ${paid} of ${total} EMIs (${pct}%). Outstanding: ${formatINR(l.outstanding)}.\n\nMade a partial or extra payment? Open the app to adjust the count.\n\n— Tally`;
+  return sendEmail({ to, subject, html, text });
 }

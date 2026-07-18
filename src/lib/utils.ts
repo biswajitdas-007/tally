@@ -101,11 +101,19 @@ export function monthLabel(key: string): string {
 }
 
 export function uid(prefix = ""): string {
-  // Cryptographically random (invite ids double as capability tokens).
-  const rand =
-    typeof crypto !== "undefined" && crypto.randomUUID
-      ? crypto.randomUUID().replace(/-/g, "")
-      : Math.random().toString(36).slice(2) + Date.now().toString(36);
+  // Cryptographically random — invite ids double as capability tokens, so we
+  // never fall back to Math.random(). crypto is present in every runtime we
+  // target (Node 20+, modern browsers); Web Crypto covers the rare gap.
+  const c = typeof crypto !== "undefined" ? crypto : undefined;
+  let rand: string;
+  if (c?.randomUUID) {
+    rand = c.randomUUID().replace(/-/g, "");
+  } else if (c?.getRandomValues) {
+    const bytes = c.getRandomValues(new Uint8Array(16));
+    rand = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+  } else {
+    throw new Error("secure randomness unavailable");
+  }
   return prefix + rand.slice(0, 20);
 }
 
