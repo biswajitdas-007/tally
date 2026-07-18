@@ -50,10 +50,22 @@ export function InviteDialog() {
       groupIcon: group?.icon,
       inviterName: me?.name,
     });
+    setSending(false);
+
+    // Already in your circle — nothing to invite them to.
+    if (result?.self) {
+      toast({ message: "That's your own email 🙂" });
+      return;
+    }
+    if (result?.alreadyFriend) {
+      toast({ message: `You're already connected with ${result.name ?? "them"}` });
+      close();
+      return;
+    }
+
     const origin = typeof window !== "undefined" ? window.location.origin : "";
     setSentLink(result?.link ?? `${origin}/join/${inviteId}`);
     setEmailSent(Boolean(result?.sent));
-    setSending(false);
     await refetch(); // pull the pending member into the group
     toast({ message: result?.sent ? `Invite emailed to ${email.trim()}` : "Invite created — share the link" });
   }
