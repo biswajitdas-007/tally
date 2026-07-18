@@ -32,6 +32,7 @@ interface State {
   budget: Budget;
   accounts: Account[];
   liabilities: Liability[];
+  removedFriends: string[];
   lastDeleted: Expense | null;
 
   setAuthReady: () => void;
@@ -52,6 +53,7 @@ interface State {
 
   settleUp: (input: { from: ID; to: ID; amount: number; groupId?: ID | null; note?: string; accountId?: ID }) => void;
   updateProfile: (patch: { name?: string; upiId?: string }) => void;
+  deleteFriend: (id: ID) => Promise<{ ok: boolean; unsettled?: boolean; amount?: number }>;
 
   addFinance: (input: { type: FinanceType; amount: number; category: string; date?: string; note?: string; accountId?: ID; transfer?: boolean }) => void;
   updateFinance: (id: ID, patch: Partial<FinanceEntry>) => void;
@@ -70,7 +72,8 @@ const stateHash = (s: {
   budget: unknown;
   accounts: unknown[];
   liabilities: unknown[];
-}) => JSON.stringify([s.people, s.groups, s.expenses, s.finance, s.budget, s.accounts, s.liabilities]);
+  removedFriends: unknown[];
+}) => JSON.stringify([s.people, s.groups, s.expenses, s.finance, s.budget, s.accounts, s.liabilities, s.removedFriends]);
 
 const now = () => new Date().toISOString();
 const reconcile = (res: Response | null, get: () => State) => {
@@ -90,6 +93,7 @@ export const useStore = create<State>()((set, get) => ({
   budget: { limits: {} },
   accounts: [],
   liabilities: [],
+  removedFriends: [],
   lastDeleted: null,
 
   setAuthReady: () => set({ authReady: true }),
@@ -107,6 +111,7 @@ export const useStore = create<State>()((set, get) => ({
       budget: state.budget,
       accounts: state.accounts,
       liabilities: state.liabilities,
+      removedFriends: state.removedFriends ?? [],
       dataReady: true,
       loadError: false,
     });
@@ -123,6 +128,7 @@ export const useStore = create<State>()((set, get) => ({
       budget: { limits: {} },
       accounts: [],
       liabilities: [],
+      removedFriends: [],
       lastDeleted: null,
       dataReady: false,
       loadError: false,
@@ -229,6 +235,16 @@ export const useStore = create<State>()((set, get) => ({
       people: s.people.map((p) => (p.id === meId ? { ...p, ...patch } : p)),
     }));
     api.updateProfileApi({ ...patch }).then((res) => reconcile(res, get));
+  },
+
+  deleteFriend: async (id) => {
+    const prev = get().removedFriends;
+    // Optimistically hide them; the server has the final say on the balance gate.
+    set({ removedFriends: [...new Set([...prev, id])] });
+    const res = await api.deleteFriend(id);
+    if (res.ok) get().refetch();
+    else set({ removedFriends: prev });
+    return res;
   },
 
   addFinance: ({ type, amount, category, date, note, accountId, transfer }) => {

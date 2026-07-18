@@ -13,6 +13,7 @@ export interface UserDoc {
   upiId?: string;
   avatarColor?: string;
   contacts?: Person[];
+  removedFriends?: string[]; // friend ids hidden from your list after removal
   pushSubs?: PushSubscription[];
   budget?: Budget;
   accounts?: Account[];
@@ -165,6 +166,7 @@ export interface ClientState {
   budget: Budget;
   accounts: Account[];
   liabilities: Liability[];
+  removedFriends: string[];
 }
 
 /** The full view for one user: profile, everyone they share with, groups, expenses. */
@@ -207,7 +209,26 @@ export async function buildState(uid: string): Promise<ClientState> {
     budget: meDoc.budget ?? { limits: {} },
     accounts: meDoc.accounts ?? [],
     liabilities: (meDoc.liabilities ?? []).map(normalizeLiability),
+    removedFriends: meDoc.removedFriends ?? [],
   };
+}
+
+/**
+ * Add (or refresh) a person in someone's contacts, and clear them from the
+ * owner's removed-friends set — used when an invite is accepted so both sides
+ * see each other as friends again.
+ */
+export async function addContact(
+  users: Collection<UserDoc>,
+  ownerUid: string,
+  person: Person,
+): Promise<void> {
+  await users.updateOne(
+    { _id: ownerUid },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    { $pull: { contacts: { id: person.id }, removedFriends: person.id } } as any,
+  );
+  await users.updateOne({ _id: ownerUid }, { $push: { contacts: person } });
 }
 
 /** Migrate legacy loans that stored "remaining months" to the "EMIs paid" model. */
