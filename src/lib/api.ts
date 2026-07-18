@@ -83,7 +83,14 @@ export async function sendInvite(input: {
   groupName?: string;
   groupIcon?: string;
   inviterName?: string;
-}): Promise<{ ok: boolean; sent: boolean; link: string } | null> {
+}): Promise<{
+  ok: boolean;
+  sent?: boolean;
+  link?: string;
+  alreadyFriend?: boolean;
+  self?: boolean;
+  name?: string;
+} | null> {
   const res = await req("POST", "/api/invite", input);
   return res?.ok ? await res.json() : null;
 }
