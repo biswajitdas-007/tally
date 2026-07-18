@@ -25,6 +25,7 @@ export function AddMoneySheet() {
   const finance = useStore((s) => s.finance);
   const expenses = useStore((s) => s.expenses);
   const budget = useStore((s) => s.budget);
+  const accounts = useStore((s) => s.accounts);
   const addFinance = useStore((s) => s.addFinance);
   const updateFinance = useStore((s) => s.updateFinance);
   const deleteFinance = useStore((s) => s.deleteFinance);
@@ -58,7 +59,7 @@ export function AddMoneySheet() {
       setCategory(initialType === "income" ? "salary" : "food");
       setDate(new Date());
       setNote("");
-      setAccountId(null);
+      setAccountId(accounts[0]?.id ?? null);
     }
   } else if (!open && wasOpen) {
     setWasOpen(false);
