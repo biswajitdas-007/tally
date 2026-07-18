@@ -55,6 +55,10 @@ interface UIState {
   parkOpen: boolean;
   openPark: () => void;
   closePark: () => void;
+
+  accountDetailId: ID | null;
+  openAccountDetail: (id: ID) => void;
+  closeAccountDetail: () => void;
 }
 
 export const useUI = create<UIState>((set) => ({
@@ -101,4 +105,8 @@ export const useUI = create<UIState>((set) => ({
   parkOpen: false,
   openPark: () => set({ parkOpen: true }),
   closePark: () => set({ parkOpen: false }),
+
+  accountDetailId: null,
+  openAccountDetail: (id) => set({ accountDetailId: id }),
+  closeAccountDetail: () => set({ accountDetailId: null }),
 }));
