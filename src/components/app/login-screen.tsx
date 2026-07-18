@@ -104,7 +104,7 @@ export function LoginScreen() {
           </div>
           <div className="mt-4 flex items-end justify-between">
             <div>
-              <p className="text-[0.72rem] font-medium uppercase tracking-wide text-text-3">You're owed</p>
+              <p className="text-[0.72rem] font-medium uppercase tracking-wide text-text-3">You&apos;re owed</p>
               <p className="font-display text-2xl font-bold tracking-tight text-text tnum">₹2,480</p>
             </div>
             <div className="flex h-9 items-center gap-1.5 rounded-full bg-brand px-3.5 text-[0.8rem] font-semibold text-on-brand">
