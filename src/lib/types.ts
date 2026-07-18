@@ -125,9 +125,9 @@ export interface Liability {
   emi?: number; // monthly payment, for debt-to-income
   rate?: number; // annual interest %
   lender?: string; // who it's from (e.g. "HDFC Bank")
-  termMonths?: number; // total duration
-  remainingMonths?: number; // months left
-  autoDebit?: boolean; // reduce automatically on the due date each month
-  dueDay?: number; // day of month the payment goes out (1–28)
-  nextDue?: string; // internal: ISO date of the next auto-debit to apply
+  termMonths?: number; // total number of EMIs
+  emisPaid?: number; // how many EMIs are paid so far (counts up)
+  autoDebit?: boolean; // increment automatically each month on the due date
+  dueDay?: number; // day of month the EMI is paid (1–28; defaults to 3)
+  lastPaidMonth?: string; // "YYYY-MM" already counted — guards against double-counting
 }

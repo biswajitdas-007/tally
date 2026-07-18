@@ -206,8 +206,17 @@ export async function buildState(uid: string): Promise<ClientState> {
     finance: financeDocs.map(toClientFinance),
     budget: meDoc.budget ?? { limits: {} },
     accounts: meDoc.accounts ?? [],
-    liabilities: meDoc.liabilities ?? [],
+    liabilities: (meDoc.liabilities ?? []).map(normalizeLiability),
   };
+}
+
+/** Migrate legacy loans that stored "remaining months" to the "EMIs paid" model. */
+function normalizeLiability(l: Liability): Liability {
+  const legacy = l as Liability & { remainingMonths?: number };
+  if (l.emisPaid == null && l.termMonths != null && legacy.remainingMonths != null) {
+    return { ...l, emisPaid: Math.max(0, l.termMonths - legacy.remainingMonths) };
+  }
+  return l;
 }
 
 /** uids to notify about a change (minus the actor). */
