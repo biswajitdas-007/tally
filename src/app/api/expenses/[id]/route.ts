@@ -29,8 +29,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
     const { expenses, groups, users } = await collections();
     const existing = await expenses.findOne({ _id: id });
-    if (!existing || !existing.memberUids.includes(user.uid)) return forbidden();
-    // Settlement records are immutable — they're the ledger of who paid whom.
+    // Only the person who added it can edit it — group membership isn't enough.
+    if (!existing || existing.createdBy !== user.uid) return forbidden();
+    // Settlement records are immutable — undo them by deleting instead.
     if (existing.isSettlement) return forbidden();
 
     // Validate only the fields actually provided.
@@ -96,9 +97,11 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
   try {
     const { expenses } = await collections();
     const existing = await expenses.findOne({ _id: id });
-    if (!existing || !existing.memberUids.includes(user.uid)) return forbidden();
+    // Only the creator can delete (incl. undoing a settlement they recorded).
+    if (!existing || existing.createdBy !== user.uid) return forbidden();
+    const targets = existing.memberUids;
     await expenses.deleteOne({ _id: id });
-    await notifyChange(existing.memberUids, user.uid);
+    await notifyChange(targets, user.uid);
     return json({ ok: true });
   } catch {
     return serverError();
