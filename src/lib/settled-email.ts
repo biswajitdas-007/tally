@@ -75,5 +75,10 @@ export async function sendSettledEmail(to: string, recipientName: string, info: 
   </div>
 </div>`;
 
-  return sendEmail({ to, subject: `${info.groupName} is all settled up 🎉`, html });
+  const text =
+    `${info.groupName} is all settled up — every balance is back to zero, nobody owes anyone a rupee.\n\n` +
+    `Total spent: ${formatINR(info.totalSpent)} across ${info.expenseCount} expenses.\n` +
+    `Closed by ${info.closedByPayerName}'s payment of ${formatINR(info.closedAmount)} to ${info.closedByReceiverName}.\n\n— Tally`;
+
+  return sendEmail({ to, subject: `${info.groupName} is all settled up 🎉`, html, text });
 }

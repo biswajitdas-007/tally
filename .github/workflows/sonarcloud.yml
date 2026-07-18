@@ -1,0 +1,36 @@
+name: SonarQube Cloud
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    name: SonarQube Cloud scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      # Stays green as a no-op until SONAR_TOKEN is added, so the repo isn't
+      # red before Sonar is connected. Once you add the secret (see README /
+      # sonar-project.properties), the scan runs automatically.
+      - name: Check for SONAR_TOKEN
+        id: token
+        run: echo "present=${{ secrets.SONAR_TOKEN != '' }}" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout
+        if: steps.token.outputs.present == 'true'
+        uses: actions/checkout@v4
+        with:
+          # Full history gives Sonar accurate new-code / blame data.
+          fetch-depth: 0
+
+      - name: SonarQube Cloud Scan
+        if: steps.token.outputs.present == 'true'
+        uses: SonarSource/sonarqube-scan-action@v6
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
