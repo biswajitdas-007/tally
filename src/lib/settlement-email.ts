@@ -91,5 +91,11 @@ export async function sendSettlementEmail(
     ? `${info.payerName} settled up with you · ${formatINR(info.amount)}`
     : `Payment recorded · ${formatINR(info.amount)} to ${info.receiverName}`;
 
-  return sendEmail({ to, subject, html });
+  const where = info.groupName ? ` in ${info.groupName}` : "";
+  const noteText = info.note ? ` (${info.note})` : "";
+  const text = isReceiver
+    ? `${info.payerName} settled up with you: ${formatINR(info.amount)}${where}${noteText} on ${when}.\n\nOpen Tally to review the ledger.\n\n— Tally`
+    : `Payment recorded: you paid ${info.receiverName} ${formatINR(info.amount)}${where}${noteText} on ${when}. You're all square on this one.\n\n— Tally`;
+
+  return sendEmail({ to, subject, html, text });
 }
