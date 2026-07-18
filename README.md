@@ -1,5 +1,10 @@
 # Tally — split expenses, settle up over UPI
 
+[![CI](https://github.com/biswajitdas-007/tally/actions/workflows/ci.yml/badge.svg)](https://github.com/biswajitdas-007/tally/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/biswajitdas-007/tally/actions/workflows/codeql.yml/badge.svg)](https://github.com/biswajitdas-007/tally/actions/workflows/codeql.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-1c6b52.svg)](LICENSE)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-1c6b52.svg)](CONTRIBUTING.md)
+
 A production-grade PWA for splitting shared expenses with friends and settling up
 instantly over UPI. Track who owes whom across trips, flats and dinners; the app
 computes minimal settle-up transactions and generates real `upi://pay` QR codes
@@ -55,9 +60,9 @@ Copy `.env.local.example` → `.env.local` and fill in what you need:
 - **Google login** — create a [Firebase](https://console.firebase.google.com)
   project, add a Web App, enable the Google sign-in provider, and set the
   `NEXT_PUBLIC_FIREBASE_*` vars. **Required for sign-in.**
-- **Email invites** — set `RESEND_API_KEY` + `INVITE_FROM_EMAIL`
-  ([Resend](https://resend.com)). Without them, invites are still recorded and a
-  shareable link is shown.
+- **Email** (invites, settlement receipts, EMI reminders) — sent via Gmail SMTP
+  with Nodemailer. Set `GMAIL_USER` + a Gmail **App Password** (`GMAIL_APP_PASSWORD`).
+  Without them, invites are still recorded and a shareable link is shown.
 - **Push notifications** — `npx web-push generate-vapid-keys`, then set the
   `*_VAPID_*` vars.
 
@@ -97,3 +102,23 @@ src/
 Design tokens live in `src/app/globals.css`; shadcn's semantic tokens
 (`--primary`, `--border`, …) are bridged to the Tally palette so every component
 inherits the look and dark mode automatically.
+
+## Contributing
+
+Contributions are welcome! Please read **[CONTRIBUTING.md](CONTRIBUTING.md)** for
+the dev setup, our Git Flow branching model, and the PR checklist. In short:
+branch from `develop`, keep `npx tsc --noEmit`, `npm run lint`, and `npm run build`
+green, and open a PR against `develop`.
+
+This project follows the [Contributor Covenant](CODE_OF_CONDUCT.md).
+
+## Security
+
+Found a vulnerability? **Do not open a public issue.** Report it privately via
+the repo's **Security → Report a vulnerability** tab. See **[SECURITY.md](SECURITY.md)**
+for scope and our disclosure process. No secrets live in this repo or its git
+history — everything sensitive is injected via environment variables.
+
+## License
+
+Released under the [MIT License](LICENSE). © 2026 Biswajit Das.
