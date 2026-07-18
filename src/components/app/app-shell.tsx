@@ -6,6 +6,7 @@ import { TopBar } from "./top-bar";
 import { MenuDrawer } from "./menu-drawer";
 import { AddExpenseSheet } from "@/components/features/add-expense-sheet";
 import { AddMoneySheet } from "@/components/features/add-money-sheet";
+import { ExpenseDetailSheet } from "@/components/features/expense-detail-sheet";
 import { BudgetSheet } from "@/components/features/budget-sheet";
 import { WealthSheet } from "@/components/features/wealth-sheet";
 import { AccountDetailSheet } from "@/components/features/account-detail-sheet";
@@ -36,6 +37,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Global surfaces */}
       <AddExpenseSheet />
       <AddMoneySheet />
+      <ExpenseDetailSheet />
       <BudgetSheet />
       <WealthSheet />
       <AccountDetailSheet />
