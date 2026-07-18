@@ -43,7 +43,7 @@ export function WealthSheet() {
   const [rate, setRate] = useState("");
   const [lender, setLender] = useState("");
   const [term, setTerm] = useState("");
-  const [remaining, setRemaining] = useState("");
+  const [paid, setPaid] = useState("");
   const [autoDebit, setAutoDebit] = useState(false);
   const [dueDay, setDueDay] = useState("");
 
@@ -54,7 +54,7 @@ export function WealthSheet() {
     setRate("");
     setLender("");
     setTerm("");
-    setRemaining("");
+    setPaid("");
     setAutoDebit(false);
     setDueDay("");
     if (editingAccount) {
@@ -73,7 +73,11 @@ export function WealthSheet() {
       setRate(el.rate ? String(el.rate) : "");
       setLender(el.lender ?? "");
       setTerm(el.termMonths ? String(el.termMonths) : "");
-      setRemaining(el.remainingMonths != null ? String(el.remainingMonths) : "");
+      setPaid(
+        el.termMonths != null && el.remainingMonths != null
+          ? String(Math.max(0, el.termMonths - el.remainingMonths))
+          : "",
+      );
       setAutoDebit(Boolean(el.autoDebit));
       setDueDay(el.dueDay ? String(el.dueDay) : "");
     } else {
@@ -114,8 +118,11 @@ export function WealthSheet() {
       if (lender.trim()) liab.lender = lender.trim();
       const termN = parseInt(term, 10);
       if (termN > 0) liab.termMonths = termN;
-      const remN = remaining !== "" ? parseInt(remaining, 10) : termN > 0 ? termN : NaN;
-      if (!Number.isNaN(remN) && remN >= 0) liab.remainingMonths = remN;
+      // Store months-left, derived from how many EMIs the user has paid.
+      if (termN > 0) {
+        const paidN = paid !== "" ? parseInt(paid, 10) : 0;
+        liab.remainingMonths = Math.max(0, termN - (Number.isNaN(paidN) ? 0 : paidN));
+      }
       const dueN = parseInt(dueDay, 10);
       if (autoDebit && dueN >= 1) {
         liab.autoDebit = true;
@@ -256,13 +263,13 @@ export function WealthSheet() {
                 </div>
               </div>
               <div className="flex-1">
-                <p className="mb-2 px-0.5 text-[0.8rem] font-semibold text-text-2">Months left</p>
+                <p className="mb-2 px-0.5 text-[0.8rem] font-semibold text-text-2">EMIs paid</p>
                 <div className="flex items-center rounded-[14px] border border-border bg-surface px-3 py-3">
                   <input
-                    value={remaining}
-                    onChange={(e) => setRemaining(e.target.value.replace(/[^0-9]/g, ""))}
+                    value={paid}
+                    onChange={(e) => setPaid(e.target.value.replace(/[^0-9]/g, ""))}
                     inputMode="numeric"
-                    placeholder={term || "—"}
+                    placeholder="0"
                     className="w-full bg-transparent font-display text-[0.98rem] font-bold tnum outline-none placeholder:text-text-3"
                   />
                 </div>
