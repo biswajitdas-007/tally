@@ -27,6 +27,11 @@ jobs:
           node-version: 22
           cache: npm
 
+      # Pin npm to the version the lockfile was generated with, so `npm ci`
+      # validates it identically to local dev (avoids lockfile-version skew).
+      - name: Pin npm
+        run: npm install -g npm@11.16.0
+
       - name: Install dependencies
         run: npm ci
 
