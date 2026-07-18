@@ -78,6 +78,9 @@ export async function POST(req: Request) {
     const sent = await sendEmail({
       to: email,
       subject: `${inviterName} invited you to Tally`,
+      text: `${inviterName} wants to split expenses with you${
+        groupName ? ` in "${groupName}"` : ""
+      } on Tally.\n\nSign in with Google to join and settle up over UPI:\n${link}\n\n— Tally`,
       html: `
         <div style="font-family:system-ui,sans-serif;max-width:480px;margin:0 auto;padding:24px">
           <h2 style="color:#1c6b52;margin:0 0 8px">You're invited to Tally</h2>
