@@ -23,6 +23,10 @@ interface UIState {
   openSettle: (t: SettleTarget) => void;
   closeSettle: () => void;
 
+  detailId: ID | null;
+  openDetail: (id: ID) => void;
+  closeDetail: () => void;
+
   inviteOpen: boolean;
   inviteGroupId: ID | null;
   openInvite: (groupId?: ID | null) => void;
@@ -72,6 +76,10 @@ export const useUI = create<UIState>((set) => ({
   settle: null,
   openSettle: (t) => set({ settle: t }),
   closeSettle: () => set({ settle: null }),
+
+  detailId: null,
+  openDetail: (id) => set({ detailId: id }),
+  closeDetail: () => set({ detailId: null }),
 
   inviteOpen: false,
   inviteGroupId: null,
