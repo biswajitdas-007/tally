@@ -30,6 +30,37 @@ export function liveBalance(account: Account, finance: FinanceEntry[], expenses:
   return account.balance + linkedDelta(account.id, finance, expenses, meId);
 }
 
+export interface AccountTxn {
+  id: ID;
+  label: string;
+  amount: number; // signed: + into the account, − out of it
+  date: string;
+}
+
+/** Everything logged against an account, newest first — the "track" of what moved the money. */
+export function accountTransactions(accountId: ID, finance: FinanceEntry[], expenses: Expense[], meId: ID): AccountTxn[] {
+  const out: AccountTxn[] = [];
+  for (const f of finance) {
+    if (f.accountId !== accountId) continue;
+    out.push({
+      id: f.id,
+      label: f.transfer ? "Parked in" : f.note?.trim() || (f.type === "income" ? "Income" : "Expense"),
+      amount: f.type === "income" ? f.amount : -f.amount,
+      date: f.date,
+    });
+  }
+  for (const e of expenses) {
+    if (e.accountId !== accountId) continue;
+    if (e.isSettlement) {
+      const received = e.paidBy !== meId && e.splits.some((s) => s.personId === meId);
+      out.push({ id: e.id, label: received ? "Received" : "Settled up", amount: received ? e.amount : -e.amount, date: e.date });
+    } else if (e.paidBy === meId) {
+      out.push({ id: e.id, label: e.description || "Paid", amount: -e.amount, date: e.date });
+    }
+  }
+  return out.sort((a, b) => +new Date(b.date) - +new Date(a.date));
+}
+
 /** Accounts with live balances substituted in — for net worth, health and display. */
 export function withLiveBalances(accounts: Account[], finance: FinanceEntry[], expenses: Expense[], meId: ID): Account[] {
   return accounts.map((a) => ({ ...a, balance: liveBalance(a, finance, expenses, meId) }));

@@ -26,6 +26,7 @@ export function SettleSheet() {
   const people = useStore((s) => s.people);
   const expenses = useStore((s) => s.expenses);
   const groups = useStore((s) => s.groups);
+  const accounts = useStore((s) => s.accounts);
   const me = useMe();
   const myId = useMyId() ?? "";
   const { toast } = useToast();
@@ -52,7 +53,7 @@ export function SettleSheet() {
     setLastTarget(target);
     setSelected(new Set(scopes.map((s) => scopeKey(s.scopeId))));
     setUpiDraft("");
-    setAccountId(null);
+    setAccountId(accounts[0]?.id ?? null);
   }
 
   const person = target ? people.find((p) => p.id === target.personId) ?? null : null;
