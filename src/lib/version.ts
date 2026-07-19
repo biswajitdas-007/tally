@@ -1,2 +1,2 @@
 /** Human-facing app version, shown in the menu. Bump alongside package.json. */
-export const APP_VERSION = "1.17.4";
+export const APP_VERSION = "1.17.5";
