@@ -15,6 +15,7 @@ import { EmiConfirm } from "@/components/features/emi-confirm";
 import { SettleSheet } from "@/components/features/settle-sheet";
 import { InviteDialog } from "@/components/features/invite-dialog";
 import { CreateGroupSheet } from "@/components/features/create-group-sheet";
+import { ScanPaySheet } from "@/components/features/scan-pay-sheet";
 import { InstallPrompt } from "./install-prompt";
 import { PushAutoEnable } from "./push-auto";
 import { NotificationPrompt } from "./notification-prompt";
@@ -47,6 +48,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <SettleSheet />
       <InviteDialog />
       <CreateGroupSheet />
+      <ScanPaySheet />
       <InstallPrompt />
       <PushAutoEnable />
       <NotificationPrompt />
