@@ -55,7 +55,7 @@ interface State {
   updateProfile: (patch: { name?: string; upiId?: string }) => void;
   deleteFriend: (id: ID) => Promise<{ ok: boolean; unsettled?: boolean; amount?: number }>;
 
-  addFinance: (input: { type: FinanceType; amount: number; category: string; date?: string; note?: string; accountId?: ID; transfer?: boolean }) => void;
+  addFinance: (input: { type: FinanceType; amount: number; category: string; date?: string; note?: string; accountId?: ID; transfer?: boolean; payeeVpa?: string; payeeName?: string }) => FinanceEntry;
   updateFinance: (id: ID, patch: Partial<FinanceEntry>) => void;
   deleteFinance: (id: ID) => void;
 
@@ -247,7 +247,7 @@ export const useStore = create<State>()((set, get) => ({
     return res;
   },
 
-  addFinance: ({ type, amount, category, date, note, accountId, transfer }) => {
+  addFinance: ({ type, amount, category, date, note, accountId, transfer, payeeVpa, payeeName }) => {
     const e: FinanceEntry = {
       id: uid("f_"),
       type,
@@ -258,9 +258,12 @@ export const useStore = create<State>()((set, get) => ({
       createdAt: now(),
       accountId,
       transfer,
+      payeeVpa,
+      payeeName,
     };
     set((s) => ({ finance: [e, ...s.finance] }));
     api.addFinanceApi({ ...e }).then((res) => reconcile(res, get));
+    return e;
   },
 
   updateFinance: (id, patch) => {

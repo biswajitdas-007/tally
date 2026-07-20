@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import jsQR from "jsqr";
-import { CameraOff, ScanLine, Check } from "lucide-react";
+import { CameraOff, ScanLine, Check, RotateCcw, CircleCheck } from "lucide-react";
 import { Sheet } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/input";
@@ -11,27 +11,33 @@ import { CATEGORY_LIST } from "@/lib/categories";
 import { useStore } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { useToast } from "@/components/ui/toast";
-import { parseUpiUri, buildUpiUri } from "@/lib/upi";
+import { parseUpiUri, buildAppUri, buildUpiUri, UPI_APPS } from "@/lib/upi";
 import { cn, formatINR } from "@/lib/utils";
 
 interface Payee {
   vpa: string;
   name: string;
 }
+type Phase = "scan" | "confirm" | "verify";
 
 export function ScanPaySheet() {
   const open = useUI((s) => s.scanOpen);
   const close = useUI((s) => s.closeScan);
   const accounts = useStore((s) => s.accounts);
+  const finance = useStore((s) => s.finance);
   const addFinance = useStore((s) => s.addFinance);
+  const deleteFinance = useStore((s) => s.deleteFinance);
   const { toast } = useToast();
 
+  const [phase, setPhase] = useState<Phase>("scan");
   const [payee, setPayee] = useState<Payee | null>(null);
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState("shopping");
   const [note, setNote] = useState("");
   const [accountId, setAccountId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [paidId, setPaidId] = useState<string | null>(null);
+  const [paidApp, setPaidApp] = useState("your UPI app");
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -41,17 +47,32 @@ export function ScanPaySheet() {
   const [wasOpen, setWasOpen] = useState(false);
   if (open && !wasOpen) {
     setWasOpen(true);
+    setPhase("scan");
     setPayee(null);
     setAmount("");
     setCategory("shopping");
     setNote("");
     setError(null);
+    setPaidId(null);
     setAccountId(accounts[0]?.id ?? null);
   } else if (!open && wasOpen) {
     setWasOpen(false);
   }
 
-  const scanning = open && !payee && !error;
+  // Unique recent payees (finance is newest-first), for one-tap re-pay.
+  const recentPayees = useMemo(() => {
+    const seen = new Set<string>();
+    const out: Payee[] = [];
+    for (const f of finance) {
+      if (!f.payeeVpa || seen.has(f.payeeVpa)) continue;
+      seen.add(f.payeeVpa);
+      out.push({ vpa: f.payeeVpa, name: f.payeeName || f.payeeVpa });
+      if (out.length >= 4) break;
+    }
+    return out;
+  }, [finance]);
+
+  const scanning = open && phase === "scan" && !error;
 
   useEffect(() => {
     if (!scanning) return;
@@ -65,7 +86,6 @@ export function ScanPaySheet() {
         rafRef.current = requestAnimationFrame(tick);
         return;
       }
-      // Decode on a downscaled frame — plenty for QR and keeps it smooth.
       const scale = Math.min(1, 640 / Math.max(v.videoWidth, v.videoHeight));
       const w = Math.round(v.videoWidth * scale);
       const h = Math.round(v.videoHeight * scale);
@@ -79,7 +99,8 @@ export function ScanPaySheet() {
           setPayee({ vpa: parsed.vpa, name: parsed.name });
           if (parsed.amount) setAmount(String(parsed.amount));
           if (parsed.note) setNote(parsed.note);
-          return; // stop the loop; teardown stops the camera
+          setPhase("confirm");
+          return;
         }
       }
       rafRef.current = requestAnimationFrame(tick);
@@ -88,10 +109,7 @@ export function ScanPaySheet() {
     (async () => {
       try {
         if (!navigator.mediaDevices?.getUserMedia) throw new Error("unsupported");
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "environment" },
-          audio: false,
-        });
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
         if (cancelled) {
           stream.getTracks().forEach((t) => t.stop());
           return;
@@ -125,34 +143,53 @@ export function ScanPaySheet() {
 
   const amt = parseFloat(amount) || 0;
   const canPay = Boolean(payee) && amt > 0;
-  const upiLink = payee
-    ? buildUpiUri({ vpa: payee.vpa, name: payee.name, amount: amt, note: note.trim() || undefined })
-    : "#";
 
-  function pay() {
+  function pickPayee(p: Payee) {
+    setPayee(p);
+    setPhase("confirm");
+  }
+
+  // Log the expense (optimistically) and move to the "did it go through?" step.
+  function onPay(appLabel: string) {
     if (!payee || amt <= 0) return;
-    // Log optimistically — UPI apps can't report success back to the web, so
-    // the entry is editable/deletable if a payment falls through.
-    addFinance({
+    const entry = addFinance({
       type: "expense",
       amount: amt,
       category,
       note: note.trim() || `Paid ${payee.name}`,
       accountId: accountId ?? undefined,
+      payeeVpa: payee.vpa,
+      payeeName: payee.name,
     });
-    toast({ message: `Logged ${formatINR(amt)} to ${payee.name} — opening your UPI app` });
-    close();
-    window.location.href = upiLink;
+    setPaidId(entry.id);
+    setPaidApp(appLabel);
+    setPhase("verify");
   }
 
+  function confirmPaid() {
+    toast({ message: `Payment to ${payee?.name ?? "payee"} logged` });
+    close();
+  }
+
+  function undoPaid() {
+    if (paidId) deleteFinance(paidId);
+    setPaidId(null);
+    setPhase("confirm"); // back to the app chooser to try again or cancel
+  }
+
+  const upiParams = payee ? { vpa: payee.vpa, name: payee.name, amount: amt, note: note.trim() || undefined } : null;
+
+  const title = phase === "scan" ? "Scan & pay" : phase === "verify" ? "Payment sent?" : "Confirm & pay";
+  const description =
+    phase === "scan"
+      ? "Point your camera at any UPI QR code"
+      : phase === "verify"
+        ? undefined
+        : "Review, pick your UPI app, then pay";
+
   return (
-    <Sheet
-      open={open}
-      onClose={close}
-      title={payee ? "Confirm & pay" : "Scan & pay"}
-      description={payee ? "Review, then pay in your UPI app" : "Point your camera at any UPI QR code"}
-    >
-      {!payee ? (
+    <Sheet open={open} onClose={close} title={title} description={description}>
+      {phase === "scan" && (
         <div className="flex flex-col gap-4 pt-1">
           {error ? (
             <div className="flex flex-col items-center gap-4 py-8 text-center">
@@ -167,14 +204,7 @@ export function ScanPaySheet() {
           ) : (
             <>
               <div className="relative mx-auto aspect-square w-full max-w-[320px] overflow-hidden rounded-[20px] bg-black">
-                <video
-                  ref={videoRef}
-                  playsInline
-                  muted
-                  autoPlay
-                  className="h-full w-full object-cover"
-                />
-                {/* Reticle */}
+                <video ref={videoRef} playsInline muted autoPlay className="h-full w-full object-cover" />
                 <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
                   <div className="h-3/5 w-3/5 rounded-[18px] border-2 border-white/80 shadow-[0_0_0_2000px_rgba(0,0,0,0.35)]" />
                 </div>
@@ -183,12 +213,36 @@ export function ScanPaySheet() {
                 <ScanLine className="h-4 w-4" />
                 Scanning for a UPI QR…
               </div>
+
+              {recentPayees.length > 0 && (
+                <div>
+                  <p className="mb-2 px-0.5 text-[0.8rem] font-semibold text-text-2">Recent payees</p>
+                  <div className="flex flex-col gap-1.5">
+                    {recentPayees.map((p) => (
+                      <button
+                        key={p.vpa}
+                        onClick={() => pickPayee(p)}
+                        className="flex items-center gap-3 rounded-[13px] border border-border bg-surface px-3 py-2.5 text-left transition-colors hover:border-border-strong hover:bg-surface-2"
+                      >
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-soft text-sm font-bold text-brand-on-soft">
+                          {p.name.trim().charAt(0).toUpperCase() || "₹"}
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block truncate text-[0.9rem] font-medium text-text">{p.name}</span>
+                          <span className="block truncate text-[0.74rem] text-text-3">{p.vpa}</span>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>
-      ) : (
+      )}
+
+      {phase === "confirm" && payee && (
         <div className="flex flex-col gap-5 pt-1">
-          {/* Payee */}
           <div className="flex items-center gap-3 rounded-[16px] bg-surface-inset p-3.5">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand text-lg font-bold text-on-brand">
               {payee.name.trim().charAt(0).toUpperCase() || "₹"}
@@ -199,7 +253,6 @@ export function ScanPaySheet() {
             </div>
           </div>
 
-          {/* Amount */}
           <div className="flex flex-col items-center rounded-[18px] bg-surface-inset py-5">
             <span className="text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-text-3">Paying</span>
             <div className="mt-1.5 flex items-baseline justify-center gap-1">
@@ -216,7 +269,6 @@ export function ScanPaySheet() {
             </div>
           </div>
 
-          {/* Category */}
           <div>
             <p className="mb-2 px-0.5 text-[0.8rem] font-semibold text-text-2">Category</p>
             <div className="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5 pb-1">
@@ -242,20 +294,81 @@ export function ScanPaySheet() {
             </div>
           </div>
 
-          {/* Account */}
           <AccountPicker value={accountId} onChange={setAccountId} label="Paid from" />
-
           <Textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Add a note (optional)" rows={2} />
 
-          <div className="sticky bottom-0 -mx-5 flex gap-3 border-t border-border bg-surface px-5 pb-1 pt-3">
-            <Button variant="secondary" size="lg" onClick={() => setPayee(null)}>
-              Rescan
+          {/* UPI app chooser — opens the exact app so nothing hijacks the intent */}
+          <div>
+            <p className="mb-2 px-0.5 text-[0.8rem] font-semibold text-text-2">Pay with</p>
+            {canPay && upiParams ? (
+              <>
+                <div className="grid grid-cols-2 gap-2">
+                  {UPI_APPS.map((app) => (
+                    <a
+                      key={app.id}
+                      href={buildAppUri(app, upiParams)}
+                      onClick={() => onPay(app.label)}
+                      className="flex items-center justify-center gap-2 rounded-[13px] border border-border bg-surface py-3.5 text-[0.9rem] font-semibold text-text transition-all hover:border-border-strong hover:bg-surface-2 active:scale-[0.98]"
+                    >
+                      <span className="h-2.5 w-2.5 rounded-full" style={{ background: app.color }} />
+                      {app.label}
+                    </a>
+                  ))}
+                </div>
+                <a
+                  href={buildUpiUri(upiParams)}
+                  onClick={() => onPay("your UPI app")}
+                  className="mt-2 block text-center text-[0.8rem] font-semibold text-brand"
+                >
+                  Other UPI app
+                </a>
+              </>
+            ) : (
+              <p className="rounded-[13px] border border-dashed border-border px-3 py-3 text-center text-[0.82rem] text-text-3">
+                Enter an amount above to choose a UPI app.
+              </p>
+            )}
+          </div>
+
+          <button
+            onClick={() => {
+              setPayee(null);
+              setPhase("scan");
+            }}
+            className="text-center text-[0.82rem] font-medium text-text-3 hover:text-text-2"
+          >
+            ← Scan a different code
+          </button>
+        </div>
+      )}
+
+      {phase === "verify" && payee && (
+        <div className="flex flex-col gap-5 pt-2">
+          <div className="flex flex-col items-center gap-3 text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-brand-soft text-brand">
+              <CircleCheck className="h-8 w-8" />
+            </div>
+            <div>
+              <p className="font-display text-lg font-semibold text-text">
+                Paying {formatINR(amt)} to {payee.name}
+              </p>
+              <p className="mt-1 text-sm text-text-2">
+                We opened {paidApp} and saved this to your money log. Did the payment go through?
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2.5">
+            <Button variant="primary" size="lg" fullWidth onClick={confirmPaid}>
+              <Check className="h-4.5 w-4.5" /> Yes, it's paid
             </Button>
-            <Button variant="primary" size="lg" fullWidth disabled={!canPay} onClick={pay}>
-              <Check className="h-4.5 w-4.5" />
-              Pay {formatINR(amt)}
+            <Button variant="secondary" size="lg" fullWidth onClick={undoPaid}>
+              <RotateCcw className="h-4 w-4" /> Not paid — try again
             </Button>
           </div>
+          <p className="px-2 text-center text-[0.74rem] text-text-3">
+            &ldquo;Not paid&rdquo; removes the entry from your log so nothing is double-counted.
+          </p>
         </div>
       )}
     </Sheet>
