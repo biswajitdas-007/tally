@@ -18,7 +18,7 @@ interface Payee {
   vpa: string;
   name: string;
 }
-type Phase = "scan" | "confirm" | "verify";
+type Phase = "scan" | "confirm" | "paying";
 
 export function ScanPaySheet() {
   const open = useUI((s) => s.scanOpen);
@@ -38,6 +38,7 @@ export function ScanPaySheet() {
   const [error, setError] = useState<string | null>(null);
   const [paidId, setPaidId] = useState<string | null>(null);
   const [paidApp, setPaidApp] = useState("your UPI app");
+  const [returned, setReturned] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -54,6 +55,7 @@ export function ScanPaySheet() {
     setNote("");
     setError(null);
     setPaidId(null);
+    setReturned(false);
     setAccountId(accounts[0]?.id ?? null);
   } else if (!open && wasOpen) {
     setWasOpen(false);
@@ -141,6 +143,17 @@ export function ScanPaySheet() {
     };
   }, [scanning]);
 
+  // We can't force a UPI app to return to a web app, but we can notice when the
+  // user switches back and flip the prompt to "welcome back, did it work?".
+  useEffect(() => {
+    if (!open) return;
+    const onVis = () => {
+      if (document.visibilityState === "visible") setReturned((r) => r || phase === "paying");
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, [open, phase]);
+
   const amt = parseFloat(amount) || 0;
   const canPay = Boolean(payee) && amt > 0;
 
@@ -163,7 +176,8 @@ export function ScanPaySheet() {
     });
     setPaidId(entry.id);
     setPaidApp(appLabel);
-    setPhase("verify");
+    setReturned(false);
+    setPhase("paying");
   }
 
   function confirmPaid() {
@@ -179,11 +193,11 @@ export function ScanPaySheet() {
 
   const upiParams = payee ? { vpa: payee.vpa, name: payee.name, amount: amt, note: note.trim() || undefined } : null;
 
-  const title = phase === "scan" ? "Scan & pay" : phase === "verify" ? "Payment sent?" : "Confirm & pay";
+  const title = phase === "scan" ? "Scan & pay" : phase === "paying" ? "Payment sent?" : "Confirm & pay";
   const description =
     phase === "scan"
       ? "Point your camera at any UPI QR code"
-      : phase === "verify"
+      : phase === "paying"
         ? undefined
         : "Review, pick your UPI app, then pay";
 
@@ -342,7 +356,7 @@ export function ScanPaySheet() {
         </div>
       )}
 
-      {phase === "verify" && payee && (
+      {phase === "paying" && payee && (
         <div className="flex flex-col gap-5 pt-2">
           <div className="flex flex-col items-center gap-3 text-center">
             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-brand-soft text-brand">
@@ -350,10 +364,12 @@ export function ScanPaySheet() {
             </div>
             <div>
               <p className="font-display text-lg font-semibold text-text">
-                Paying {formatINR(amt)} to {payee.name}
+                {formatINR(amt)} to {payee.name}
               </p>
               <p className="mt-1 text-sm text-text-2">
-                We opened {paidApp} and saved this to your money log. Did the payment go through?
+                {returned
+                  ? "Welcome back! Did the payment go through?"
+                  : `We opened ${paidApp} and saved this to your money log. Finish paying there, then come back to confirm.`}
               </p>
             </div>
           </div>
@@ -363,7 +379,7 @@ export function ScanPaySheet() {
               <Check className="h-4.5 w-4.5" /> Yes, it&apos;s paid
             </Button>
             <Button variant="secondary" size="lg" fullWidth onClick={undoPaid}>
-              <RotateCcw className="h-4 w-4" /> Not paid — try again
+              <RotateCcw className="h-4 w-4" /> Not paid — remove it
             </Button>
           </div>
           <p className="px-2 text-center text-[0.74rem] text-text-3">
