@@ -101,8 +101,12 @@ export interface FinanceEntry {
 
 /** Private monthly budget: typical take-home (for 50/30/20) + optional caps. */
 export interface Budget {
-  income?: number;
+  /** Total monthly spending limit the user chooses (not income-derived). */
+  monthly?: number;
+  /** Optional per-category caps. */
   limits: Partial<Record<CategoryKey, number>>;
+  /** @deprecated legacy 50/30/20 income — no longer used; kept for migration. */
+  income?: number;
 }
 
 /* ---------- wealth (assets & liabilities) ---------- */

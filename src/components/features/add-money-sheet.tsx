@@ -13,7 +13,7 @@ import { AccountPicker } from "./account-picker";
 import { useStore, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { useToast } from "@/components/ui/toast";
-import { budgetIncome, crossingWarning, monthlyMoney, spendByCategory } from "@/lib/money";
+import { crossingWarning, monthlyMoney, spendByCategory } from "@/lib/money";
 import { cn, formatDate, monthKey } from "@/lib/utils";
 import type { CategoryKey, FinanceType } from "@/lib/types";
 
@@ -88,7 +88,7 @@ export function AddMoneySheet() {
       const w = crossingWarning(catBefore, catBefore + total, cap, CATEGORIES[category as CategoryKey]?.label ?? "category");
       if (w) return w;
     }
-    return crossingWarning(mm.spend, mm.spend + total, budgetIncome(budget, mm.income), "monthly income");
+    return crossingWarning(mm.spend, mm.spend + total, budget.monthly ?? 0, "monthly budget");
   }
 
   function save() {
