@@ -44,7 +44,10 @@ export function buildUpiUri({ vpa, name, amount, note }: UpiParams): string {
   params.set("cu", "INR");
   if (amount && amount > 0) params.set("am", amount.toFixed(2));
   if (note) params.set("tn", note.slice(0, 80));
-  return `upi://pay?${params.toString()}`;
+  // Keep `@` literal and use %20 for spaces — real UPI QRs do, and BHIM's
+  // Android intent parser rejects a %40-encoded VPA as "address not valid".
+  const qs = params.toString().replace(/\+/g, "%20").replace(/%40/g, "@");
+  return `upi://pay?${qs}`;
 }
 
 /** Preferred-app variants so we can offer one-tap buttons where supported. */
