@@ -18,7 +18,7 @@ export async function POST(req: Request) {
 
     // Rebuild the budget from scratch — only accept known categories + sane numbers.
     const budget: Budget = { limits: {} };
-    if (isNum(b.income) && (b.income as number) >= 0) budget.income = b.income as number;
+    if (isNum(b.monthly) && (b.monthly as number) >= 0) budget.monthly = b.monthly as number;
     if (b.limits && typeof b.limits === "object" && !Array.isArray(b.limits)) {
       for (const [k, v] of Object.entries(b.limits as Record<string, unknown>)) {
         if (CATS.includes(k as CategoryKey) && isNum(v) && (v as number) > 0) {

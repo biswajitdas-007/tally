@@ -3,15 +3,15 @@
 import { useMemo } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ChevronLeft, Plus, Wallet, Scale, TrendingUp, CalendarClock, AlertTriangle, Lightbulb, Sparkles, PiggyBank, ChevronRight, type LucideIcon } from "lucide-react";
+import { ChevronLeft, Plus, Wallet, Scale, TrendingUp, CalendarClock, AlertTriangle, Lightbulb, Sparkles, PiggyBank, ChevronRight, Info, type LucideIcon } from "lucide-react";
 import { Card, SectionHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useStore, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { ACCOUNT_KIND_META, LIABILITY_KIND_META } from "@/lib/categories";
 import { BankBadge } from "@/components/features/bank-badge";
-import { healthScore, netWorth, gradeColor, avgMonthly } from "@/lib/health";
-import { budgetIncome } from "@/lib/money";
+import { healthScore, netWorth, gradeColor, avgMonthly, wealthRunway } from "@/lib/health";
 import { debtSuggestions, monthlyLiability, type DebtSuggestion } from "@/lib/debt";
 import { withLiveBalances, unparkedAmount } from "@/lib/accounts";
 import { formatINR, cn } from "@/lib/utils";
@@ -66,7 +66,11 @@ export default function WealthPage() {
   const netTotal = assets - nwBase.debts;
 
   const avg = useMemo(() => avgMonthly(finance, expenses, myId), [finance, expenses, myId]);
-  const income = budgetIncome(budget, avg.income);
+  const income = avg.income;
+  const runway = useMemo(
+    () => wealthRunway({ finance, expenses, meId: myId, accounts: liveAccounts, liabilities, unparked }),
+    [finance, expenses, myId, liveAccounts, liabilities, unparked],
+  );
   const emiTotal = useMemo(() => monthlyLiability(liabilities), [liabilities]);
   const liquid = liveAccounts.filter((a) => a.kind !== "investment").reduce((s, a) => s + a.balance, 0) + unparked;
   const dti = income > 0 ? emiTotal / income : 0;
@@ -109,7 +113,32 @@ export default function WealthPage() {
                 <span className="text-[0.66rem] font-semibold opacity-90">{health.score}/100</span>
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-[0.72rem] font-semibold uppercase tracking-wide text-text-3">Financial health</p>
+                <div className="flex items-center gap-1.5">
+                  <p className="text-[0.72rem] font-semibold uppercase tracking-wide text-text-3">Financial health</p>
+                  <Popover>
+                    <PopoverTrigger
+                      render={
+                        <button
+                          aria-label="How this is calculated"
+                          className="flex h-4 w-4 items-center justify-center text-text-3 transition-colors hover:text-text-2"
+                        >
+                          <Info className="h-3.5 w-3.5" />
+                        </button>
+                      }
+                    />
+                    <PopoverContent align="start" className="w-[17rem] p-3.5 text-[0.78rem] leading-relaxed text-text-2">
+                      <p className="mb-1.5 font-semibold text-text">How your score works</p>
+                      <p>It totals five checks out of 100 — each bar below is one of them:</p>
+                      <ul className="mt-1.5 flex list-disc flex-col gap-1 pl-4">
+                        <li><b className="text-text">Savings rate</b> — income minus everything you spend, <i>including EMIs</i></li>
+                        <li><b className="text-text">Debt-to-income</b> — EMIs vs your income</li>
+                        <li><b className="text-text">Emergency fund</b> — months of outflow your savings cover</li>
+                        <li><b className="text-text">Within means</b> — income covers your monthly outflow</li>
+                        <li><b className="text-text">Net worth</b> — savings vs a year of income</li>
+                      </ul>
+                    </PopoverContent>
+                  </Popover>
+                </div>
                 <p className="mt-0.5 text-[0.92rem] font-medium leading-snug text-text">{health.nudge}</p>
               </div>
             </div>
@@ -131,6 +160,12 @@ export default function WealthPage() {
                 );
               })}
             </div>
+
+            {!health.confident && (
+              <p className="mt-4 rounded-[12px] bg-surface-inset px-3 py-2.5 text-[0.78rem] leading-snug text-text-2">
+                Log your income and a few expenses each month so this score reflects your real cashflow.
+              </p>
+            )}
           </Card>
         </motion.div>
       ) : (
@@ -172,6 +207,26 @@ export default function WealthPage() {
           </div>
         </div>
       </Card>
+
+      {/* Runway — net worth depleting at the current pace */}
+      {runway.applicable && (
+        <div className="flex items-start gap-3 rounded-[16px] border border-negative/30 bg-negative-soft p-4 text-negative">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-negative/15">
+            <AlertTriangle className="h-5 w-5" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-[0.9rem] font-semibold">Your wealth is shrinking</p>
+            <p className="mt-0.5 text-[0.82rem] leading-snug">
+              You&apos;re spending about {formatINR(runway.outflow)}/mo (including EMIs) but earning {formatINR(runway.income)}. At this
+              pace your net worth reaches ₹0 in about{" "}
+              <b>
+                {Math.round(runway.months)} {Math.round(runway.months) === 1 ? "month" : "months"}
+              </b>
+              . Trim spending or lift income to change course.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Unparked money */}
       {unparked > 0.5 && (

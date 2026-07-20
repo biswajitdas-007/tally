@@ -18,24 +18,20 @@ export function BudgetSheet() {
   const setBudget = useStore((s) => s.setBudget);
   const { toast } = useToast();
 
-  const [income, setIncome] = useState("");
+  const [monthly, setMonthly] = useState("");
   const [limits, setLimits] = useState<Record<string, string>>({});
 
   const [wasOpen, setWasOpen] = useState(false);
   if (open && !wasOpen) {
     setWasOpen(true);
-    setIncome(budget.income ? String(budget.income) : "");
+    setMonthly(budget.monthly ? String(budget.monthly) : "");
     setLimits(Object.fromEntries(Object.entries(budget.limits).map(([k, v]) => [k, String(v)])));
   } else if (!open && wasOpen) {
     setWasOpen(false);
   }
 
-  const inc = parseFloat(income) || 0;
-  const buckets: [string, string, number][] = [
-    ["Needs", "50%", inc * 0.5],
-    ["Wants", "30%", inc * 0.3],
-    ["Savings", "20%", inc * 0.2],
-  ];
+  const mth = parseFloat(monthly) || 0;
+  const capsSum = Object.values(limits).reduce((a, v) => a + (parseFloat(v) || 0), 0);
 
   function save() {
     const cleanLimits: Partial<Record<CategoryKey, number>> = {};
@@ -43,41 +39,29 @@ export function BudgetSheet() {
       const n = parseFloat(v);
       if (n > 0) cleanLimits[k as CategoryKey] = n;
     }
-    setBudget({ income: inc > 0 ? inc : undefined, limits: cleanLimits });
+    setBudget({ monthly: mth > 0 ? mth : undefined, limits: cleanLimits });
     toast({ message: "Budget saved" });
     close();
   }
 
   return (
-    <Sheet open={open} onClose={close} title="Set your budget">
+    <Sheet open={open} onClose={close} title="Set your budget" description="A monthly limit you choose — no income needed.">
       <div className="flex flex-col gap-5 pt-1">
-        {/* Income → 50/30/20 */}
+        {/* Total monthly budget */}
         <div>
-          <p className="mb-2 px-0.5 text-[0.8rem] font-semibold text-text-2">Monthly income (take-home)</p>
+          <p className="mb-2 px-0.5 text-[0.8rem] font-semibold text-text-2">Monthly budget</p>
           <div className="flex items-center gap-2 rounded-[14px] border border-border bg-surface px-4 py-3">
             <span className="font-display text-lg font-semibold text-text-2">₹</span>
             <input
-              value={income}
-              onChange={(e) => setIncome(e.target.value.replace(/[^0-9.]/g, ""))}
+              value={monthly}
+              onChange={(e) => setMonthly(e.target.value.replace(/[^0-9.]/g, ""))}
               inputMode="decimal"
-              placeholder="50000"
+              placeholder="40000"
               className="flex-1 bg-transparent font-display text-lg font-bold tnum outline-none placeholder:text-text-3"
             />
           </div>
-          {inc > 0 && (
-            <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-              {buckets.map(([label, pct, val]) => (
-                <div key={label} className="rounded-[12px] bg-surface-inset px-2 py-2.5">
-                  <p className="text-[0.64rem] font-semibold uppercase tracking-wide text-text-3">
-                    {label} · {pct}
-                  </p>
-                  <p className="mt-0.5 tnum text-[0.9rem] font-bold text-text">{formatINR(val)}</p>
-                </div>
-              ))}
-            </div>
-          )}
           <p className="mt-2 px-0.5 text-[0.74rem] text-text-3">
-            The 50/30/20 rule: half for needs, a third for wants, the rest saved.
+            What you want to stay under each month, across all spending. We&apos;ll warn you as you get close.
           </p>
         </div>
 
@@ -110,6 +94,11 @@ export function BudgetSheet() {
               );
             })}
           </div>
+          {mth > 0 && capsSum > mth && (
+            <p className="mt-2 px-0.5 text-[0.74rem] text-warn">
+              Your category limits add up to {formatINR(capsSum)} — more than your {formatINR(mth)} monthly budget.
+            </p>
+          )}
         </div>
 
         <div className="sticky bottom-0 -mx-5 border-t border-border bg-surface px-5 pb-1 pt-3">
