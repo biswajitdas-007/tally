@@ -18,9 +18,9 @@ async function userMonthSpend(uid: string, mKey: string): Promise<number> {
 }
 
 /**
- * Best-effort: for each affected user who has set a budget income, push a nudge
- * if this expense just took their monthly spend *past* that income. Cheap when
- * no budget is set — it short-circuits before the spend query.
+ * Best-effort: for each affected user who set a monthly budget, push a nudge if
+ * this expense just took their monthly spend *past* that budget. Cheap when no
+ * budget is set — it short-circuits before the spend query.
  */
 export async function overspendPush(
   uids: string[],
@@ -36,17 +36,17 @@ export async function overspendPush(
     .toArray();
 
   for (const u of docs) {
-    const income = u.budget?.income ?? 0;
-    if (income <= 0) continue;
+    const limit = u.budget?.monthly ?? 0;
+    if (limit <= 0) continue;
     const delta = deltaFor(u._id);
     if (delta <= 0) continue;
 
     const after = await userMonthSpend(u._id, mKey);
     const before = after - delta;
-    if (before <= income && income < after) {
+    if (before <= limit && limit < after) {
       await sendPush(u.pushSubs ?? [], {
         title: "Budget alert",
-        body: "You've spent past your monthly income. Time to ease up a little 👀",
+        body: "You've spent past your monthly budget. Time to ease up a little 👀",
         url: "/money",
       });
     }
