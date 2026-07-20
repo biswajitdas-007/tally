@@ -1,6 +1,18 @@
-import type { Budget, CategoryKey, Expense, FinanceEntry, ID } from "./types";
+import type { Budget, CategoryKey, Expense, FinanceEntry, ID, Liability } from "./types";
 import { monthKey, formatINR } from "./utils";
 import { monthlySpend, myShare } from "./balances";
+
+/** Sum of monthly EMIs still being paid — money that leaves you every month. */
+export function monthlyEmi(liabilities: Liability[]): number {
+  let sum = 0;
+  for (const l of liabilities) {
+    const emi = l.emi ?? 0;
+    if (emi <= 0) continue;
+    const remaining = l.termMonths != null ? Math.max(0, l.termMonths - (l.emisPaid ?? 0)) : Infinity;
+    if (remaining > 0) sum += emi;
+  }
+  return sum;
+}
 
 /**
  * Tally Money combines two sources for your monthly picture:
@@ -144,49 +156,33 @@ export const CATEGORY_BUCKET: Record<CategoryKey, "needs" | "wants"> = {
   other: "wants",
 };
 
-export interface BudgetBar {
-  spent: number;
-  limit: number;
-}
-
 export interface BudgetView {
-  income: number;
+  monthly: number; // the total limit (0 when unset)
+  spent: number; // this month's spend being compared (personal + splits)
   hasBudget: boolean;
-  needs: BudgetBar;
-  wants: BudgetBar;
-  savings: { actual: number; target: number };
-  overIncome: boolean;
+  over: boolean;
+  pct: number; // spent / monthly, 0–∞ (as %)
   categories: { category: CategoryKey; spent: number; limit: number }[];
 }
 
-/** The income the 50/30/20 split rests on: your set budget income, else what you logged. */
-export function budgetIncome(budget: Budget, monthIncome: number): number {
-  return budget.income && budget.income > 0 ? budget.income : monthIncome;
-}
-
 export function hasBudget(budget: Budget): boolean {
-  return (budget.income ?? 0) > 0 || Object.keys(budget.limits).length > 0;
+  return (budget.monthly ?? 0) > 0 || Object.keys(budget.limits).length > 0;
 }
 
+/** This month's spend against the user's chosen total budget + category caps. */
 export function budgetView(
   budget: Budget,
   byCat: { category: CategoryKey; amount: number }[],
-  income: number,
+  spend: number,
 ): BudgetView {
-  const spentOf = (bucket: "needs" | "wants") =>
-    byCat.filter((c) => CATEGORY_BUCKET[c.category] === bucket).reduce((a, c) => a + c.amount, 0);
-  const needsSpent = spentOf("needs");
-  const wantsSpent = spentOf("wants");
-  const spend = needsSpent + wantsSpent;
+  const monthly = budget.monthly ?? 0;
   const catSpent = (c: CategoryKey) => byCat.find((x) => x.category === c)?.amount ?? 0;
-
   return {
-    income,
+    monthly,
+    spent: spend,
     hasBudget: hasBudget(budget),
-    needs: { spent: needsSpent, limit: income * 0.5 },
-    wants: { spent: wantsSpent, limit: income * 0.3 },
-    savings: { actual: income - spend, target: income * 0.2 },
-    overIncome: income > 0 && spend > income,
+    over: monthly > 0 && spend > monthly,
+    pct: monthly > 0 ? Math.round((spend / monthly) * 100) : 0,
     categories: (Object.entries(budget.limits) as [CategoryKey, number][])
       .filter(([, limit]) => limit > 0)
       .map(([category, limit]) => ({ category, spent: catSpent(category), limit }))
