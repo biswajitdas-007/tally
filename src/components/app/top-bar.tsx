@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Bell, Menu } from "lucide-react";
+import { Bell, Menu, QrCode } from "lucide-react";
 import { TallyMark } from "./logo";
 import { Avatar } from "@/components/ui/avatar";
 import { useMe } from "@/store/useStore";
@@ -10,6 +10,7 @@ import { useUI } from "@/store/useUI";
 export function TopBar() {
   const me = useMe();
   const openMenu = useUI((s) => s.openMenu);
+  const openScan = useUI((s) => s.openScan);
 
   return (
     <header className="glass sticky top-0 z-30 border-b border-border pt-[env(safe-area-inset-top)] md:hidden">
@@ -26,6 +27,13 @@ export function TopBar() {
           <span className="font-display text-lg font-bold tracking-[-0.03em]">Tally</span>
         </Link>
         <div className="ml-auto flex items-center gap-0.5">
+          <button
+            onClick={openScan}
+            aria-label="Scan & pay"
+            className="flex h-9 w-9 items-center justify-center rounded-full text-text-2 transition-colors hover:bg-surface-inset hover:text-text active:scale-90"
+          >
+            <QrCode className="h-[18px] w-[18px]" />
+          </button>
           <Link
             href="/activity"
             aria-label="Activity"
