@@ -19,6 +19,24 @@ export function isValidVpa(vpa: string): boolean {
   return VPA_RE.test(vpa.trim());
 }
 
+/**
+ * Parse a scanned UPI QR string (`upi://pay?pa=…&pn=…&am=…`) into params.
+ * Returns null when it isn't a valid UPI collect/pay code.
+ */
+export function parseUpiUri(raw: string): (UpiParams & { amount?: number }) | null {
+  const s = raw.trim();
+  if (!/^upi:\/\//i.test(s)) return null;
+  const q = s.indexOf("?");
+  if (q === -1) return null;
+  const p = new URLSearchParams(s.slice(q + 1));
+  const vpa = (p.get("pa") ?? "").trim();
+  if (!isValidVpa(vpa)) return null;
+  const name = (p.get("pn") ?? vpa).trim() || vpa;
+  const am = Number(p.get("am"));
+  const note = p.get("tn")?.trim() || undefined;
+  return { vpa, name, amount: Number.isFinite(am) && am > 0 ? am : undefined, note };
+}
+
 export function buildUpiUri({ vpa, name, amount, note }: UpiParams): string {
   const params = new URLSearchParams();
   params.set("pa", vpa.trim());

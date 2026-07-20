@@ -63,6 +63,10 @@ interface UIState {
   accountDetailId: ID | null;
   openAccountDetail: (id: ID) => void;
   closeAccountDetail: () => void;
+
+  scanOpen: boolean;
+  openScan: () => void;
+  closeScan: () => void;
 }
 
 export const useUI = create<UIState>((set) => ({
@@ -117,4 +121,8 @@ export const useUI = create<UIState>((set) => ({
   accountDetailId: null,
   openAccountDetail: (id) => set({ accountDetailId: id }),
   closeAccountDetail: () => set({ accountDetailId: null }),
+
+  scanOpen: false,
+  openScan: () => set({ scanOpen: true }),
+  closeScan: () => set({ scanOpen: false }),
 }));

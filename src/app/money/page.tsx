@@ -5,7 +5,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   Plus, Minus, ChevronLeft, ChevronRight, ArrowUpRight, ArrowDownLeft,
-  TrendingUp, AlertTriangle, Wallet, Coins, Target, Scale,
+  TrendingUp, AlertTriangle, Wallet, Coins, Target, Scale, QrCode,
 } from "lucide-react";
 import { PageHeader } from "@/components/app/page-header";
 import { Card, SectionHeader } from "@/components/ui/card";
@@ -60,6 +60,7 @@ export default function MoneyPage() {
   const liabilities = useStore((s) => s.liabilities);
   const openMoney = useUI((s) => s.openMoney);
   const openBudget = useUI((s) => s.openBudget);
+  const openScan = useUI((s) => s.openScan);
   const myId = useMyId() ?? "";
 
   const [mDate, setMDate] = useState(() => {
@@ -197,6 +198,15 @@ export default function MoneyPage() {
           <span className="font-medium">{status.message}</span>
         </div>
       )}
+
+      {/* Scan & pay — scan a UPI QR, pay in your UPI app, auto-log the expense */}
+      <button
+        onClick={openScan}
+        className="flex items-center justify-center gap-2.5 rounded-[16px] bg-brand py-3.5 text-[0.95rem] font-semibold text-on-brand shadow-[var(--shadow-brand)] transition-all hover:bg-brand-hover active:scale-[0.99]"
+      >
+        <QrCode className="h-5 w-5" />
+        Scan &amp; pay
+      </button>
 
       {/* Add actions */}
       <div className="flex gap-2.5">
