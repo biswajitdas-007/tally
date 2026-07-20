@@ -360,7 +360,7 @@ export function ScanPaySheet() {
 
           <div className="flex flex-col gap-2.5">
             <Button variant="primary" size="lg" fullWidth onClick={confirmPaid}>
-              <Check className="h-4.5 w-4.5" /> Yes, it's paid
+              <Check className="h-4.5 w-4.5" /> Yes, it&apos;s paid
             </Button>
             <Button variant="secondary" size="lg" fullWidth onClick={undoPaid}>
               <RotateCcw className="h-4 w-4" /> Not paid — try again
