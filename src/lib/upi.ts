@@ -50,13 +50,16 @@ export function buildUpiUri({ vpa, name, amount, note }: UpiParams): string {
   return `upi://pay?${qs}`;
 }
 
-/** Preferred-app variants so we can offer one-tap buttons where supported. */
+/**
+ * Preferred-app variants so we can offer one-tap buttons where supported.
+ * BHIM was dropped: its only route is an `intent://…package=…` link, and its
+ * parser rejects the address on many devices — the generic "Other UPI app"
+ * link (which the system chooser routes to BHIM) covers it reliably.
+ */
 export const UPI_APPS = [
   { id: "gpay", label: "Google Pay", scheme: "tez://upi/pay", color: "#1a73e8" },
   { id: "phonepe", label: "PhonePe", scheme: "phonepe://pay", color: "#5f259f" },
   { id: "paytm", label: "Paytm", scheme: "paytmmp://pay", color: "#00baf2" },
-  // BHIM has no working custom scheme — target its package with a standard upi:// intent.
-  { id: "bhim", label: "BHIM", scheme: "upi://pay", color: "#00888f", pkg: "in.org.npci.upiapp" },
 ] as const;
 
 export function buildAppUri(app: { scheme: string; pkg?: string }, p: UpiParams): string {
