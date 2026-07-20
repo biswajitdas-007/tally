@@ -14,8 +14,8 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { useStore, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { CATEGORIES, INCOME_CATEGORIES } from "@/lib/categories";
-import { monthlyMoney, financeForMonth, spendByCategory, monthLabel, budgetView, budgetIncome, moneyStatus } from "@/lib/money";
-import { healthScore, netWorth, gradeColor } from "@/lib/health";
+import { monthlyMoney, financeForMonth, spendByCategory, monthLabel, budgetView, moneyStatus } from "@/lib/money";
+import { healthScore, netWorth, gradeColor, wealthRunway } from "@/lib/health";
 import { withLiveBalances, unparkedAmount } from "@/lib/accounts";
 import { formatINR, monthKey, cn } from "@/lib/utils";
 import type { CategoryKey, FinanceEntry, IncomeCategory } from "@/lib/types";
@@ -74,8 +74,7 @@ export default function MoneyPage() {
   const m = useMemo(() => monthlyMoney(finance, expenses, myId, mKey), [finance, expenses, myId, mKey]);
   const entries = useMemo(() => financeForMonth(finance, mKey), [finance, mKey]);
   const byCat = useMemo(() => spendByCategory(finance, expenses, myId, mKey), [finance, expenses, myId, mKey]);
-  const eInc = budgetIncome(budget, m.income);
-  const bv = useMemo(() => budgetView(budget, byCat, eInc), [budget, byCat, eInc]);
+  const bv = useMemo(() => budgetView(budget, byCat, m.spend), [budget, byCat, m.spend]);
   const liveAccounts = useMemo(
     () => withLiveBalances(accounts, finance, expenses, myId),
     [accounts, finance, expenses, myId],
@@ -88,6 +87,10 @@ export default function MoneyPage() {
   const nw = useMemo(
     () => ({ net: netWorth(liveAccounts, liabilities).net + unparked }),
     [liveAccounts, liabilities, unparked],
+  );
+  const runway = useMemo(
+    () => wealthRunway({ finance, expenses, meId: myId, accounts: liveAccounts, liabilities, unparked }),
+    [finance, expenses, myId, liveAccounts, liabilities, unparked],
   );
 
   const overspent = m.net < -0.5;
@@ -238,38 +241,26 @@ export default function MoneyPage() {
         />
         {bv.hasBudget ? (
           <Card className="flex flex-col gap-4 p-4">
-            {eInc > 0 && (
-              <>
-                <BudgetBar label="Needs" spent={bv.needs.spent} limit={bv.needs.limit} />
-                <BudgetBar label="Wants" spent={bv.wants.spent} limit={bv.wants.limit} />
-                <div className="flex items-center justify-between rounded-[12px] bg-surface-inset px-3 py-2.5">
-                  <span className="text-[0.84rem] font-medium text-text">
-                    Savings <span className="text-text-3">· target {formatINR(bv.savings.target)}</span>
-                  </span>
-                  <span
-                    className={cn(
-                      "tnum text-[0.9rem] font-bold",
-                      bv.savings.actual >= bv.savings.target ? "text-positive" : "text-text",
-                    )}
-                  >
-                    {formatINR(Math.max(0, bv.savings.actual))}
-                  </span>
-                </div>
-              </>
-            )}
+            {bv.monthly > 0 && <BudgetBar label="Monthly budget" spent={bv.spent} limit={bv.monthly} />}
             {bv.categories.length > 0 && (
               <div className="flex flex-col gap-3">
-                {eInc > 0 && <div className="h-px bg-border" />}
+                {bv.monthly > 0 && <div className="h-px bg-border" />}
                 {bv.categories.map((c) => (
                   <BudgetBar key={c.category} label={CATEGORIES[c.category].label} spent={c.spent} limit={c.limit} />
                 ))}
               </div>
             )}
+            {bv.over && (
+              <p className="flex items-center gap-1.5 text-[0.8rem] font-medium text-negative">
+                <AlertTriangle className="h-4 w-4 shrink-0" />
+                {formatINR(bv.spent - bv.monthly)} over your monthly budget.
+              </p>
+            )}
           </Card>
         ) : (
           <Card className="flex flex-col items-center gap-3 p-5 text-center">
             <p className="max-w-[17rem] text-[0.88rem] text-text-2">
-              Set a budget to track your spending against the 50/30/20 rule and get nudged before you overspend.
+              Set a monthly budget — a limit you choose — and we&apos;ll nudge you before you overspend.
             </p>
             <Button size="sm" onClick={openBudget}>
               <Target className="h-4 w-4" /> Set a budget
@@ -277,6 +268,17 @@ export default function MoneyPage() {
           </Card>
         )}
       </section>
+
+      {/* Runway warning — net worth depleting at the current pace */}
+      {runway.applicable && (
+        <div className="flex items-start gap-2.5 rounded-[14px] border border-negative/30 bg-negative-soft px-4 py-3 text-negative">
+          <AlertTriangle className="mt-0.5 h-4.5 w-4.5 shrink-0" />
+          <p className="text-[0.84rem] font-medium leading-snug">
+            You&apos;re spending {formatINR(runway.burn)}/mo more than you earn. At this pace your net worth reaches ₹0 in about{" "}
+            <span className="font-bold">{Math.round(runway.months)} {Math.round(runway.months) === 1 ? "month" : "months"}</span>.
+          </p>
+        </div>
+      )}
 
       {/* Net worth & health */}
       <Link

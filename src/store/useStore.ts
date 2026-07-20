@@ -279,7 +279,7 @@ export const useStore = create<State>()((set, get) => ({
   setBudget: (patch) => {
     set((s) => ({ budget: { ...s.budget, ...patch } }));
     const next = get().budget;
-    api.setBudgetApi({ income: next.income, limits: next.limits }).then((res) => reconcile(res, get));
+    api.setBudgetApi({ monthly: next.monthly, limits: next.limits }).then((res) => reconcile(res, get));
   },
 
   setWealth: (patch) => {

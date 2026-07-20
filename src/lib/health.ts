@@ -1,5 +1,5 @@
 import type { Account, Budget, Expense, FinanceEntry, ID, Liability } from "./types";
-import { monthlyMoney, budgetIncome } from "./money";
+import { monthlyMoney, monthlyEmi } from "./money";
 import { formatINR } from "./utils";
 
 export function netWorth(accounts: Account[], liabilities: Liability[]) {
@@ -49,6 +49,8 @@ export interface Health {
   pillars: Pillar[];
   nudge: string;
   enough: boolean;
+  /** False when there isn't enough logged (income + outflow) to be reliable. */
+  confident: boolean;
 }
 
 const GRADES: [number, string][] = [
@@ -86,28 +88,34 @@ export function healthScore(opts: {
   liabilities: Liability[];
   unparked?: number;
 }): Health {
-  const { finance, expenses, meId, budget, accounts, liabilities } = opts;
+  const { finance, expenses, meId, accounts, liabilities } = opts;
   const unparked = opts.unparked ?? 0;
   const avg = avgMonthly(finance, expenses, meId);
-  const income = budgetIncome(budget, avg.income);
-  const spend = avg.spend;
+  const income = avg.income;
+  const emiOut = monthlyEmi(liabilities);
+  // Everything that leaves you each month: logged spend + your split share + EMIs.
+  const outflow = avg.spend + emiOut;
+  const hasOutflow = outflow > 0;
   const base = netWorth(accounts, liabilities);
   const nw = { ...base, net: base.net + unparked };
   const liquid = accounts.filter((a) => a.kind !== "investment").reduce((a, x) => a + x.balance, 0) + unparked;
   const totalEmi = liabilities.reduce((a, x) => a + (x.emi ?? 0), 0);
   const hasHoldings = accounts.length > 0 || liabilities.length > 0 || unparked > 0;
   const enough = income > 0 || hasHoldings;
+  // We can only gauge cashflow health with both income and some outflow logged.
+  const confident = income > 0 && hasOutflow;
 
   const pillars: Pillar[] = [];
 
-  // 1. Savings rate (25) — target 20%
-  const rate = income > 0 ? (income - spend) / income : 0;
+  // 1. Savings rate (25) — target 20% — needs real income AND outflow to mean
+  // anything (avoids the misleading "100% saved" when nothing is logged).
+  const rate = income > 0 ? (income - outflow) / income : 0;
   pillars.push({
     key: "savings",
     label: "Savings rate",
     max: 25,
-    score: income > 0 ? clampScore(rate / 0.2, 25) : 0,
-    detail: income > 0 ? `${Math.round(rate * 100)}% saved` : "Add income",
+    score: confident ? clampScore(rate / 0.2, 25) : 0,
+    detail: income <= 0 ? "Add income" : hasOutflow ? `${Math.round(rate * 100)}% saved` : "Log expenses",
   });
 
   // 2. Debt-to-income (20) — excellent ≤20%, zero at ≥36%
@@ -120,8 +128,8 @@ export function healthScore(opts: {
     detail: income > 0 ? `${Math.round(dti * 100)}% of income` : totalEmi > 0 ? "Add income" : "No EMIs",
   });
 
-  // 3. Emergency fund (20) — target 6 months of expenses
-  const months = spend > 0 ? liquid / spend : liquid > 0 ? 6 : 0;
+  // 3. Emergency fund (20) — target 6 months of outflow (spend + EMIs)
+  const months = outflow > 0 ? liquid / outflow : liquid > 0 ? 6 : 0;
   pillars.push({
     key: "emergency",
     label: "Emergency fund",
@@ -130,14 +138,14 @@ export function healthScore(opts: {
     detail: `${months >= 0.05 ? months.toFixed(1) : "0"} months`,
   });
 
-  // 4. Living within your means (20) — net ≥ 0
-  const net = income - spend;
+  // 4. Living within your means (20) — income covers outflow (incl. EMIs)
+  const net = income - outflow;
   pillars.push({
     key: "means",
     label: "Within your means",
     max: 20,
-    score: income > 0 ? (net >= 0 ? 20 : clampScore(1 + net / (income * 0.5), 20)) : 0,
-    detail: income > 0 ? (net >= 0 ? "Under income" : "Overspending") : "Add income",
+    score: confident ? (net >= 0 ? 20 : clampScore(1 + net / (income * 0.5), 20)) : 0,
+    detail: income <= 0 ? "Add income" : !hasOutflow ? "Log expenses" : net >= 0 ? "Under income" : "Overspending",
   });
 
   // 5. Net worth (15) — vs a year of income
@@ -154,5 +162,40 @@ export function healthScore(opts: {
   const weakest = [...pillars].sort((a, b) => a.score / a.max - b.score / b.max)[0];
   const nudge = score >= 80 ? "You're in great shape — keep it up." : NUDGES[weakest.key];
 
-  return { score, grade: gradeOf(score), pillars, nudge, enough };
+  return { score, grade: gradeOf(score), pillars, nudge, enough, confident };
+}
+
+export interface Runway {
+  /** True when you're losing money each month and have net worth to deplete. */
+  applicable: boolean;
+  /** Whether there's enough data (logged income) to project at all. */
+  confident: boolean;
+  months: number; // months until net worth hits ₹0 (when applicable)
+  burn: number; // monthly net loss = outflow − income
+  outflow: number; // avg monthly spend + EMIs
+  income: number; // avg monthly income
+  net: number; // current net worth (incl. unparked)
+}
+
+/**
+ * How long your net worth lasts if the last 3 months' pattern continues.
+ * Outflow counts everything leaving you: logged spend + split share + EMIs.
+ */
+export function wealthRunway(opts: {
+  finance: FinanceEntry[];
+  expenses: Expense[];
+  meId: ID;
+  accounts: Account[];
+  liabilities: Liability[];
+  unparked?: number;
+}): Runway {
+  const { finance, expenses, meId, accounts, liabilities } = opts;
+  const avg = avgMonthly(finance, expenses, meId);
+  const outflow = avg.spend + monthlyEmi(liabilities);
+  const income = avg.income;
+  const burn = outflow - income;
+  const net = netWorth(accounts, liabilities).net + (opts.unparked ?? 0);
+  const confident = income > 0 || outflow > 0;
+  const applicable = income > 0 && burn > 0 && net > 0;
+  return { applicable, confident, months: applicable ? net / burn : 0, burn, outflow, income, net };
 }
