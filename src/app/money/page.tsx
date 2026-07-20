@@ -14,7 +14,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { useStore, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { CATEGORIES, INCOME_CATEGORIES } from "@/lib/categories";
-import { monthlyMoney, financeForMonth, spendByCategory, monthLabel, budgetView, budgetIncome } from "@/lib/money";
+import { monthlyMoney, financeForMonth, spendByCategory, monthLabel, budgetView, budgetIncome, moneyStatus } from "@/lib/money";
 import { healthScore, netWorth, gradeColor } from "@/lib/health";
 import { withLiveBalances, unparkedAmount } from "@/lib/accounts";
 import { formatINR, monthKey, cn } from "@/lib/utils";
@@ -92,6 +92,7 @@ export default function MoneyPage() {
   const overspent = m.net < -0.5;
   const hasData = m.income > 0 || m.spend > 0;
   const savingsRate = m.income > 0 ? Math.round((m.net / m.income) * 100) : null;
+  const status = moneyStatus(m.income, m.spend);
 
   return (
     <div className="flex flex-col gap-6">
@@ -152,14 +153,14 @@ export default function MoneyPage() {
           <div className="mt-5 grid grid-cols-2 gap-2.5">
             <div className="rounded-[14px] bg-white/10 p-3 ring-1 ring-white/10">
               <div className="flex items-center gap-1.5 text-white/70">
-                <ArrowUpRight className="h-3.5 w-3.5" />
+                <ArrowDownLeft className="h-3.5 w-3.5" />
                 <span className="text-[0.72rem] font-medium">Money in</span>
               </div>
               <p className="mt-1 font-display text-xl font-bold tnum" style={{ color: "#a6f2cf" }}>{formatINR(m.income)}</p>
             </div>
             <div className="rounded-[14px] bg-white/10 p-3 ring-1 ring-white/10">
               <div className="flex items-center gap-1.5 text-white/70">
-                <ArrowDownLeft className="h-3.5 w-3.5" />
+                <ArrowUpRight className="h-3.5 w-3.5" />
                 <span className="text-[0.72rem] font-medium">Money out</span>
               </div>
               <p className="mt-1 font-display text-xl font-bold tnum" style={{ color: "#ffc0a6" }}>{formatINR(m.spend)}</p>
@@ -174,24 +175,26 @@ export default function MoneyPage() {
         </div>
       </motion.div>
 
-      {/* Status line */}
-      {hasData && (
+      {/* Status line — dynamic copy driven by the income/spend ratio */}
+      {(hasData || atCurrent) && (
         <div
           className={cn(
             "flex items-center gap-2.5 rounded-[14px] border px-4 py-3 text-[0.86rem]",
-            overspent
+            status.tone === "warn"
               ? "border-negative/30 bg-negative-soft text-negative"
-              : "border-positive/25 bg-positive-soft text-positive",
+              : status.tone === "good"
+                ? "border-positive/25 bg-positive-soft text-positive"
+                : "border-border bg-surface-2 text-text-2",
           )}
         >
-          {overspent ? <AlertTriangle className="h-4.5 w-4.5 shrink-0" /> : <TrendingUp className="h-4.5 w-4.5 shrink-0" />}
-          <span className="font-medium">
-            {m.income === 0
-              ? "Add your income to see how you're tracking."
-              : overspent
-                ? `You've spent ${formatINR(-m.net)} more than you earned this month.`
-                : `Nice — you're keeping ${formatINR(m.net)} of what you earned.`}
-          </span>
+          {status.tone === "warn" ? (
+            <AlertTriangle className="h-4.5 w-4.5 shrink-0" />
+          ) : status.tone === "good" ? (
+            <TrendingUp className="h-4.5 w-4.5 shrink-0" />
+          ) : (
+            <Wallet className="h-4.5 w-4.5 shrink-0" />
+          )}
+          <span className="font-medium">{status.message}</span>
         </div>
       )}
 
