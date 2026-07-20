@@ -1,5 +1,5 @@
 import type { Budget, CategoryKey, Expense, FinanceEntry, ID } from "./types";
-import { monthKey } from "./utils";
+import { monthKey, formatINR } from "./utils";
 import { monthlySpend, myShare } from "./balances";
 
 /**
@@ -28,6 +28,60 @@ export function monthlyMoney(finance: FinanceEntry[], expenses: Expense[], meId:
   const splitSpend = monthlySpend(expenses, meId, mKey);
   const spend = personalSpend + splitSpend;
   return { income, personalSpend, splitSpend, spend, net: income - spend };
+}
+
+export interface MoneyStatus {
+  tone: "good" | "warn" | "neutral";
+  message: string;
+}
+
+/**
+ * A dynamic one-liner for the month, driven by the income/spend ratio. No
+ * income logged is treated as exactly that — nothing came in this month — with
+ * the wording shifting between empty, over-spent, tight, and comfortable.
+ */
+export function moneyStatus(income: number, spend: number): MoneyStatus {
+  const net = income - spend;
+
+  // Nothing came in this month.
+  if (income <= 0) {
+    if (spend <= 0.5) {
+      return {
+        tone: "neutral",
+        message: "Nothing logged yet this month — add income or an expense to start tracking.",
+      };
+    }
+    return {
+      tone: "warn",
+      message: `No income this month — ${formatINR(spend)} spent with nothing coming in. Add your income to see the real picture.`,
+    };
+  }
+
+  // Spent more than earned.
+  if (net < -0.5) {
+    return {
+      tone: "warn",
+      message: `You've spent ${formatINR(-net)} more than you earned this month — time to ease off.`,
+    };
+  }
+
+  const rate = Math.round((net / income) * 100);
+  if (rate < 10) {
+    return {
+      tone: "warn",
+      message: `Cutting it fine — almost all your income is spent, just ${formatINR(net)} left this month.`,
+    };
+  }
+  if (rate < 30) {
+    return {
+      tone: "good",
+      message: `Steady — you're keeping ${formatINR(net)}, about ${rate}% of what you earned.`,
+    };
+  }
+  if (rate < 50) {
+    return { tone: "good", message: `Great pace — you've saved ${rate}% of your income this month.` };
+  }
+  return { tone: "good", message: `Excellent — over half your income is still yours this month (${rate}% saved).` };
 }
 
 /** Months (newest → oldest) with any activity — always including the current one. */
