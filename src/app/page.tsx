@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
-import { Plus, ArrowLeftRight, Users, UserPlus, ChevronRight, Receipt } from "lucide-react";
+import { Plus, ArrowLeftRight, Users, UserPlus, ChevronRight, Receipt, QrCode } from "lucide-react";
 import { BalanceHero } from "@/components/features/balance-hero";
 import { GroupCard } from "@/components/features/group-card";
 import { ExpenseRow } from "@/components/features/expense-row";
@@ -57,6 +57,7 @@ export default function HomePage() {
   const openInvite = useUI((s) => s.openInvite);
   const openCreateGroup = useUI((s) => s.openCreateGroup);
   const openSettle = useUI((s) => s.openSettle);
+  const openScan = useUI((s) => s.openScan);
   const { toast } = useToast();
 
   const debts = useMemo(() => scopedDebts(expenses, myId ?? ""), [expenses, myId]);
@@ -85,6 +86,7 @@ export default function HomePage() {
 
       <div className="flex gap-2.5">
         <QuickAction icon={Plus} label="Add" tint="var(--brand)" onClick={() => openAdd()} />
+        <QuickAction icon={QrCode} label="Scan" tint="var(--positive)" onClick={openScan} />
         <QuickAction icon={ArrowLeftRight} label="Settle" tint="var(--info)" onClick={quickSettle} />
         <QuickAction icon={Users} label="Group" tint="var(--cat-fun)" onClick={openCreateGroup} />
         <QuickAction icon={UserPlus} label="Invite" tint="var(--brass)" onClick={() => openInvite(null)} />
