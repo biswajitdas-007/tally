@@ -53,7 +53,7 @@ export function BalanceHero() {
         <div className="mt-5 grid grid-cols-2 gap-2.5">
           <div className="rounded-[14px] bg-white/10 p-3 ring-1 ring-white/10 backdrop-blur-sm">
             <div className="flex items-center gap-1.5 text-white/70">
-              <ArrowUpRight className="h-3.5 w-3.5" />
+              <ArrowDownLeft className="h-3.5 w-3.5" />
               <span className="text-[0.72rem] font-medium">Owed to you</span>
             </div>
             <p className="mt-1 font-display text-xl font-bold tracking-tight tnum" style={{ color: "#a6f2cf" }}>
@@ -62,7 +62,7 @@ export function BalanceHero() {
           </div>
           <div className="rounded-[14px] bg-white/10 p-3 ring-1 ring-white/10 backdrop-blur-sm">
             <div className="flex items-center gap-1.5 text-white/70">
-              <ArrowDownLeft className="h-3.5 w-3.5" />
+              <ArrowUpRight className="h-3.5 w-3.5" />
               <span className="text-[0.72rem] font-medium">You owe</span>
             </div>
             <p className="mt-1 font-display text-xl font-bold tracking-tight tnum" style={{ color: "#ffb7a6" }}>
