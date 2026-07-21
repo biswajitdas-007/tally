@@ -36,6 +36,7 @@ export function MenuDrawer() {
   const open = useUI((s) => s.menuOpen);
   const close = useUI((s) => s.closeMenu);
   const openInvite = useUI((s) => s.openInvite);
+  const openSupport = useUI((s) => s.openSupport);
   const me = useMe();
   const { logout } = useAuth();
   const { choice, setChoice } = useTheme();
@@ -123,14 +124,16 @@ export function MenuDrawer() {
 
             {/* Footer */}
             <div className="flex flex-col gap-1 border-t border-border px-3 pb-[max(env(safe-area-inset-bottom),14px)] pt-2">
-              <Link
-                href="/account"
-                onClick={close}
+              <button
+                onClick={() => {
+                  close();
+                  openSupport();
+                }}
                 className="flex items-center gap-3 rounded-[12px] bg-brass-soft px-3 py-2.5 text-[0.92rem] font-semibold text-brass-on-soft transition-all hover:brightness-[0.98]"
               >
                 <Coffee className="h-[19px] w-[19px]" strokeWidth={2} />
                 Support Tally ☕
-              </Link>
+              </button>
               <button
                 onClick={() => {
                   openInvite(null);

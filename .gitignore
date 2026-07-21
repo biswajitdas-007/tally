@@ -42,3 +42,9 @@ next-env.d.ts
 
 # keep the env template committable
 !.env.local.example
+
+# Personal screenshots / stray images dropped in the repo root
+/IMG_*.PNG
+/IMG_*.png
+/Screenshot*.png
+/Screenshot*.PNG

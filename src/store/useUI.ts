@@ -63,6 +63,10 @@ interface UIState {
   accountDetailId: ID | null;
   openAccountDetail: (id: ID) => void;
   closeAccountDetail: () => void;
+
+  supportOpen: boolean;
+  openSupport: () => void;
+  closeSupport: () => void;
 }
 
 export const useUI = create<UIState>((set) => ({
@@ -117,4 +121,8 @@ export const useUI = create<UIState>((set) => ({
   accountDetailId: null,
   openAccountDetail: (id) => set({ accountDetailId: id }),
   closeAccountDetail: () => set({ accountDetailId: null }),
+
+  supportOpen: false,
+  openSupport: () => set({ supportOpen: true }),
+  closeSupport: () => set({ supportOpen: false }),
 }));
