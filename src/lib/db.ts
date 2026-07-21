@@ -182,6 +182,23 @@ export async function buildState(uid: string): Promise<ClientState> {
   const expenseDocs = await expenses.find({ memberUids: uid }).sort({ date: -1 }).toArray();
   const financeDocs = await finance.find({ uid }).sort({ date: -1 }).toArray();
 
+  // Self-heal: expenses where I'm a party (someone put me in a split / paid me)
+  // but I'm missing from memberUids — e.g. a direct split created while a
+  // contacts-only friendship was wrongly excluded. Only heal ones created by
+  // someone in my circle, so a stranger can never inject into my ledger.
+  const orphans = await expenses
+    .find({ memberUids: { $ne: uid }, $or: [{ paidBy: uid }, { "splits.personId": uid }] })
+    .toArray();
+  if (orphans.length) {
+    const circle = await knownUids(uid);
+    const heal = orphans.filter((e) => circle.has(e.createdBy));
+    if (heal.length) {
+      await expenses.updateMany({ _id: { $in: heal.map((e) => e._id) } }, { $addToSet: { memberUids: uid } });
+      expenseDocs.push(...heal);
+      expenseDocs.sort((a, b) => (a.date < b.date ? 1 : -1));
+    }
+  }
+
   const placeholders = new Map<string, Person>();
   const realIds = new Set<string>([uid]);
   for (const g of groupDocs) {
@@ -257,11 +274,18 @@ export async function pushSubsFor(
   return docs.map((d) => ({ uid: d._id, subs: d.pushSubs ?? [] }));
 }
 
-/** Every uid the actor already shares a group with (their trust circle), incl. self. */
+/**
+ * The actor's trust circle (incl. self): everyone they share a group with, plus
+ * their contacts. Contacts are only ever written when an invite is mutually
+ * accepted, so a friend you share no group with still counts — which is what
+ * lets a direct (non-group) split with them be visible to both sides.
+ */
 export async function knownUids(actorUid: string): Promise<Set<string>> {
-  const { groups } = await collections();
+  const { groups, users } = await collections();
   const gs = await groups.find({ memberUids: actorUid }, { projection: { memberUids: 1 } }).toArray();
   const set = new Set<string>([actorUid]);
   for (const g of gs) for (const u of g.memberUids) set.add(u);
+  const me = await users.findOne({ _id: actorUid }, { projection: { contacts: 1 } });
+  for (const c of me?.contacts ?? []) if (c.id) set.add(c.id);
   return set;
 }
