@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { Contact, Activity, UserRound, Palette, UserPlus, LogOut, ChevronRight } from "lucide-react";
+import { Contact, Activity, UserRound, Palette, UserPlus, LogOut, ChevronRight, Coffee } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { Segmented } from "@/components/ui/segmented";
 import { useUI } from "@/store/useUI";
@@ -123,6 +123,14 @@ export function MenuDrawer() {
 
             {/* Footer */}
             <div className="flex flex-col gap-1 border-t border-border px-3 pb-[max(env(safe-area-inset-bottom),14px)] pt-2">
+              <Link
+                href="/account"
+                onClick={close}
+                className="flex items-center gap-3 rounded-[12px] bg-brass-soft px-3 py-2.5 text-[0.92rem] font-semibold text-brass-on-soft transition-all hover:brightness-[0.98]"
+              >
+                <Coffee className="h-[19px] w-[19px]" strokeWidth={2} />
+                Support Tally ☕
+              </Link>
               <button
                 onClick={() => {
                   openInvite(null);
