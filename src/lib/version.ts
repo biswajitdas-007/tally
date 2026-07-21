@@ -1,6 +1,7 @@
 /** Human-facing app version, shown in the menu. Bump alongside package.json. */
-export const APP_VERSION = "1.24.1";
+export const APP_VERSION = "1.24.2";
 
-/** Open-source repo + a UPI ID to support the project ("buy me a coffee"). */
+/** Open-source repo + ways to support the project. */
 export const REPO_URL = "https://github.com/biswajitdas-007/tally";
-export const SUPPORT_UPI = "8249267182@upi";
+export const SPONSORS_URL = "https://github.com/sponsors/biswajitdas-007";
+export const SUPPORT_UPI = "biswajit.007.private@okaxis";
