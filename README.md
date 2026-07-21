@@ -6,9 +6,10 @@
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-1c6b52.svg)](CONTRIBUTING.md)
 
 A production-grade PWA for splitting shared expenses with friends and settling up
-instantly over UPI. Track who owes whom across trips, flats and dinners; the app
-computes minimal settle-up transactions and generates real `upi://pay` QR codes
-and deep links.
+over UPI. Track who owes whom across trips, flats and dinners; the app computes
+minimal settle-up transactions, and you settle by copying the payee's UPI ID and
+paying in your own UPI app — Tally records the settlement (it never touches the
+money, so there's no gateway, KYC or licensing).
 
 > **A warm digital ledger** — pine-green identity, brass accents, tabular
 > numerals everywhere money appears. Designed mobile-first, works beautifully on
@@ -18,8 +19,8 @@ and deep links.
 
 - **Split-expense engine** — equal or exact splits, per-person balances,
   greedy debt simplification for minimal settle-up.
-- **UPI settle-up** — receipt-style card with a live scannable QR + one-tap
-  deep links to GPay / PhonePe / Paytm / BHIM (Android). No gateway, no keys.
+- **UPI settle-up** — copy a friend's UPI ID, pay in any UPI app, and mark it
+  settled. Tally is the ledger, not the payment rail — uniform on Android + iOS.
 - **Google sign-in** (via Firebase) + **email invites** so friends can join.
 - **Insights** — animated 6-month trend, category donut, spend-by-group, CSV export.
 - **PWA** — installable, offline support (service worker), app shortcuts,
