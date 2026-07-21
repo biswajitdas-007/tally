@@ -19,11 +19,21 @@ export function isValidVpa(vpa: string): boolean {
   return VPA_RE.test(vpa.trim());
 }
 
+export interface ScannedUpi {
+  raw: string; // the exact scanned payload — preserved when paying
+  vpa: string;
+  name: string;
+  amount?: number;
+  note?: string;
+  isMerchant: boolean; // has an `mc` (merchant category code)
+}
+
 /**
- * Parse a scanned UPI QR string (`upi://pay?pa=…&pn=…&am=…`) into params.
- * Returns null when it isn't a valid UPI collect/pay code.
+ * Parse a scanned UPI QR string (`upi://pay?pa=…&pn=…&am=…`). Returns null when
+ * it isn't a valid UPI pay code. Keeps the raw payload so we can pay without
+ * dropping merchant fields.
  */
-export function parseUpiUri(raw: string): (UpiParams & { amount?: number }) | null {
+export function parseUpiUri(raw: string): ScannedUpi | null {
   const s = raw.trim();
   if (!/^upi:\/\//i.test(s)) return null;
   const q = s.indexOf("?");
@@ -34,7 +44,47 @@ export function parseUpiUri(raw: string): (UpiParams & { amount?: number }) | nu
   const name = (p.get("pn") ?? vpa).trim() || vpa;
   const am = Number(p.get("am"));
   const note = p.get("tn")?.trim() || undefined;
-  return { vpa, name, amount: Number.isFinite(am) && am > 0 ? am : undefined, note };
+  return {
+    raw: s,
+    vpa,
+    name,
+    amount: Number.isFinite(am) && am > 0 ? am : undefined,
+    note,
+    isMerchant: Boolean(p.get("mc")),
+  };
+}
+
+/**
+ * Build a payable URI from a SCANNED QR by preserving its full payload — mc, tr,
+ * sign, orgid, mode, purpose, … — and only injecting the amount + currency (and
+ * a unique `tr` for merchant QRs that lack one). Reconstructing from just
+ * pa/pn/am drops the merchant fields, which PSP apps flag as a tampered P2M
+ * payload and reject with a bogus "limit exceeded". Minimal string surgery
+ * keeps signed QRs byte-intact.
+ */
+export function payUriFromScan(raw: string, amount: number, tr?: string): string {
+  let uri = raw.trim();
+  const params = new URLSearchParams(uri.slice(uri.indexOf("?") + 1));
+  const scannedAmt = Number(params.get("am")) || 0;
+  const isMerchant = Boolean(params.get("mc"));
+
+  const setParam = (key: string, val: string) => {
+    const re = new RegExp(`([?&]${key}=)[^&]*`, "i");
+    uri = re.test(uri) ? uri.replace(re, `$1${val}`) : `${uri}&${key}=${val}`;
+  };
+
+  // Only touch the amount when the user set/changed it — a signed dynamic QR's
+  // amount stays exactly as scanned when used as-is.
+  if (amount > 0 && Math.abs(amount - scannedAmt) > 0.001) setParam("am", amount.toFixed(2));
+  if (!/[?&]cu=/i.test(uri)) setParam("cu", "INR");
+  if (isMerchant && tr && !/[?&]tr=/i.test(uri)) setParam("tr", tr);
+
+  return uri;
+}
+
+/** App-specific variant of {@link payUriFromScan} (GPay/PhonePe/Paytm schemes). */
+export function payAppUriFromScan(app: { scheme: string }, raw: string, amount: number, tr?: string): string {
+  return payUriFromScan(raw, amount, tr).replace(/^upi:\/\/pay/i, app.scheme);
 }
 
 export function buildUpiUri({ vpa, name, amount, note }: UpiParams): string {
