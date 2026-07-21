@@ -149,11 +149,14 @@ export default function WealthPage() {
                 const color = pct >= 66 ? "var(--positive)" : pct >= 33 ? "var(--warn)" : "var(--negative)";
                 return (
                   <div key={p.key}>
-                    <div className="flex items-center justify-between text-[0.82rem]">
-                      <span className="font-medium text-text">{p.label}</span>
-                      <span className="text-text-3">{p.detail}</span>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-[0.86rem] font-medium text-text">{p.label}</p>
+                        <p className="text-[0.72rem] leading-tight text-text-3">{p.hint}</p>
+                      </div>
+                      <span className="shrink-0 pt-0.5 text-[0.82rem] font-semibold text-text-2">{p.detail}</span>
                     </div>
-                    <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-inset">
+                    <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-inset">
                       <div className="h-full rounded-full" style={{ width: `${pct}%`, background: color }} />
                     </div>
                   </div>
