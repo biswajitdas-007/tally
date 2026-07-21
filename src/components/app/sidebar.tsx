@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Plus, QrCode } from "lucide-react";
+import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NAV_ITEMS } from "./nav-items";
 import { TallyMark } from "./logo";
@@ -21,7 +21,6 @@ export function Sidebar() {
   const pathname = usePathname();
   const [pending, setPending] = usePendingNav();
   const openAdd = useUI((s) => s.openAdd);
-  const openScan = useUI((s) => s.openScan);
   const me = useMe();
 
   return (
@@ -31,19 +30,9 @@ export function Sidebar() {
         <span className="font-display text-lg font-bold tracking-[-0.03em]">Tally</span>
       </Link>
 
-      <Button size="lg" fullWidth className="mb-2.5 justify-start gap-2.5 px-3.5" onClick={() => openAdd()}>
+      <Button size="lg" fullWidth className="mb-5 justify-start gap-2.5 px-3.5" onClick={() => openAdd()}>
         <Plus className="h-[18px] w-[18px]" />
         New expense
-      </Button>
-      <Button
-        variant="secondary"
-        size="lg"
-        fullWidth
-        className="mb-5 justify-start gap-2.5 px-3.5"
-        onClick={openScan}
-      >
-        <QrCode className="h-[18px] w-[18px]" />
-        Scan &amp; pay
       </Button>
 
       <nav className="flex flex-col gap-1">

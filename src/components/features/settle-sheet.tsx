@@ -1,18 +1,17 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Check, Copy, Share2, QrCode as QrIcon } from "lucide-react";
+import { Check, Copy, Share2 } from "lucide-react";
 import { Sheet } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar } from "@/components/ui/avatar";
-import { UpiQR } from "./upi-qr";
 import { AccountPicker } from "./account-picker";
 import { useStore, useMe, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { useToast } from "@/components/ui/toast";
 import { scopedDebts, type ScopeAmount, type ScopeId } from "@/lib/balances";
-import { buildAppUri, buildUpiUri, isValidVpa, UPI_APPS } from "@/lib/upi";
+import { isValidVpa } from "@/lib/upi";
 import { formatINR, cn } from "@/lib/utils";
 import { celebrate } from "@/lib/celebrate";
 
@@ -36,8 +35,6 @@ export function SettleSheet() {
   const [accountId, setAccountId] = useState<string | null>(null);
   const [lastTarget, setLastTarget] = useState(target);
 
-  // Which ledgers this settle covers. `groupId === undefined` ⇒ person-level:
-  // pull every scope you share with them. Otherwise it's a single scope.
   const scopes = useMemo<ScopeAmount[]>(() => {
     if (!target) return [];
     if (target.groupId === undefined) {
@@ -47,8 +44,6 @@ export function SettleSheet() {
     return [{ scopeId: target.groupId ?? null, amount: target.amount }];
   }, [target, expenses, myId]);
 
-  // Reset selection (all scopes) + draft whenever the sheet opens for a new
-  // target — adjusting state during render, no effect needed.
   if (target !== lastTarget) {
     setLastTarget(target);
     setSelected(new Set(scopes.map((s) => scopeKey(s.scopeId))));
@@ -65,15 +60,11 @@ export function SettleSheet() {
   const youPay = selectedNet < -0.01;
   const amount = Math.abs(selectedNet);
 
-  // Who receives the money in this settlement.
+  // Who receives the money. Tally doesn't move it — we just show their UPI ID to
+  // copy + pay in any UPI app, and record the settlement.
   const payee = youPay ? person : me;
   const payer = youPay ? me : person;
-  const note = "Tally settle up";
-
-  const upiUri = useMemo(() => {
-    if (!payee?.upiId || !isValidVpa(payee.upiId) || amount < 0.01) return null;
-    return buildUpiUri({ vpa: payee.upiId, name: payee.name, amount, note });
-  }, [payee, amount]);
+  const payeeUpi = payee?.upiId && isValidVpa(payee.upiId) ? payee.upiId : null;
 
   if (!target || !person) return null;
 
@@ -87,8 +78,13 @@ export function SettleSheet() {
     });
   }
 
+  function copyUpi() {
+    if (!payeeUpi) return;
+    navigator.clipboard.writeText(payeeUpi).catch(() => {});
+    toast({ message: "UPI ID copied" });
+  }
+
   function confirmSettled() {
-    // Record a settlement in each selected ledger so only those scopes clear.
     for (const s of activeScopes) {
       if (s.amount < -0.01)
         settleUp({ from: myId, to: person!.id, amount: Math.abs(s.amount), groupId: s.scopeId, accountId: accountId ?? undefined });
@@ -104,15 +100,14 @@ export function SettleSheet() {
     const text = `Hi ${person!.name.split(" ")[0]}, you owe me ${formatINR(amount)} on Tally.${
       me?.upiId ? ` Pay to ${me.upiId}` : ""
     }`;
-    if (navigator.share) {
-      await navigator.share({ text }).catch(() => {});
-    } else {
+    if (navigator.share) await navigator.share({ text }).catch(() => {});
+    else {
       await navigator.clipboard.writeText(text).catch(() => {});
       toast({ message: "Reminder copied to clipboard" });
     }
   }
 
-  const needsOwnUpi = !youPay && amount >= 0.01 && !upiUri; // they owe you but you have no UPI id
+  const needsOwnUpi = !youPay && amount >= 0.01 && !payeeUpi; // they owe you but you have no UPI id
   const nothingSelected = activeScopes.length === 0;
 
   return (
@@ -160,9 +155,7 @@ export function SettleSheet() {
                     >
                       {on && <Check className="h-3.5 w-3.5" strokeWidth={3} />}
                     </span>
-                    <span className="min-w-0 flex-1 truncate text-[0.9rem] font-medium text-text">
-                      {scopeLabel(s.scopeId)}
-                    </span>
+                    <span className="min-w-0 flex-1 truncate text-[0.9rem] font-medium text-text">{scopeLabel(s.scopeId)}</span>
                     <span className={cn("tnum text-[0.85rem] font-semibold", owe ? "text-negative" : "text-positive")}>
                       {owe ? "you owe " : "owes you "}
                       {formatINR(Math.abs(s.amount))}
@@ -174,20 +167,30 @@ export function SettleSheet() {
           </div>
         )}
 
-        {needsOwnUpi ? (
-          /* You need a UPI id to receive */
+        {/* UPI ID to copy — Tally records the settlement; you pay in your own app */}
+        {amount >= 0.01 && payeeUpi ? (
+          <div className="rounded-[16px] border border-border bg-surface-2 p-4">
+            <p className="text-[0.72rem] font-semibold uppercase tracking-wide text-text-3">
+              {youPay ? `Pay ${person.name.split(" ")[0]} at` : "Your UPI ID"}
+            </p>
+            <div className="mt-1.5 flex items-center gap-2">
+              <span className="min-w-0 flex-1 truncate font-display text-[1.05rem] font-bold text-text">{payeeUpi}</span>
+              <Button variant="secondary" size="sm" onClick={copyUpi}>
+                <Copy className="h-4 w-4" /> Copy
+              </Button>
+            </div>
+            <p className="mt-2 text-[0.78rem] leading-snug text-text-2">
+              {youPay
+                ? "Copy their UPI ID, pay in any UPI app, then mark it paid below."
+                : `Share this so ${person.name.split(" ")[0]} can pay you, then mark it received.`}
+            </p>
+          </div>
+        ) : needsOwnUpi ? (
           <div className="rounded-[16px] border border-border bg-surface-2 p-4">
             <p className="text-sm font-semibold text-text">Add your UPI ID</p>
-            <p className="mt-0.5 text-[0.82rem] text-text-2">
-              So {person.name.split(" ")[0]} can scan and pay you directly.
-            </p>
+            <p className="mt-0.5 text-[0.82rem] text-text-2">So {person.name.split(" ")[0]} can pay you directly.</p>
             <div className="mt-3 flex gap-2">
-              <Input
-                value={upiDraft}
-                onChange={(e) => setUpiDraft(e.target.value)}
-                placeholder="yourname@okhdfcbank"
-                className="h-11"
-              />
+              <Input value={upiDraft} onChange={(e) => setUpiDraft(e.target.value)} placeholder="yourname@okhdfcbank" className="h-11" />
               <Button
                 disabled={!isValidVpa(upiDraft)}
                 onClick={() => {
@@ -199,84 +202,18 @@ export function SettleSheet() {
               </Button>
             </div>
           </div>
-        ) : upiUri ? (
-          /* The receipt-style UPI card */
-          <div className="relative mx-auto w-full max-w-[300px] overflow-hidden rounded-[20px] bg-white text-[#15201a] shadow-[var(--shadow-md)]">
-            <div className="px-5 pb-3 pt-4 text-center">
-              <p className="text-[0.7rem] font-semibold uppercase tracking-[0.12em] text-[#8b958c]">
-                {youPay ? "Paying" : "Pay to"}
-              </p>
-              <p className="mt-0.5 font-display text-lg font-bold">{payee?.name}</p>
-              <p className="text-[0.8rem] text-[#58645c]">{payee?.upiId}</p>
-            </div>
-
-            {/* Perforation */}
-            <div className="relative">
-              <div
-                className="absolute left-0 top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full"
-                style={{ background: "var(--surface)" }}
-              />
-              <div
-                className="absolute right-0 top-1/2 h-4 w-4 translate-x-1/2 -translate-y-1/2 rounded-full"
-                style={{ background: "var(--surface)" }}
-              />
-              <div className="mx-5 border-t-2 border-dashed border-[#e5e8e0]" />
-            </div>
-
-            <div className="flex flex-col items-center px-5 py-5">
-              <div className="rounded-2xl border border-[#eceee9] p-3">
-                <UpiQR value={upiUri} size={168} />
-              </div>
-              <p className="mt-3 flex items-center gap-1.5 text-[0.78rem] font-medium text-[#58645c]">
-                <QrIcon className="h-3.5 w-3.5" />
-                Scan with any UPI app
-              </p>
-              <p className="mt-3 font-display text-3xl font-bold tracking-tight tnum">{formatINR(amount)}</p>
-            </div>
-          </div>
+        ) : amount >= 0.01 && youPay ? (
+          <p className="rounded-[16px] border border-border bg-surface-2 p-4 text-[0.84rem] leading-snug text-text-2">
+            {person.name.split(" ")[0]} hasn&apos;t added a UPI ID yet. Pay them however you like, then mark it settled below.
+          </p>
         ) : null}
 
-        {/* Pick a UPI app to pay with (opens that exact app, prefilled) */}
-        {youPay && upiUri && (
-          <div>
-            <p className="mb-2 px-0.5 text-[0.8rem] font-semibold text-text-2">Pay with your UPI app</p>
-            <div className="grid grid-cols-2 gap-2">
-              {UPI_APPS.map((app) => (
-                <a
-                  key={app.id}
-                  href={buildAppUri(app, { vpa: payee!.upiId!, name: payee!.name, amount, note })}
-                  className="flex items-center justify-center gap-2 rounded-[13px] border border-border bg-surface py-3.5 text-[0.9rem] font-semibold text-text transition-all hover:border-border-strong hover:bg-surface-2 active:scale-[0.98]"
-                >
-                  <span className="h-2.5 w-2.5 rounded-full" style={{ background: app.color }} />
-                  {app.label}
-                </a>
-              ))}
-            </div>
-            <p className="mt-2 px-0.5 text-[0.72rem] text-text-3">Don&apos;t have these? Scan the QR with any UPI app.</p>
-          </div>
+        {/* Remind them (they owe you) */}
+        {!youPay && amount >= 0.01 && (
+          <Button variant="secondary" size="md" onClick={shareReminder}>
+            <Share2 className="h-4 w-4" /> Send a reminder
+          </Button>
         )}
-
-        {/* Secondary actions */}
-        <div className="flex gap-2">
-          {upiUri && (
-            <Button
-              variant="secondary"
-              size="md"
-              className="flex-1"
-              onClick={() => {
-                navigator.clipboard.writeText(payee!.upiId!).catch(() => {});
-                toast({ message: "UPI ID copied" });
-              }}
-            >
-              <Copy className="h-4 w-4" /> Copy ID
-            </Button>
-          )}
-          {!youPay && amount >= 0.01 && (
-            <Button variant="secondary" size="md" className="flex-1" onClick={shareReminder}>
-              <Share2 className="h-4 w-4" /> Remind
-            </Button>
-          )}
-        </div>
 
         {/* Which account this cash moved through */}
         {amount >= 0.01 && (
@@ -287,11 +224,7 @@ export function SettleSheet() {
         <div className="sticky bottom-0 -mx-5 border-t border-border bg-surface px-5 pb-1 pt-3">
           <Button variant="primary" size="lg" fullWidth disabled={nothingSelected} onClick={confirmSettled}>
             <Check className="h-4.5 w-4.5" />
-            {amount < 0.01
-              ? "Mark settled"
-              : youPay
-                ? `I've paid ${formatINR(amount)}`
-                : `Mark ${formatINR(amount)} received`}
+            {amount < 0.01 ? "Mark settled" : youPay ? `I've paid ${formatINR(amount)}` : `Mark ${formatINR(amount)} received`}
           </Button>
         </div>
       </div>
