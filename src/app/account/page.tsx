@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { LogOut, ShieldCheck, Bell, Wallet, Check, BellRing, Contact, ChevronRight, Coffee, Copy, Star } from "lucide-react";
+import { LogOut, ShieldCheck, Bell, Wallet, Check, BellRing, Contact, ChevronRight, Coffee, Copy, Star, Heart } from "lucide-react";
 import { PageHeader } from "@/components/app/page-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,7 @@ import { usePush } from "@/hooks/use-push";
 import { useTheme, type ThemeChoice } from "@/components/theme-provider";
 import { useToast } from "@/components/ui/toast";
 import { isValidVpa } from "@/lib/upi";
-import { REPO_URL, SUPPORT_UPI } from "@/lib/version";
+import { REPO_URL, SPONSORS_URL, SUPPORT_UPI } from "@/lib/version";
 
 function Row({ children }: { children: React.ReactNode }) {
   return <div className="flex items-center gap-3 px-4 py-3.5">{children}</div>;
@@ -174,14 +174,24 @@ export default function AccountPage() {
               <Copy className="h-4 w-4" /> Copy
             </Button>
           </div>
-          <a
-            href={REPO_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-3 inline-flex items-center gap-1.5 text-[0.78rem] font-semibold text-brand"
-          >
-            <Star className="h-3.5 w-3.5" /> Star it on GitHub
-          </a>
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+            <a
+              href={SPONSORS_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-[0.78rem] font-semibold text-brand"
+            >
+              <Heart className="h-3.5 w-3.5" /> Sponsor on GitHub
+            </a>
+            <a
+              href={REPO_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-[0.78rem] font-semibold text-brand"
+            >
+              <Star className="h-3.5 w-3.5" /> Star the repo
+            </a>
+          </div>
         </Card>
       </section>
 
