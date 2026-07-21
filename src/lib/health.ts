@@ -41,6 +41,8 @@ export interface Pillar {
   score: number;
   max: number;
   detail: string;
+  /** Plain-language, one-line explanation of what this measures. */
+  hint: string;
 }
 
 export interface Health {
@@ -115,7 +117,9 @@ export function healthScore(opts: {
     label: "Savings rate",
     max: 25,
     score: confident ? clampScore(rate / 0.2, 25) : 0,
-    detail: income <= 0 ? "Add income" : hasOutflow ? `${Math.round(rate * 100)}% saved` : "Log expenses",
+    detail:
+      income <= 0 ? "Add income" : !hasOutflow ? "Log expenses" : rate < 0 ? "Nothing saved" : `${Math.round(rate * 100)}% saved`,
+    hint: "What's left after you spend",
   });
 
   // 2. Debt-to-income (20) — excellent ≤20%, zero at ≥36%
@@ -126,6 +130,7 @@ export function healthScore(opts: {
     max: 20,
     score: income > 0 ? clampScore((0.36 - dti) / 0.36, 20) : totalEmi > 0 ? 8 : 20,
     detail: income > 0 ? `${Math.round(dti * 100)}% of income` : totalEmi > 0 ? "Add income" : "No EMIs",
+    hint: "EMIs vs your income",
   });
 
   // 3. Emergency fund (20) — target 6 months of outflow (spend + EMIs)
@@ -136,6 +141,7 @@ export function healthScore(opts: {
     max: 20,
     score: clampScore(months / 6, 20),
     detail: `${months >= 0.05 ? months.toFixed(1) : "0"} months`,
+    hint: "Months your savings would cover",
   });
 
   // 4. Living within your means (20) — income covers outflow (incl. EMIs)
@@ -146,6 +152,7 @@ export function healthScore(opts: {
     max: 20,
     score: confident ? (net >= 0 ? 20 : clampScore(1 + net / (income * 0.5), 20)) : 0,
     detail: income <= 0 ? "Add income" : !hasOutflow ? "Log expenses" : net >= 0 ? "Under income" : "Overspending",
+    hint: "Income vs everything going out",
   });
 
   // 5. Net worth (15) — vs a year of income
@@ -156,6 +163,7 @@ export function healthScore(opts: {
     max: 15,
     score: annual > 0 ? clampScore(nw.net / annual, 15) : nw.net > 0 ? 15 : 0,
     detail: hasHoldings ? formatINR(nw.net) : "Add accounts",
+    hint: "Assets minus what you owe",
   });
 
   const score = pillars.reduce((a, p) => a + p.score, 0);
