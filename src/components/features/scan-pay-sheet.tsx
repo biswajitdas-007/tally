@@ -11,12 +11,14 @@ import { CATEGORY_LIST } from "@/lib/categories";
 import { useStore } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { useToast } from "@/components/ui/toast";
-import { parseUpiUri, buildAppUri, buildUpiUri, UPI_APPS } from "@/lib/upi";
-import { cn, formatINR } from "@/lib/utils";
+import { parseUpiUri, buildAppUri, buildUpiUri, payUriFromScan, payAppUriFromScan, UPI_APPS } from "@/lib/upi";
+import { cn, formatINR, uid } from "@/lib/utils";
 
 interface Payee {
   vpa: string;
   name: string;
+  /** Exact scanned QR payload — preserved when paying (keeps merchant fields). */
+  raw?: string;
 }
 type Phase = "scan" | "confirm" | "paying";
 
@@ -98,7 +100,7 @@ export function ScanPaySheet() {
       if (code?.data) {
         const parsed = parseUpiUri(code.data);
         if (parsed) {
-          setPayee({ vpa: parsed.vpa, name: parsed.name });
+          setPayee({ vpa: parsed.vpa, name: parsed.name, raw: parsed.raw });
           if (parsed.amount) setAmount(String(parsed.amount));
           if (parsed.note) setNote(parsed.note);
           setPhase("confirm");
@@ -191,7 +193,20 @@ export function ScanPaySheet() {
     setPhase("confirm"); // back to the app chooser to try again or cancel
   }
 
-  const upiParams = payee ? { vpa: payee.vpa, name: payee.name, amount: amt, note: note.trim() || undefined } : null;
+  // A unique transaction ref per payee, injected only into merchant QRs that
+  // lack one (NPCI mandates a unique `tr` for P2M).
+  const txnRef = useMemo(() => uid("TLY").toUpperCase(), [payee]);
+
+  /**
+   * Prefer the preserved raw QR payload (keeps mc/tr/sign → avoids the bogus
+   * "limit exceeded"); fall back to a plain P2P link for a recent-payee re-pay.
+   */
+  function linkFor(app?: { scheme: string }): string {
+    if (!payee) return "#";
+    if (payee.raw) return app ? payAppUriFromScan(app, payee.raw, amt, txnRef) : payUriFromScan(payee.raw, amt, txnRef);
+    const params = { vpa: payee.vpa, name: payee.name, amount: amt, note: note.trim() || undefined };
+    return app ? buildAppUri(app, params) : buildUpiUri(params);
+  }
 
   const title = phase === "scan" ? "Scan & pay" : phase === "paying" ? "Payment sent?" : "Confirm & pay";
   const description =
@@ -314,13 +329,13 @@ export function ScanPaySheet() {
           {/* UPI app chooser — opens the exact app so nothing hijacks the intent */}
           <div>
             <p className="mb-2 px-0.5 text-[0.8rem] font-semibold text-text-2">Pay with</p>
-            {canPay && upiParams ? (
+            {canPay ? (
               <>
                 <div className="grid grid-cols-2 gap-2">
                   {UPI_APPS.map((app) => (
                     <a
                       key={app.id}
-                      href={buildAppUri(app, upiParams)}
+                      href={linkFor(app)}
                       onClick={() => onPay(app.label)}
                       className="flex items-center justify-center gap-2 rounded-[13px] border border-border bg-surface py-3.5 text-[0.9rem] font-semibold text-text transition-all hover:border-border-strong hover:bg-surface-2 active:scale-[0.98]"
                     >
@@ -330,7 +345,7 @@ export function ScanPaySheet() {
                   ))}
                 </div>
                 <a
-                  href={buildUpiUri(upiParams)}
+                  href={linkFor()}
                   onClick={() => onPay("your UPI app")}
                   className="mt-2 block text-center text-[0.8rem] font-semibold text-brand"
                 >
