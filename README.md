@@ -4,6 +4,7 @@
 [![CodeQL](https://github.com/biswajitdas-007/tally/actions/workflows/codeql.yml/badge.svg)](https://github.com/biswajitdas-007/tally/actions/workflows/codeql.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-1c6b52.svg)](LICENSE)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-1c6b52.svg)](CONTRIBUTING.md)
+[![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4-db61a2.svg?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/biswajitdas-007)
 [![Buy me a coffee](https://img.shields.io/badge/%E2%98%95_Buy_me_a_coffee-UPI-brass.svg?color=b8860b)](#support)
 
 A production-grade PWA for splitting shared expenses with friends and settling up
@@ -108,13 +109,13 @@ inherits the look and dark mode automatically.
 ## Support
 
 Tally is free and open-source, built and maintained in the open. If it's useful to
-you, you can **buy me a coffee ☕** over UPI — pay any amount in any UPI app:
+you, here are a few ways to support it:
 
-> **`8249267182@upi`**
+- ❤ **[Sponsor on GitHub](https://github.com/sponsors/biswajitdas-007)** — one-time or recurring.
+- ☕ **Buy me a coffee over UPI** — pay any amount in any UPI app: **`biswajit.007.private@okaxis`**
+- ⭐ **Star the repo** — it genuinely helps.
 
-Every bit helps keep Tally updated and moving toward a native app with more
-features. *(GitHub Sponsors coming soon.)* You can also just **⭐ star the repo** —
-that helps too.
+Every bit keeps Tally updated and moving toward a native app with more features.
 
 ## Contributing
 
