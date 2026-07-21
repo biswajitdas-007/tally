@@ -4,6 +4,7 @@
 [![CodeQL](https://github.com/biswajitdas-007/tally/actions/workflows/codeql.yml/badge.svg)](https://github.com/biswajitdas-007/tally/actions/workflows/codeql.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-1c6b52.svg)](LICENSE)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-1c6b52.svg)](CONTRIBUTING.md)
+[![Buy me a coffee](https://img.shields.io/badge/%E2%98%95_Buy_me_a_coffee-UPI-brass.svg?color=b8860b)](#support)
 
 A production-grade PWA for splitting shared expenses with friends and settling up
 over UPI. Track who owes whom across trips, flats and dinners; the app computes
@@ -103,6 +104,17 @@ src/
 Design tokens live in `src/app/globals.css`; shadcn's semantic tokens
 (`--primary`, `--border`, …) are bridged to the Tally palette so every component
 inherits the look and dark mode automatically.
+
+## Support
+
+Tally is free and open-source, built and maintained in the open. If it's useful to
+you, you can **buy me a coffee ☕** over UPI — pay any amount in any UPI app:
+
+> **`8249267182@upi`**
+
+Every bit helps keep Tally updated and moving toward a native app with more
+features. *(GitHub Sponsors coming soon.)* You can also just **⭐ star the repo** —
+that helps too.
 
 ## Contributing
 
