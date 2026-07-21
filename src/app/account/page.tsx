@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { LogOut, ShieldCheck, Bell, Wallet, Check, BellRing, Contact, ChevronRight } from "lucide-react";
+import { LogOut, ShieldCheck, Bell, Wallet, Check, BellRing, Contact, ChevronRight, Coffee, Copy, Star } from "lucide-react";
 import { PageHeader } from "@/components/app/page-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import { usePush } from "@/hooks/use-push";
 import { useTheme, type ThemeChoice } from "@/components/theme-provider";
 import { useToast } from "@/components/ui/toast";
 import { isValidVpa } from "@/lib/upi";
+import { REPO_URL, SUPPORT_UPI } from "@/lib/version";
 
 function Row({ children }: { children: React.ReactNode }) {
   return <div className="flex items-center gap-3 px-4 py-3.5">{children}</div>;
@@ -143,6 +144,44 @@ export default function AccountPage() {
             </div>
             <span className="text-[0.76rem] font-semibold text-text-2">{isFirebaseConfigured ? "Google" : "Local"}</span>
           </Row>
+        </Card>
+      </section>
+
+      <section>
+        <p className="mb-2 px-1 text-[0.7rem] font-semibold uppercase tracking-[0.08em] text-text-3">Support</p>
+        <Card className="p-4">
+          <div className="flex items-start gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brass-soft text-brass-on-soft">
+              <Coffee className="h-4.5 w-4.5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[0.9rem] font-medium text-text">Buy me a coffee ☕</p>
+              <p className="text-[0.76rem] leading-snug text-text-3">
+                Tally is free &amp; open-source. If it helps you, support it over UPI — any amount keeps it growing.
+              </p>
+            </div>
+          </div>
+          <div className="mt-3 flex items-center gap-2 rounded-[12px] bg-surface-inset px-3 py-2.5">
+            <span className="min-w-0 flex-1 truncate font-display text-[0.95rem] font-bold text-text">{SUPPORT_UPI}</span>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                navigator.clipboard.writeText(SUPPORT_UPI).catch(() => {});
+                toast({ message: "UPI ID copied — thank you! ☕" });
+              }}
+            >
+              <Copy className="h-4 w-4" /> Copy
+            </Button>
+          </div>
+          <a
+            href={REPO_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 inline-flex items-center gap-1.5 text-[0.78rem] font-semibold text-brand"
+          >
+            <Star className="h-3.5 w-3.5" /> Star it on GitHub
+          </a>
         </Card>
       </section>
 
