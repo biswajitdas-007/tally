@@ -1,5 +1,7 @@
 "use client";
 
+import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
 import { Sidebar } from "./sidebar";
 import { BottomNav } from "./bottom-nav";
 import { TopBar } from "./top-bar";
@@ -22,14 +24,29 @@ import { InstallPrompt } from "./install-prompt";
 import { PushAutoEnable } from "./push-auto";
 import { NotificationPrompt } from "./notification-prompt";
 
+/**
+ * Routes that reflow into two columns on wide screens (see PageGrid) and so
+ * earn the extra width. Everything else is a single list or form, which stays
+ * readable at a narrower measure.
+ */
+const WIDE_ROUTES = new Set(["/", "/money", "/wealth", "/groups", "/analytics"]);
+
 export function AppShell({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const wide = WIDE_ROUTES.has(pathname);
+
   return (
     <>
       <div className="mx-auto flex w-full max-w-[1440px]">
         <Sidebar />
         <main className="relative min-w-0 flex-1">
           <TopBar />
-          <div className="mx-auto w-full max-w-[640px] px-4 pb-28 pt-4 md:max-w-3xl md:px-10 md:pb-16 md:pt-9">
+          <div
+            className={cn(
+              "mx-auto w-full max-w-[640px] px-4 pb-28 pt-4 md:max-w-3xl md:px-10 md:pb-16 md:pt-9",
+              wide && "xl:max-w-[1180px]",
+            )}
+          >
             {children}
           </div>
         </main>

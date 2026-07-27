@@ -9,6 +9,7 @@ import { ExpenseRow } from "@/components/features/expense-row";
 import { PersonDebtRow } from "@/components/features/person-debt-row";
 import { Card, SectionHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { PageGrid, PageCol } from "@/components/app/page-grid";
 import { useStore, useMe, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { useToast } from "@/components/ui/toast";
@@ -81,88 +82,94 @@ export default function HomePage() {
         </h1>
       </div>
 
-      <BalanceHero />
+      <PageGrid>
+        <PageCol>
+          <BalanceHero />
 
-      <div className="flex gap-2.5">
-        <QuickAction icon={Plus} label="Add" tint="var(--brand)" onClick={() => openAdd()} />
-        <QuickAction icon={ArrowLeftRight} label="Settle" tint="var(--info)" onClick={quickSettle} />
-        <QuickAction icon={Users} label="Group" tint="var(--cat-fun)" onClick={openCreateGroup} />
-        <QuickAction icon={UserPlus} label="Invite" tint="var(--brass)" onClick={() => openInvite(null)} />
-      </div>
+          <div className="flex gap-2.5">
+            <QuickAction icon={Plus} label="Add" tint="var(--brand)" onClick={() => openAdd()} />
+            <QuickAction icon={ArrowLeftRight} label="Settle" tint="var(--info)" onClick={quickSettle} />
+            <QuickAction icon={Users} label="Group" tint="var(--cat-fun)" onClick={openCreateGroup} />
+            <QuickAction icon={UserPlus} label="Invite" tint="var(--brass)" onClick={() => openInvite(null)} />
+          </div>
 
-      {/* Balances by person */}
-      <section>
-        <SectionHeader title="Who owes whom" />
-        {debts.length > 0 ? (
-          <Card className="overflow-hidden">
-            <div className="divide-y divide-border">
-              {debts.slice(0, 5).map((d) => (
-                <PersonDebtRow key={d.personId} debt={d} />
-              ))}
-            </div>
-          </Card>
-        ) : (
-          <Card>
-            <EmptyState
-              icon={ArrowLeftRight}
-              title="All settled up"
-              description="No outstanding balances. Add an expense to start splitting."
+          {/* Balances by person */}
+          <section>
+            <SectionHeader title="Who owes whom" />
+            {debts.length > 0 ? (
+              <Card className="overflow-hidden">
+                <div className="divide-y divide-border">
+                  {debts.slice(0, 5).map((d) => (
+                    <PersonDebtRow key={d.personId} debt={d} />
+                  ))}
+                </div>
+              </Card>
+            ) : (
+              <Card>
+                <EmptyState
+                  icon={ArrowLeftRight}
+                  title="All settled up"
+                  description="No outstanding balances. Add an expense to start splitting."
+                />
+              </Card>
+            )}
+          </section>
+        </PageCol>
+
+        <PageCol>
+          {/* Groups */}
+          <section>
+            <SectionHeader
+              title="Your groups"
+              action={
+                <Link href="/groups" className="flex items-center gap-0.5 text-[0.78rem] font-semibold text-brand">
+                  See all <ChevronRight className="h-3.5 w-3.5" />
+                </Link>
+              }
             />
-          </Card>
-        )}
-      </section>
-
-      {/* Groups */}
-      <section>
-        <SectionHeader
-          title="Your groups"
-          action={
-            <Link href="/groups" className="flex items-center gap-0.5 text-[0.78rem] font-semibold text-brand">
-              See all <ChevronRight className="h-3.5 w-3.5" />
-            </Link>
-          }
-        />
-        <div className="flex flex-col gap-2.5">
-          {topGroups.map((g) => (
-            <GroupCard key={g.id} group={g} />
-          ))}
-          <button
-            onClick={openCreateGroup}
-            className="flex items-center justify-center gap-2 rounded-[16px] border border-dashed border-border-strong py-3 text-[0.85rem] font-semibold text-text-2 transition-colors hover:bg-surface-inset"
-          >
-            <Plus className="h-4 w-4" /> New group
-          </button>
-        </div>
-      </section>
-
-      {/* Recent activity */}
-      <section>
-        <SectionHeader
-          title="Recent activity"
-          action={
-            <Link href="/activity" className="flex items-center gap-0.5 text-[0.78rem] font-semibold text-brand">
-              See all <ChevronRight className="h-3.5 w-3.5" />
-            </Link>
-          }
-        />
-        {recent.length > 0 ? (
-          <Card className="overflow-hidden">
-            <div className="divide-y divide-border">
-              {recent.map((e) => (
-                <ExpenseRow key={e.id} expense={e} showGroup />
+            <div className="flex flex-col gap-2.5">
+              {topGroups.map((g) => (
+                <GroupCard key={g.id} group={g} />
               ))}
+              <button
+                onClick={openCreateGroup}
+                className="flex items-center justify-center gap-2 rounded-[16px] border border-dashed border-border-strong py-3 text-[0.85rem] font-semibold text-text-2 transition-colors hover:bg-surface-inset"
+              >
+                <Plus className="h-4 w-4" /> New group
+              </button>
             </div>
-          </Card>
-        ) : (
-          <Card>
-            <EmptyState
-              icon={Receipt}
-              title="No expenses yet"
-              description="Tap the + button to add your first shared expense."
+          </section>
+
+          {/* Recent activity */}
+          <section>
+            <SectionHeader
+              title="Recent activity"
+              action={
+                <Link href="/activity" className="flex items-center gap-0.5 text-[0.78rem] font-semibold text-brand">
+                  See all <ChevronRight className="h-3.5 w-3.5" />
+                </Link>
+              }
             />
-          </Card>
-        )}
-      </section>
+            {recent.length > 0 ? (
+              <Card className="overflow-hidden">
+                <div className="divide-y divide-border">
+                  {recent.map((e) => (
+                    <ExpenseRow key={e.id} expense={e} showGroup />
+                  ))}
+                </div>
+              </Card>
+            ) : (
+              <Card>
+                <EmptyState
+                  icon={Receipt}
+                  title="No expenses yet"
+                  description="Tap the + button to add your first shared expense."
+                />
+              </Card>
+            )}
+          </section>
+        </PageCol>
+      </PageGrid>
     </div>
   );
 }

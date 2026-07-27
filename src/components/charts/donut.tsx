@@ -28,7 +28,7 @@ export function Donut({
   let start = 0;
 
   return (
-    <div className="relative inline-flex items-center justify-center" style={{ width: size, height: size }}>
+    <div className="relative inline-flex shrink-0 items-center justify-center" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90">
         {data.map((d, i) => {
           const frac = d.value / total;
