@@ -1,7 +1,7 @@
 import { verifyUser } from "@/lib/auth-server";
 import { collections } from "@/lib/db";
 import { badRequest, isNum, isStr, json, serverError, unauthorized } from "@/lib/api-helpers";
-import type { Account, AccountKind, Liability, LiabilityKind } from "@/lib/types";
+import type { Account, AccountKind, Emergency, Liability, LiabilityKind } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -54,6 +54,15 @@ function cleanLiabilities(v: unknown): Liability[] {
   return out;
 }
 
+function cleanEmergency(v: unknown): Emergency | null {
+  if (!v || typeof v !== "object") return null;
+  const e = v as Record<string, unknown>;
+  if (!isNum(e.target) || (e.target as number) <= 0) return null;
+  const out: Emergency = { target: e.target as number };
+  if (isStr(e.accountId)) out.accountId = (e.accountId as string).slice(0, 40);
+  return out;
+}
+
 export async function POST(req: Request) {
   const user = await verifyUser(req);
   if (!user) return unauthorized();
@@ -64,9 +73,13 @@ export async function POST(req: Request) {
 
     const accounts = cleanAccounts(b.accounts);
     const liabilities = cleanLiabilities(b.liabilities);
+    // Only touch `emergency` when it's part of this request, so a plain
+    // account/liability save never wipes the emergency fund.
+    const update: Record<string, unknown> = { accounts, liabilities };
+    if ("emergency" in b) update.emergency = cleanEmergency(b.emergency);
 
     const { users } = await collections();
-    await users.updateOne({ _id: user.uid }, { $set: { accounts, liabilities } }, { upsert: true });
+    await users.updateOne({ _id: user.uid }, { $set: update }, { upsert: true });
     return json({ ok: true });
   } catch {
     return serverError();

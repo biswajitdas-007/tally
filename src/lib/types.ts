@@ -121,6 +121,16 @@ export interface Account {
   balance: number;
 }
 
+/**
+ * The user's emergency fund: a target amount they choose, optionally held in a
+ * specific account. Coverage is that account's balance when linked, else total
+ * liquid savings. Never auto-counted from savings — the user sets it up.
+ */
+export interface Emergency {
+  target: number;
+  accountId?: ID;
+}
+
 export type LiabilityKind = "loan" | "card" | "emi";
 
 /** Something you owe — the outstanding amount reduces net worth. */
