@@ -37,14 +37,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      <div className="mx-auto flex w-full max-w-[1440px]">
+      {/* Full-bleed shell so the sidebar sits flush against the window edge —
+          only the content column is capped and centred. */}
+      <div className="flex w-full">
         <Sidebar />
         <main className="relative min-w-0 flex-1">
           <TopBar />
           <div
             className={cn(
               "mx-auto w-full max-w-[640px] px-4 pb-28 pt-4 md:max-w-3xl md:px-10 md:pb-16 md:pt-9",
-              wide && "xl:max-w-[1180px]",
+              wide && "xl:max-w-[1180px] 2xl:max-w-[1360px]",
             )}
           >
             {children}

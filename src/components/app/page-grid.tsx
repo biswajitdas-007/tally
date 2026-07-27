@@ -3,25 +3,25 @@ import { cn } from "@/lib/utils";
 /**
  * Two-column dashboard layout for wide screens.
  *
- * Below `xl` the columns use `display: contents`, so their children collapse
- * back into the single stacked flow phones and iPads already get — in source
- * order, with the same gap. The mobile design is untouched; only desktop
- * reflows. Split a page's sections at one point (everything before goes in the
- * first column, everything after in the second) to keep that order intact.
+ * Uses CSS multi-column rather than a grid: the browser balances the two
+ * columns to equal height, so a page never ends with one column running out
+ * early and leaving dead space beside the other. Cards opt out of splitting
+ * with `break-inside: avoid`, so each one stays whole.
+ *
+ * Below `xl` this is a plain stacked flex column — the same single-column
+ * layout phones and iPads already get, in source order.
  */
 export function PageGrid({ children, className }: { children: React.ReactNode; className?: string }) {
-  return (
-    <div
-      className={cn(
-        "flex flex-col gap-6 xl:grid xl:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] xl:items-start xl:gap-x-7 xl:gap-y-6",
-        className,
-      )}
-    >
-      {children}
-    </div>
-  );
+  return <div className={cn("flex flex-col gap-6 xl:block xl:columns-2 xl:gap-7", className)}>{children}</div>;
 }
 
+/**
+ * Groups sections within a PageGrid. It never draws a box of its own
+ * (`display: contents`), so its children flow straight into the balanced
+ * columns — the grouping is only there to keep the page source readable.
+ */
 export function PageCol({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <div className={cn("contents xl:flex xl:flex-col xl:gap-6", className)}>{children}</div>;
+  return (
+    <div className={cn("contents xl:[&>*]:mb-6 xl:[&>*]:break-inside-avoid", className)}>{children}</div>
+  );
 }
