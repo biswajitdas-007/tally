@@ -32,7 +32,7 @@ export default function GroupsPage() {
       <section>
         <SectionHeader title="Your groups" />
         {groups.length > 0 ? (
-          <div className="flex flex-col gap-2.5">
+          <div className="grid gap-2.5 xl:grid-cols-2">
             {groups.map((g) => (
               <GroupCard key={g.id} group={g} />
             ))}
