@@ -8,6 +8,7 @@ import {
   TrendingUp, AlertTriangle, Wallet, Coins, Target, Scale, ShieldAlert,
 } from "lucide-react";
 import { PageHeader } from "@/components/app/page-header";
+import { PageGrid, PageCol } from "@/components/app/page-grid";
 import { Card, SectionHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -124,280 +125,286 @@ export default function MoneyPage() {
         </button>
       </div>
 
-      {/* Overview hero — turns warm when you overspend */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ type: "spring", stiffness: 240, damping: 26 }}
-        className="relative overflow-hidden rounded-[24px] p-5 text-white shadow-[var(--shadow-lg)]"
-        style={{
-          background: overspent
-            ? "linear-gradient(152deg,#c2623f 0%,#a4462a 48%,#7f321d 100%)"
-            : "linear-gradient(152deg,#22795d 0%,#185a44 46%,#0f3f2e 100%)",
-        }}
-      >
-        <div
-          className="pointer-events-none absolute inset-0 opacity-[0.14]"
-          style={{
-            backgroundImage: "repeating-linear-gradient(90deg, rgba(255,255,255,0.6) 0 1px, transparent 1px 27px)",
-            maskImage: "linear-gradient(to bottom, transparent, #000 30%, #000 70%, transparent)",
-          }}
-        />
-        <div className="relative">
-          <p className="text-[0.72rem] font-semibold uppercase tracking-[0.1em] text-white/60">
-            {overspent ? "Over budget this month" : "Left this month"}
-          </p>
-          <div className="mt-1 flex items-baseline gap-2">
-            <span className="font-display text-[2.75rem] font-bold leading-none tracking-[-0.03em] tnum">
-              {formatINR(Math.abs(m.net))}
-            </span>
-            {savingsRate !== null && !overspent && (
-              <span className="rounded-full bg-white/15 px-2 py-0.5 text-[0.72rem] font-semibold">{savingsRate}% saved</span>
-            )}
-          </div>
-
-          <div className="mt-5 grid grid-cols-2 gap-2.5">
-            <div className="rounded-[14px] bg-white/10 p-3 ring-1 ring-white/10">
-              <div className="flex items-center gap-1.5 text-white/70">
-                <ArrowDownLeft className="h-3.5 w-3.5" />
-                <span className="text-[0.72rem] font-medium">Money in</span>
-              </div>
-              <p className="mt-1 font-display text-xl font-bold tnum" style={{ color: "#a6f2cf" }}>{formatINR(m.income)}</p>
-            </div>
-            <div className="rounded-[14px] bg-white/10 p-3 ring-1 ring-white/10">
-              <div className="flex items-center gap-1.5 text-white/70">
-                <ArrowUpRight className="h-3.5 w-3.5" />
-                <span className="text-[0.72rem] font-medium">Money out</span>
-              </div>
-              <p className="mt-1 font-display text-xl font-bold tnum" style={{ color: "#ffc0a6" }}>{formatINR(m.spend)}</p>
-            </div>
-          </div>
-
-          {m.splitSpend > 0.5 && (
-            <p className="mt-3 text-[0.74rem] text-white/70">
-              Includes {formatINR(m.splitSpend)} from your splits, pulled in automatically.
-            </p>
-          )}
-        </div>
-      </motion.div>
-
-      {/* Status line — dynamic copy driven by the income/spend ratio */}
-      {(hasData || atCurrent) && (
-        <div
-          className={cn(
-            "flex items-center gap-2.5 rounded-[14px] border px-4 py-3 text-[0.86rem]",
-            status.tone === "warn"
-              ? "border-negative/30 bg-negative-soft text-negative"
-              : status.tone === "good"
-                ? "border-positive/25 bg-positive-soft text-positive"
-                : "border-border bg-surface-2 text-text-2",
-          )}
-        >
-          {status.tone === "warn" ? (
-            <AlertTriangle className="h-4.5 w-4.5 shrink-0" />
-          ) : status.tone === "good" ? (
-            <TrendingUp className="h-4.5 w-4.5 shrink-0" />
-          ) : (
-            <Wallet className="h-4.5 w-4.5 shrink-0" />
-          )}
-          <span className="font-medium">{status.message}</span>
-        </div>
-      )}
-
-      {/* Add actions */}
-      <div className="flex gap-2.5">
-        <button
-          onClick={() => openMoney("expense")}
-          className="flex flex-1 items-center justify-center gap-2 rounded-[15px] border border-border bg-surface py-3 text-[0.9rem] font-semibold text-text transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-sm)]"
-        >
-          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-negative-soft text-negative"><Minus className="h-4 w-4" /></span>
-          Add expense
-        </button>
-        <button
-          onClick={() => openMoney("income")}
-          className="flex flex-1 items-center justify-center gap-2 rounded-[15px] border border-border bg-surface py-3 text-[0.9rem] font-semibold text-text transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-sm)]"
-        >
-          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-positive-soft text-positive"><Plus className="h-4 w-4" /></span>
-          Add income
-        </button>
-      </div>
-
-      {/* Budget */}
-      <section>
-        <SectionHeader
-          title="Budget"
-          action={
-            bv.hasBudget ? (
-              <button onClick={openBudget} className="text-[0.78rem] font-semibold text-brand">Edit</button>
-            ) : undefined
-          }
-        />
-        {bv.hasBudget ? (
-          <Card className="flex flex-col gap-4 p-4">
-            {bv.monthly > 0 && <BudgetBar label="Monthly budget" spent={bv.spent} limit={bv.monthly} />}
-            {bv.categories.length > 0 && (
-              <div className="flex flex-col gap-3">
-                {bv.monthly > 0 && <div className="h-px bg-border" />}
-                {bv.categories.map((c) => (
-                  <BudgetBar key={c.category} label={CATEGORIES[c.category].label} spent={c.spent} limit={c.limit} />
-                ))}
-              </div>
-            )}
-            {bv.over && (
-              <p className="flex items-center gap-1.5 text-[0.8rem] font-medium text-negative">
-                <AlertTriangle className="h-4 w-4 shrink-0" />
-                {formatINR(bv.spent - bv.monthly)} over your monthly budget.
-              </p>
-            )}
-          </Card>
-        ) : (
-          <Card className="flex flex-col items-center gap-3 p-5 text-center">
-            <p className="max-w-[17rem] text-[0.88rem] text-text-2">
-              Set a monthly budget — a limit you choose — and we&apos;ll nudge you before you overspend.
-            </p>
-            <Button size="sm" onClick={openBudget}>
-              <Target className="h-4 w-4" /> Set a budget
-            </Button>
-          </Card>
-        )}
-      </section>
-
-      {/* Emergency-fund dip warning */}
-      {ef.set && !ef.funded && (
-        <button
-          onClick={openEmergency}
-          className="flex w-full items-start gap-2.5 rounded-[14px] border border-negative/30 bg-negative-soft px-4 py-3 text-left text-negative"
-        >
-          <ShieldAlert className="mt-0.5 h-4.5 w-4.5 shrink-0" />
-          <p className="text-[0.84rem] font-medium leading-snug">
-            Your savings are {formatINR(ef.short)} below your {formatINR(ef.target)} emergency fund. Ease off spending and
-            top it back up.
-          </p>
-        </button>
-      )}
-
-      {/* Runway warning — net worth depleting at the current pace */}
-      {runway.applicable && (
-        <div className="flex items-start gap-2.5 rounded-[14px] border border-negative/30 bg-negative-soft px-4 py-3 text-negative">
-          <AlertTriangle className="mt-0.5 h-4.5 w-4.5 shrink-0" />
-          <p className="text-[0.84rem] font-medium leading-snug">
-            You&apos;re spending {formatINR(runway.burn)}/mo more than you earn. At this pace your net worth reaches ₹0 in about{" "}
-            <span className="font-bold">{Math.round(runway.months)} {Math.round(runway.months) === 1 ? "month" : "months"}</span>.
-          </p>
-        </div>
-      )}
-
-      {/* Net worth & health */}
-      <Link
-        href="/wealth"
-        className="flex items-center gap-3.5 rounded-[16px] border border-border bg-surface p-4 shadow-[var(--shadow-xs)] transition-all hover:-translate-y-0.5 hover:border-border-strong hover:shadow-[var(--shadow-md)]"
-      >
-        <div
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white"
-          style={{ background: health.enough ? gradeColor(health.grade) : "var(--brand)" }}
-        >
-          {health.enough ? (
-            <span className="font-display text-lg font-bold">{health.grade}</span>
-          ) : (
-            <Scale className="h-5 w-5" />
-          )}
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-[0.9rem] font-semibold text-text">Wealth health</p>
-          <p className="text-[0.76rem] text-text-3">
-            {health.enough ? `Net worth ${formatINR(nw.net)}` : "Set up net worth & health score"}
-          </p>
-        </div>
-        <ChevronRight className="h-5 w-5 shrink-0 text-text-3" />
-      </Link>
-
-      {/* Spending by category */}
-      {byCat.length > 0 && (
-        <section>
-          <SectionHeader title="Where it went" />
-          <Card className="flex flex-col gap-3 p-4">
-            {byCat.slice(0, 6).map((c) => {
-              const meta = CATEGORIES[c.category] ?? CATEGORIES.other;
-              const Icon = meta.icon;
-              const pct = m.spend > 0 ? Math.round((c.amount / m.spend) * 100) : 0;
-              return (
-                <div key={c.category} className="flex items-center gap-3">
-                  <span
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
-                    style={{ background: `color-mix(in srgb, ${meta.color} 16%, transparent)`, color: meta.color }}
-                  >
-                    <Icon className="h-4 w-4" />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[0.86rem] font-medium text-text">{meta.label}</span>
-                      <span className="tnum text-[0.84rem] font-semibold text-text">{formatINR(c.amount)}</span>
-                    </div>
-                    <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-inset">
-                      <div className="h-full rounded-full" style={{ width: `${pct}%`, background: meta.color }} />
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </Card>
-        </section>
-      )}
-
-      {/* Your entries */}
-      <section>
-        <SectionHeader title="Your entries" />
-        {entries.length > 0 ? (
-          <Card className="overflow-hidden">
-            <div className="divide-y divide-border">
-              {entries.map((e) => {
-                const { label, Icon } = entryMeta(e);
-                const income = e.type === "income";
-                return (
-                  <button
-                    key={e.id}
-                    onClick={() => openMoney(e.type, e.id)}
-                    className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-2 active:bg-surface-inset"
-                  >
-                    <span
-                      className={cn(
-                        "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
-                        income ? "bg-positive-soft text-positive" : "bg-surface-inset text-text-2",
-                      )}
-                    >
-                      <Icon className="h-[18px] w-[18px]" />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-[0.9rem] font-medium text-text">{e.note?.trim() || label}</p>
-                      <p className="text-[0.76rem] text-text-3">
-                        {label} · {new Date(e.date).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
-                      </p>
-                    </div>
-                    <span className={cn("tnum text-[0.92rem] font-semibold", income ? "text-positive" : "text-text")}>
-                      {income ? "+" : "−"}
-                      {formatINR(e.amount)}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </Card>
-        ) : (
-          <Card>
-            <EmptyState
-              icon={Coins}
-              title="Nothing logged yet"
-              description="Add your salary and everyday spending to see where your money goes each month."
+      <PageGrid>
+        <PageCol>
+          {/* Overview hero — turns warm when you overspend */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ type: "spring", stiffness: 240, damping: 26 }}
+            className="relative overflow-hidden rounded-[24px] p-5 text-white shadow-[var(--shadow-lg)]"
+            style={{
+              background: overspent
+                ? "linear-gradient(152deg,#c2623f 0%,#a4462a 48%,#7f321d 100%)"
+                : "linear-gradient(152deg,#22795d 0%,#185a44 46%,#0f3f2e 100%)",
+            }}
+          >
+            <div
+              className="pointer-events-none absolute inset-0 opacity-[0.14]"
+              style={{
+                backgroundImage: "repeating-linear-gradient(90deg, rgba(255,255,255,0.6) 0 1px, transparent 1px 27px)",
+                maskImage: "linear-gradient(to bottom, transparent, #000 30%, #000 70%, transparent)",
+              }}
             />
-          </Card>
-        )}
-      </section>
+            <div className="relative">
+              <p className="text-[0.72rem] font-semibold uppercase tracking-[0.1em] text-white/60">
+                {overspent ? "Over budget this month" : "Left this month"}
+              </p>
+              <div className="mt-1 flex items-baseline gap-2">
+                <span className="font-display text-[2.75rem] font-bold leading-none tracking-[-0.03em] tnum">
+                  {formatINR(Math.abs(m.net))}
+                </span>
+                {savingsRate !== null && !overspent && (
+                  <span className="rounded-full bg-white/15 px-2 py-0.5 text-[0.72rem] font-semibold">{savingsRate}% saved</span>
+                )}
+              </div>
 
-      {m.splitSpend > 0.5 && entries.length === 0 && (
-        <p className="-mt-2 flex items-center justify-center gap-1.5 text-center text-[0.78rem] text-text-3">
-          <Wallet className="h-3.5 w-3.5" /> Your {formatINR(m.splitSpend)} of splits is already counted above.
-        </p>
-      )}
+              <div className="mt-5 grid grid-cols-2 gap-2.5">
+                <div className="rounded-[14px] bg-white/10 p-3 ring-1 ring-white/10">
+                  <div className="flex items-center gap-1.5 text-white/70">
+                    <ArrowDownLeft className="h-3.5 w-3.5" />
+                    <span className="text-[0.72rem] font-medium">Money in</span>
+                  </div>
+                  <p className="mt-1 font-display text-xl font-bold tnum" style={{ color: "#a6f2cf" }}>{formatINR(m.income)}</p>
+                </div>
+                <div className="rounded-[14px] bg-white/10 p-3 ring-1 ring-white/10">
+                  <div className="flex items-center gap-1.5 text-white/70">
+                    <ArrowUpRight className="h-3.5 w-3.5" />
+                    <span className="text-[0.72rem] font-medium">Money out</span>
+                  </div>
+                  <p className="mt-1 font-display text-xl font-bold tnum" style={{ color: "#ffc0a6" }}>{formatINR(m.spend)}</p>
+                </div>
+              </div>
+
+              {m.splitSpend > 0.5 && (
+                <p className="mt-3 text-[0.74rem] text-white/70">
+                  Includes {formatINR(m.splitSpend)} from your splits, pulled in automatically.
+                </p>
+              )}
+            </div>
+          </motion.div>
+
+          {/* Status line — dynamic copy driven by the income/spend ratio */}
+          {(hasData || atCurrent) && (
+            <div
+              className={cn(
+                "flex items-center gap-2.5 rounded-[14px] border px-4 py-3 text-[0.86rem]",
+                status.tone === "warn"
+                  ? "border-negative/30 bg-negative-soft text-negative"
+                  : status.tone === "good"
+                    ? "border-positive/25 bg-positive-soft text-positive"
+                    : "border-border bg-surface-2 text-text-2",
+              )}
+            >
+              {status.tone === "warn" ? (
+                <AlertTriangle className="h-4.5 w-4.5 shrink-0" />
+              ) : status.tone === "good" ? (
+                <TrendingUp className="h-4.5 w-4.5 shrink-0" />
+              ) : (
+                <Wallet className="h-4.5 w-4.5 shrink-0" />
+              )}
+              <span className="font-medium">{status.message}</span>
+            </div>
+          )}
+
+          {/* Add actions */}
+          <div className="flex gap-2.5">
+            <button
+              onClick={() => openMoney("expense")}
+              className="flex flex-1 items-center justify-center gap-2 rounded-[15px] border border-border bg-surface py-3 text-[0.9rem] font-semibold text-text transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-sm)]"
+            >
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-negative-soft text-negative"><Minus className="h-4 w-4" /></span>
+              Add expense
+            </button>
+            <button
+              onClick={() => openMoney("income")}
+              className="flex flex-1 items-center justify-center gap-2 rounded-[15px] border border-border bg-surface py-3 text-[0.9rem] font-semibold text-text transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-sm)]"
+            >
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-positive-soft text-positive"><Plus className="h-4 w-4" /></span>
+              Add income
+            </button>
+          </div>
+
+          {/* Budget */}
+          <section>
+            <SectionHeader
+              title="Budget"
+              action={
+                bv.hasBudget ? (
+                  <button onClick={openBudget} className="text-[0.78rem] font-semibold text-brand">Edit</button>
+                ) : undefined
+              }
+            />
+            {bv.hasBudget ? (
+              <Card className="flex flex-col gap-4 p-4">
+                {bv.monthly > 0 && <BudgetBar label="Monthly budget" spent={bv.spent} limit={bv.monthly} />}
+                {bv.categories.length > 0 && (
+                  <div className="flex flex-col gap-3">
+                    {bv.monthly > 0 && <div className="h-px bg-border" />}
+                    {bv.categories.map((c) => (
+                      <BudgetBar key={c.category} label={CATEGORIES[c.category].label} spent={c.spent} limit={c.limit} />
+                    ))}
+                  </div>
+                )}
+                {bv.over && (
+                  <p className="flex items-center gap-1.5 text-[0.8rem] font-medium text-negative">
+                    <AlertTriangle className="h-4 w-4 shrink-0" />
+                    {formatINR(bv.spent - bv.monthly)} over your monthly budget.
+                  </p>
+                )}
+              </Card>
+            ) : (
+              <Card className="flex flex-col items-center gap-3 p-5 text-center">
+                <p className="max-w-[17rem] text-[0.88rem] text-text-2">
+                  Set a monthly budget — a limit you choose — and we&apos;ll nudge you before you overspend.
+                </p>
+                <Button size="sm" onClick={openBudget}>
+                  <Target className="h-4 w-4" /> Set a budget
+                </Button>
+              </Card>
+            )}
+          </section>
+
+          {/* Emergency-fund dip warning */}
+          {ef.set && !ef.funded && (
+            <button
+              onClick={openEmergency}
+              className="flex w-full items-start gap-2.5 rounded-[14px] border border-negative/30 bg-negative-soft px-4 py-3 text-left text-negative"
+            >
+              <ShieldAlert className="mt-0.5 h-4.5 w-4.5 shrink-0" />
+              <p className="text-[0.84rem] font-medium leading-snug">
+                Your savings are {formatINR(ef.short)} below your {formatINR(ef.target)} emergency fund. Ease off spending and
+                top it back up.
+              </p>
+            </button>
+          )}
+
+          {/* Runway warning — net worth depleting at the current pace */}
+          {runway.applicable && (
+            <div className="flex items-start gap-2.5 rounded-[14px] border border-negative/30 bg-negative-soft px-4 py-3 text-negative">
+              <AlertTriangle className="mt-0.5 h-4.5 w-4.5 shrink-0" />
+              <p className="text-[0.84rem] font-medium leading-snug">
+                You&apos;re spending {formatINR(runway.burn)}/mo more than you earn. At this pace your net worth reaches ₹0 in about{" "}
+                <span className="font-bold">{Math.round(runway.months)} {Math.round(runway.months) === 1 ? "month" : "months"}</span>.
+              </p>
+            </div>
+          )}
+        </PageCol>
+
+        <PageCol>
+          {/* Net worth & health */}
+          <Link
+            href="/wealth"
+            className="flex items-center gap-3.5 rounded-[16px] border border-border bg-surface p-4 shadow-[var(--shadow-xs)] transition-all hover:-translate-y-0.5 hover:border-border-strong hover:shadow-[var(--shadow-md)]"
+          >
+            <div
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white"
+              style={{ background: health.enough ? gradeColor(health.grade) : "var(--brand)" }}
+            >
+              {health.enough ? (
+                <span className="font-display text-lg font-bold">{health.grade}</span>
+              ) : (
+                <Scale className="h-5 w-5" />
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[0.9rem] font-semibold text-text">Wealth health</p>
+              <p className="text-[0.76rem] text-text-3">
+                {health.enough ? `Net worth ${formatINR(nw.net)}` : "Set up net worth & health score"}
+              </p>
+            </div>
+            <ChevronRight className="h-5 w-5 shrink-0 text-text-3" />
+          </Link>
+
+          {/* Spending by category */}
+          {byCat.length > 0 && (
+            <section>
+              <SectionHeader title="Where it went" />
+              <Card className="flex flex-col gap-3 p-4">
+                {byCat.slice(0, 6).map((c) => {
+                  const meta = CATEGORIES[c.category] ?? CATEGORIES.other;
+                  const Icon = meta.icon;
+                  const pct = m.spend > 0 ? Math.round((c.amount / m.spend) * 100) : 0;
+                  return (
+                    <div key={c.category} className="flex items-center gap-3">
+                      <span
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+                        style={{ background: `color-mix(in srgb, ${meta.color} 16%, transparent)`, color: meta.color }}
+                      >
+                        <Icon className="h-4 w-4" />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[0.86rem] font-medium text-text">{meta.label}</span>
+                          <span className="tnum text-[0.84rem] font-semibold text-text">{formatINR(c.amount)}</span>
+                        </div>
+                        <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-inset">
+                          <div className="h-full rounded-full" style={{ width: `${pct}%`, background: meta.color }} />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </Card>
+            </section>
+          )}
+
+          {/* Your entries */}
+          <section>
+            <SectionHeader title="Your entries" />
+            {entries.length > 0 ? (
+              <Card className="overflow-hidden">
+                <div className="divide-y divide-border">
+                  {entries.map((e) => {
+                    const { label, Icon } = entryMeta(e);
+                    const income = e.type === "income";
+                    return (
+                      <button
+                        key={e.id}
+                        onClick={() => openMoney(e.type, e.id)}
+                        className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-2 active:bg-surface-inset"
+                      >
+                        <span
+                          className={cn(
+                            "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
+                            income ? "bg-positive-soft text-positive" : "bg-surface-inset text-text-2",
+                          )}
+                        >
+                          <Icon className="h-[18px] w-[18px]" />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-[0.9rem] font-medium text-text">{e.note?.trim() || label}</p>
+                          <p className="text-[0.76rem] text-text-3">
+                            {label} · {new Date(e.date).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                          </p>
+                        </div>
+                        <span className={cn("tnum text-[0.92rem] font-semibold", income ? "text-positive" : "text-text")}>
+                          {income ? "+" : "−"}
+                          {formatINR(e.amount)}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </Card>
+            ) : (
+              <Card>
+                <EmptyState
+                  icon={Coins}
+                  title="Nothing logged yet"
+                  description="Add your salary and everyday spending to see where your money goes each month."
+                />
+              </Card>
+            )}
+          </section>
+
+          {m.splitSpend > 0.5 && entries.length === 0 && (
+            <p className="-mt-2 flex items-center justify-center gap-1.5 text-center text-[0.78rem] text-text-3">
+              <Wallet className="h-3.5 w-3.5" /> Your {formatINR(m.splitSpend)} of splits is already counted above.
+            </p>
+          )}
+        </PageCol>
+      </PageGrid>
     </div>
   );
 }
