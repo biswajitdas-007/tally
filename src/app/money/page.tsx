@@ -5,7 +5,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   Plus, Minus, ChevronLeft, ChevronRight, ArrowUpRight, ArrowDownLeft,
-  TrendingUp, AlertTriangle, Wallet, Coins, Target, Scale,
+  TrendingUp, AlertTriangle, Wallet, Coins, Target, Scale, ShieldAlert,
 } from "lucide-react";
 import { PageHeader } from "@/components/app/page-header";
 import { Card, SectionHeader } from "@/components/ui/card";
@@ -15,7 +15,7 @@ import { useStore, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { CATEGORIES, INCOME_CATEGORIES } from "@/lib/categories";
 import { monthlyMoney, financeForMonth, spendByCategory, monthLabel, budgetView, moneyStatus } from "@/lib/money";
-import { healthScore, netWorth, gradeColor, wealthRunway } from "@/lib/health";
+import { healthScore, netWorth, gradeColor, wealthRunway, emergencyStatus } from "@/lib/health";
 import { withLiveBalances, unparkedAmount } from "@/lib/accounts";
 import { formatINR, monthKey, cn } from "@/lib/utils";
 import type { CategoryKey, FinanceEntry, IncomeCategory } from "@/lib/types";
@@ -58,8 +58,10 @@ export default function MoneyPage() {
   const budget = useStore((s) => s.budget);
   const accounts = useStore((s) => s.accounts);
   const liabilities = useStore((s) => s.liabilities);
+  const emergency = useStore((s) => s.emergency);
   const openMoney = useUI((s) => s.openMoney);
   const openBudget = useUI((s) => s.openBudget);
+  const openEmergency = useUI((s) => s.openEmergency);
   const myId = useMyId() ?? "";
 
   const [mDate, setMDate] = useState(() => {
@@ -80,9 +82,10 @@ export default function MoneyPage() {
   );
   const unparked = useMemo(() => unparkedAmount(finance, expenses, accounts, myId), [finance, expenses, accounts, myId]);
   const health = useMemo(
-    () => healthScore({ finance, expenses, meId: myId, budget, accounts: liveAccounts, liabilities, unparked }),
-    [finance, expenses, myId, budget, liveAccounts, liabilities, unparked],
+    () => healthScore({ finance, expenses, meId: myId, budget, accounts: liveAccounts, liabilities, emergency, unparked }),
+    [finance, expenses, myId, budget, liveAccounts, liabilities, emergency, unparked],
   );
+  const ef = useMemo(() => emergencyStatus(emergency, liveAccounts, unparked), [emergency, liveAccounts, unparked]);
   const nw = useMemo(
     () => ({ net: netWorth(liveAccounts, liabilities).net + unparked }),
     [liveAccounts, liabilities, unparked],
@@ -258,6 +261,20 @@ export default function MoneyPage() {
           </Card>
         )}
       </section>
+
+      {/* Emergency-fund dip warning */}
+      {ef.set && !ef.funded && (
+        <button
+          onClick={openEmergency}
+          className="flex w-full items-start gap-2.5 rounded-[14px] border border-negative/30 bg-negative-soft px-4 py-3 text-left text-negative"
+        >
+          <ShieldAlert className="mt-0.5 h-4.5 w-4.5 shrink-0" />
+          <p className="text-[0.84rem] font-medium leading-snug">
+            Your savings are {formatINR(ef.short)} below your {formatINR(ef.target)} emergency fund. Ease off spending and
+            top it back up.
+          </p>
+        </button>
+      )}
 
       {/* Runway warning — net worth depleting at the current pace */}
       {runway.applicable && (

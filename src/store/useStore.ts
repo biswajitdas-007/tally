@@ -1,7 +1,7 @@
 "use client";
 
 import { create } from "zustand";
-import type { Account, Budget, CategoryKey, Expense, FinanceEntry, FinanceType, Group, ID, Liability, Person, Split } from "@/lib/types";
+import type { Account, Budget, CategoryKey, Emergency, Expense, FinanceEntry, FinanceType, Group, ID, Liability, Person, Split } from "@/lib/types";
 import type { ServerState } from "@/lib/api";
 import * as api from "@/lib/api";
 import { avatarColor, uid } from "@/lib/utils";
@@ -32,6 +32,7 @@ interface State {
   budget: Budget;
   accounts: Account[];
   liabilities: Liability[];
+  emergency: Emergency | null;
   removedFriends: string[];
   lastDeleted: Expense | null;
 
@@ -61,6 +62,7 @@ interface State {
 
   setBudget: (patch: Partial<Budget>) => void;
   setWealth: (patch: { accounts?: Account[]; liabilities?: Liability[] }) => void;
+  setEmergency: (emergency: Emergency | null) => void;
 }
 
 let lastLoadHash = "";
@@ -73,7 +75,8 @@ const stateHash = (s: {
   accounts: unknown[];
   liabilities: unknown[];
   removedFriends: unknown[];
-}) => JSON.stringify([s.people, s.groups, s.expenses, s.finance, s.budget, s.accounts, s.liabilities, s.removedFriends]);
+  emergency: unknown;
+}) => JSON.stringify([s.people, s.groups, s.expenses, s.finance, s.budget, s.accounts, s.liabilities, s.removedFriends, s.emergency]);
 
 const now = () => new Date().toISOString();
 const reconcile = (res: Response | null, get: () => State) => {
@@ -93,6 +96,7 @@ export const useStore = create<State>()((set, get) => ({
   budget: { limits: {} },
   accounts: [],
   liabilities: [],
+  emergency: null,
   removedFriends: [],
   lastDeleted: null,
 
@@ -111,6 +115,7 @@ export const useStore = create<State>()((set, get) => ({
       budget: state.budget,
       accounts: state.accounts,
       liabilities: state.liabilities,
+      emergency: state.emergency ?? null,
       removedFriends: state.removedFriends ?? [],
       dataReady: true,
       loadError: false,
@@ -128,6 +133,7 @@ export const useStore = create<State>()((set, get) => ({
       budget: { limits: {} },
       accounts: [],
       liabilities: [],
+      emergency: null,
       removedFriends: [],
       lastDeleted: null,
       dataReady: false,
@@ -289,6 +295,14 @@ export const useStore = create<State>()((set, get) => ({
     }));
     const s = get();
     api.setWealthApi({ accounts: s.accounts, liabilities: s.liabilities }).then((res) => reconcile(res, get));
+  },
+
+  setEmergency: (emergency) => {
+    set({ emergency });
+    const s = get();
+    api
+      .setWealthApi({ accounts: s.accounts, liabilities: s.liabilities, emergency })
+      .then((res) => reconcile(res, get));
   },
 }));
 

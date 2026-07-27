@@ -1,4 +1,4 @@
-import type { Account, Budget, Expense, FinanceEntry, ID, Liability } from "./types";
+import type { Account, Budget, Emergency, Expense, FinanceEntry, ID, Liability } from "./types";
 import { monthlyMoney, monthlyEmi } from "./money";
 import { formatINR } from "./utils";
 
@@ -6,6 +6,47 @@ export function netWorth(accounts: Account[], liabilities: Liability[]) {
   const assets = accounts.reduce((a, x) => a + x.balance, 0);
   const debts = liabilities.reduce((a, x) => a + x.outstanding, 0);
   return { assets, debts, net: assets - debts };
+}
+
+/** Liquid cash: everything except investments, plus any unparked money. */
+export function liquidSavings(accounts: Account[], unparked = 0): number {
+  return accounts.filter((a) => a.kind !== "investment").reduce((a, x) => a + x.balance, 0) + unparked;
+}
+
+export interface EmergencyStatus {
+  set: boolean;
+  target: number;
+  coverage: number; // the EF account's balance if linked, else total liquid
+  funded: boolean;
+  short: number; // how far below target (0 when funded)
+  dipped: boolean; // set and coverage < target
+  pct: number; // 0..1
+}
+
+/** Where the user's emergency fund stands. Never inferred — only from what they set. */
+export function emergencyStatus(emergency: Emergency | null, accounts: Account[], unparked = 0): EmergencyStatus {
+  const liquid = liquidSavings(accounts, unparked);
+  if (!emergency || emergency.target <= 0) {
+    return { set: false, target: 0, coverage: liquid, funded: false, short: 0, dipped: false, pct: 0 };
+  }
+  const acct = emergency.accountId ? accounts.find((a) => a.id === emergency.accountId) : undefined;
+  const coverage = acct ? acct.balance : liquid;
+  const funded = coverage >= emergency.target - 0.5;
+  return {
+    set: true,
+    target: emergency.target,
+    coverage,
+    funded,
+    short: Math.max(0, emergency.target - coverage),
+    dipped: coverage < emergency.target - 0.5,
+    pct: emergency.target > 0 ? Math.min(1, coverage / emergency.target) : 0,
+  };
+}
+
+/** A sensible starting emergency-fund target: ~6 months of outflow, rounded. */
+export function suggestedEmergency(avgOutflow: number): number {
+  const raw = avgOutflow * 6;
+  return raw > 0 ? Math.round(raw / 5000) * 5000 : 0;
 }
 
 function recentMonthKeys(count = 3): string[] {
@@ -88,6 +129,7 @@ export function healthScore(opts: {
   budget: Budget;
   accounts: Account[];
   liabilities: Liability[];
+  emergency?: Emergency | null;
   unparked?: number;
 }): Health {
   const { finance, expenses, meId, accounts, liabilities } = opts;
@@ -100,7 +142,6 @@ export function healthScore(opts: {
   const hasOutflow = outflow > 0;
   const base = netWorth(accounts, liabilities);
   const nw = { ...base, net: base.net + unparked };
-  const liquid = accounts.filter((a) => a.kind !== "investment").reduce((a, x) => a + x.balance, 0) + unparked;
   const totalEmi = liabilities.reduce((a, x) => a + (x.emi ?? 0), 0);
   const hasHoldings = accounts.length > 0 || liabilities.length > 0 || unparked > 0;
   const enough = income > 0 || hasHoldings;
@@ -133,15 +174,16 @@ export function healthScore(opts: {
     hint: "EMIs vs your income",
   });
 
-  // 3. Emergency fund (20) — target 6 months of outflow (spend + EMIs)
-  const months = outflow > 0 ? liquid / outflow : liquid > 0 ? 6 : 0;
+  // 3. Emergency fund (20) — measured against the user's own target, not raw
+  // savings. Zero when they haven't set one up (nudges them to).
+  const ef = emergencyStatus(opts.emergency ?? null, accounts, unparked);
   pillars.push({
     key: "emergency",
     label: "Emergency fund",
     max: 20,
-    score: clampScore(months / 6, 20),
-    detail: `${months >= 0.05 ? months.toFixed(1) : "0"} months`,
-    hint: "Months your savings would cover",
+    score: !ef.set ? 0 : clampScore(ef.target > 0 ? ef.coverage / ef.target : 0, 20),
+    detail: !ef.set ? "Set one up" : ef.funded ? "Fully funded" : `${formatINR(ef.coverage)} of ${formatINR(ef.target)}`,
+    hint: !ef.set ? "Money kept safe for a rainy day" : ef.dipped ? "You've dipped into it" : "Your rainy-day buffer",
   });
 
   // 4. Living within your means (20) — income covers outflow (incl. EMIs)

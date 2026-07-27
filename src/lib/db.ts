@@ -1,6 +1,6 @@
 import type { Collection } from "mongodb";
 import { getDb } from "./mongodb";
-import type { Account, Budget, Expense, FinanceEntry, Group, Liability, Person } from "./types";
+import type { Account, Budget, Emergency, Expense, FinanceEntry, Group, Liability, Person } from "./types";
 import type { PushSubscription } from "web-push";
 
 /* ---------- server document shapes ---------- */
@@ -18,6 +18,7 @@ export interface UserDoc {
   budget?: Budget;
   accounts?: Account[];
   liabilities?: Liability[];
+  emergency?: Emergency;
   updatedAt?: Date;
 }
 
@@ -170,6 +171,7 @@ export interface ClientState {
   budget: Budget;
   accounts: Account[];
   liabilities: Liability[];
+  emergency: Emergency | null;
   removedFriends: string[];
 }
 
@@ -230,6 +232,7 @@ export async function buildState(uid: string): Promise<ClientState> {
     budget: meDoc.budget ?? { limits: {} },
     accounts: meDoc.accounts ?? [],
     liabilities: (meDoc.liabilities ?? []).map(normalizeLiability),
+    emergency: meDoc.emergency ?? null,
     removedFriends: meDoc.removedFriends ?? [],
   };
 }

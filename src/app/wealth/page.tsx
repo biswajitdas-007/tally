@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ChevronLeft, Plus, Wallet, Scale, TrendingUp, CalendarClock, AlertTriangle, Lightbulb, Sparkles, PiggyBank, ChevronRight, Info, type LucideIcon } from "lucide-react";
+import { ChevronLeft, Plus, Wallet, Scale, TrendingUp, CalendarClock, AlertTriangle, Lightbulb, Sparkles, PiggyBank, ChevronRight, Info, ShieldCheck, ShieldAlert, Pencil, type LucideIcon } from "lucide-react";
 import { Card, SectionHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -11,7 +11,7 @@ import { useStore, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { ACCOUNT_KIND_META, LIABILITY_KIND_META } from "@/lib/categories";
 import { BankBadge } from "@/components/features/bank-badge";
-import { healthScore, netWorth, gradeColor, avgMonthly, wealthRunway } from "@/lib/health";
+import { healthScore, netWorth, gradeColor, avgMonthly, wealthRunway, emergencyStatus } from "@/lib/health";
 import { debtSuggestions, monthlyLiability, type DebtSuggestion } from "@/lib/debt";
 import { withLiveBalances, unparkedAmount } from "@/lib/accounts";
 import { formatINR, cn } from "@/lib/utils";
@@ -46,9 +46,11 @@ export default function WealthPage() {
   const budget = useStore((s) => s.budget);
   const accounts = useStore((s) => s.accounts);
   const liabilities = useStore((s) => s.liabilities);
+  const emergency = useStore((s) => s.emergency);
   const openWealth = useUI((s) => s.openWealth);
   const openPark = useUI((s) => s.openPark);
   const openAccountDetail = useUI((s) => s.openAccountDetail);
+  const openEmergency = useUI((s) => s.openEmergency);
   const myId = useMyId() ?? "";
 
   const liveAccounts = useMemo(
@@ -58,9 +60,10 @@ export default function WealthPage() {
   const unparked = useMemo(() => unparkedAmount(finance, expenses, accounts, myId), [finance, expenses, accounts, myId]);
 
   const health = useMemo(
-    () => healthScore({ finance, expenses, meId: myId, budget, accounts: liveAccounts, liabilities, unparked }),
-    [finance, expenses, myId, budget, liveAccounts, liabilities, unparked],
+    () => healthScore({ finance, expenses, meId: myId, budget, accounts: liveAccounts, liabilities, emergency, unparked }),
+    [finance, expenses, myId, budget, liveAccounts, liabilities, emergency, unparked],
   );
+  const ef = useMemo(() => emergencyStatus(emergency, liveAccounts, unparked), [emergency, liveAccounts, unparked]);
   const nwBase = useMemo(() => netWorth(liveAccounts, liabilities), [liveAccounts, liabilities]);
   const assets = nwBase.assets + unparked;
   const netTotal = assets - nwBase.debts;
@@ -210,6 +213,66 @@ export default function WealthPage() {
           </div>
         </div>
       </Card>
+
+      {/* Emergency fund */}
+      {ef.set ? (
+        <Card className="p-5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span
+                className={cn(
+                  "flex h-8 w-8 items-center justify-center rounded-full",
+                  ef.funded ? "bg-positive-soft text-positive" : "bg-negative-soft text-negative",
+                )}
+              >
+                {ef.funded ? <ShieldCheck className="h-4.5 w-4.5" /> : <ShieldAlert className="h-4.5 w-4.5" />}
+              </span>
+              <p className="text-[0.72rem] font-semibold uppercase tracking-wide text-text-3">Emergency fund</p>
+            </div>
+            <button onClick={openEmergency} className="flex items-center gap-1 text-[0.78rem] font-semibold text-brand">
+              <Pencil className="h-3.5 w-3.5" /> Edit
+            </button>
+          </div>
+          <div className="mt-2.5 flex items-baseline gap-2">
+            <span
+              className={cn(
+                "font-display text-[1.9rem] font-bold leading-none tracking-[-0.02em] tnum",
+                ef.funded ? "text-text" : "text-negative",
+              )}
+            >
+              {formatINR(ef.coverage)}
+            </span>
+            <span className="text-[0.82rem] text-text-3">of {formatINR(ef.target)}</span>
+          </div>
+          <div className="mt-3 h-2 overflow-hidden rounded-full bg-surface-inset">
+            <div
+              className="h-full rounded-full transition-all"
+              style={{ width: `${Math.round(ef.pct * 100)}%`, background: ef.funded ? "var(--positive)" : "var(--negative)" }}
+            />
+          </div>
+          <p className={cn("mt-2.5 text-[0.82rem] font-medium leading-snug", ef.funded ? "text-positive" : "text-negative")}>
+            {ef.funded
+              ? "Fully funded — you're covered. Anything extra can go toward investing."
+              : `${formatINR(ef.short)} below your target. Top this up before spending or investing more.`}
+          </p>
+        </Card>
+      ) : (
+        <button
+          onClick={openEmergency}
+          className="flex items-center gap-3.5 rounded-[16px] border border-border bg-surface p-4 text-left shadow-[var(--shadow-xs)] transition-all hover:-translate-y-0.5 hover:border-border-strong hover:shadow-[var(--shadow-md)]"
+        >
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand">
+            <ShieldCheck className="h-5 w-5" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-[0.9rem] font-semibold text-text">Set up an emergency fund</p>
+            <p className="text-[0.76rem] leading-snug text-text-3">
+              Keep 3–6 months of expenses safe before you invest — tap to set a target.
+            </p>
+          </div>
+          <ChevronRight className="h-5 w-5 shrink-0 text-text-3" />
+        </button>
+      )}
 
       {/* Runway — net worth depleting at the current pace */}
       {runway.applicable && (

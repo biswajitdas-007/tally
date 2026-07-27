@@ -1,6 +1,6 @@
 import { firebaseAuth } from "@/lib/firebase";
 import { socketId } from "@/lib/pusher-client";
-import type { Account, Budget, Expense, FinanceEntry, Group, Liability, Person } from "@/lib/types";
+import type { Account, Budget, Emergency, Expense, FinanceEntry, Group, Liability, Person } from "@/lib/types";
 
 export interface ServerState {
   me: Person | null;
@@ -11,6 +11,7 @@ export interface ServerState {
   budget: Budget;
   accounts: Account[];
   liabilities: Liability[];
+  emergency: Emergency | null;
   removedFriends: string[];
 }
 

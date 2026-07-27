@@ -14,7 +14,9 @@ import { useStore, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { useToast } from "@/components/ui/toast";
 import { crossingWarning, monthlyMoney, spendByCategory } from "@/lib/money";
-import { cn, formatDate, monthKey } from "@/lib/utils";
+import { emergencyStatus } from "@/lib/health";
+import { withLiveBalances, unparkedAmount } from "@/lib/accounts";
+import { cn, formatDate, formatINR, monthKey } from "@/lib/utils";
 import type { CategoryKey, FinanceType } from "@/lib/types";
 
 export function AddMoneySheet() {
@@ -26,6 +28,7 @@ export function AddMoneySheet() {
   const expenses = useStore((s) => s.expenses);
   const budget = useStore((s) => s.budget);
   const accounts = useStore((s) => s.accounts);
+  const emergency = useStore((s) => s.emergency);
   const addFinance = useStore((s) => s.addFinance);
   const updateFinance = useStore((s) => s.updateFinance);
   const deleteFinance = useStore((s) => s.deleteFinance);
@@ -91,6 +94,15 @@ export function AddMoneySheet() {
     return crossingWarning(mm.spend, mm.spend + total, budget.monthly ?? 0, "monthly budget");
   }
 
+  // When income comes in and the emergency fund is short, nudge to top it up.
+  function incomeEfNudge(): string | null {
+    if (!isIncome) return null;
+    const live = withLiveBalances(accounts, finance, expenses, myId);
+    const ef = emergencyStatus(emergency, live, unparkedAmount(finance, expenses, accounts, myId));
+    if (ef.set && !ef.funded) return `Nice — consider adding ${formatINR(Math.min(total, ef.short))} to your emergency fund first.`;
+    return null;
+  }
+
   function save() {
     if (!valid) return;
     const payload = { type, amount: total, category, date: date.toISOString(), note: note.trim() || undefined, accountId: accountId ?? undefined };
@@ -98,7 +110,7 @@ export function AddMoneySheet() {
       updateFinance(editing.id, payload);
       toast({ message: "Entry updated" });
     } else {
-      const warn = budgetWarning();
+      const warn = budgetWarning() ?? incomeEfNudge();
       addFinance(payload);
       toast(warn ? { message: warn, tone: "info" } : { message: isIncome ? "Income added" : "Expense added" });
     }

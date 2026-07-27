@@ -16,6 +16,7 @@ import { SettleSheet } from "@/components/features/settle-sheet";
 import { InviteDialog } from "@/components/features/invite-dialog";
 import { CreateGroupSheet } from "@/components/features/create-group-sheet";
 import { SupportSheet } from "@/components/features/support-sheet";
+import { EmergencySheet } from "@/components/features/emergency-sheet";
 import { InstallPrompt } from "./install-prompt";
 import { PushAutoEnable } from "./push-auto";
 import { NotificationPrompt } from "./notification-prompt";
@@ -49,6 +50,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <InviteDialog />
       <CreateGroupSheet />
       <SupportSheet />
+      <EmergencySheet />
       <InstallPrompt />
       <PushAutoEnable />
       <NotificationPrompt />

@@ -67,6 +67,10 @@ interface UIState {
   supportOpen: boolean;
   openSupport: () => void;
   closeSupport: () => void;
+
+  emergencyOpen: boolean;
+  openEmergency: () => void;
+  closeEmergency: () => void;
 }
 
 export const useUI = create<UIState>((set) => ({
@@ -125,4 +129,8 @@ export const useUI = create<UIState>((set) => ({
   supportOpen: false,
   openSupport: () => set({ supportOpen: true }),
   closeSupport: () => set({ supportOpen: false }),
+
+  emergencyOpen: false,
+  openEmergency: () => set({ emergencyOpen: true }),
+  closeEmergency: () => set({ emergencyOpen: false }),
 }));
