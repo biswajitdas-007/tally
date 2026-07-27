@@ -71,6 +71,11 @@ interface UIState {
   emergencyOpen: boolean;
   openEmergency: () => void;
   closeEmergency: () => void;
+
+  investOpen: boolean;
+  investEditId: ID | null;
+  openInvest: (editId?: ID | null) => void;
+  closeInvest: () => void;
 }
 
 export const useUI = create<UIState>((set) => ({
@@ -133,4 +138,9 @@ export const useUI = create<UIState>((set) => ({
   emergencyOpen: false,
   openEmergency: () => set({ emergencyOpen: true }),
   closeEmergency: () => set({ emergencyOpen: false }),
+
+  investOpen: false,
+  investEditId: null,
+  openInvest: (editId = null) => set({ investOpen: true, investEditId: editId }),
+  closeInvest: () => set({ investOpen: false, investEditId: null }),
 }));

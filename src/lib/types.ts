@@ -113,12 +113,28 @@ export interface Budget {
 
 export type AccountKind = "bank" | "cash" | "wallet" | "investment";
 
+/** Kinds of holding under an investment account — SIPs, stocks, FDs and so on. */
+export type InvestmentType =
+  | "sip"
+  | "mutualFund"
+  | "stocks"
+  | "fd"
+  | "bonds"
+  | "ppf"
+  | "gold"
+  | "crypto"
+  | "other";
+
 /** Something you own — its current balance counts toward net worth. */
 export interface Account {
   id: ID;
   name: string;
   kind: AccountKind;
   balance: number;
+  /** For kind === "investment": what sort of holding this is. */
+  investmentType?: InvestmentType;
+  /** For investments: how much you've put in, so we can show returns. Optional. */
+  invested?: number;
 }
 
 /**

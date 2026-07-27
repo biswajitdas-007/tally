@@ -1,12 +1,13 @@
 import { verifyUser } from "@/lib/auth-server";
 import { collections } from "@/lib/db";
 import { badRequest, isNum, isStr, json, serverError, unauthorized } from "@/lib/api-helpers";
-import type { Account, AccountKind, Emergency, Liability, LiabilityKind } from "@/lib/types";
+import type { Account, AccountKind, Emergency, InvestmentType, Liability, LiabilityKind } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const ACCOUNT_KINDS: AccountKind[] = ["bank", "cash", "wallet", "investment"];
+const INVESTMENT_TYPES: InvestmentType[] = ["sip", "mutualFund", "stocks", "fd", "bonds", "ppf", "gold", "crypto", "other"];
 const LIABILITY_KINDS: LiabilityKind[] = ["loan", "card", "emi"];
 
 function cleanAccounts(v: unknown): Account[] {
@@ -15,12 +16,17 @@ function cleanAccounts(v: unknown): Account[] {
   for (const raw of v) {
     const a = raw as Record<string, unknown>;
     if (a && isStr(a.id) && isStr(a.name) && ACCOUNT_KINDS.includes(a.kind as AccountKind) && isNum(a.balance)) {
-      out.push({
+      const item: Account = {
         id: (a.id as string).slice(0, 40),
         name: (a.name as string).slice(0, 60),
         kind: a.kind as AccountKind,
         balance: a.balance as number,
-      });
+      };
+      if (item.kind === "investment") {
+        if (INVESTMENT_TYPES.includes(a.investmentType as InvestmentType)) item.investmentType = a.investmentType as InvestmentType;
+        if (isNum(a.invested) && (a.invested as number) >= 0) item.invested = a.invested as number;
+      }
+      out.push(item);
     }
     if (out.length >= 50) break;
   }
