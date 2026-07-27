@@ -19,9 +19,16 @@ import {
   LineChart,
   CreditCard,
   CalendarClock,
+  Repeat,
+  ChartPie,
+  CandlestickChart,
+  Vault,
+  ScrollText,
+  Gem,
+  Bitcoin,
   type LucideIcon,
 } from "lucide-react";
-import type { AccountKind, CategoryKey, IncomeCategory, LiabilityKind } from "./types";
+import type { AccountKind, CategoryKey, IncomeCategory, InvestmentType, LiabilityKind } from "./types";
 
 export interface CategoryMeta {
   key: CategoryKey;
@@ -73,5 +80,20 @@ export const LIABILITY_KIND_META: Record<LiabilityKind, { label: string; icon: L
   emi: { label: "EMI", icon: CalendarClock },
 };
 
+export const INVESTMENT_TYPE_META: Record<InvestmentType, { label: string; short: string; icon: LucideIcon }> = {
+  sip: { label: "SIP", short: "SIP", icon: Repeat },
+  mutualFund: { label: "Mutual fund", short: "Mutual fund", icon: ChartPie },
+  stocks: { label: "Stocks", short: "Stocks", icon: CandlestickChart },
+  fd: { label: "Fixed deposit", short: "FD", icon: Vault },
+  bonds: { label: "Bonds", short: "Bonds", icon: ScrollText },
+  ppf: { label: "PPF / EPF", short: "PPF", icon: Landmark },
+  gold: { label: "Gold", short: "Gold", icon: Gem },
+  crypto: { label: "Crypto", short: "Crypto", icon: Bitcoin },
+  other: { label: "Other", short: "Other", icon: Coins },
+};
+
 export const ACCOUNT_KINDS = Object.keys(ACCOUNT_KIND_META) as AccountKind[];
+/** Account kinds you actually transact from — investments live in their own section. */
+export const LIQUID_ACCOUNT_KINDS = ACCOUNT_KINDS.filter((k) => k !== "investment");
 export const LIABILITY_KINDS = Object.keys(LIABILITY_KIND_META) as LiabilityKind[];
+export const INVESTMENT_TYPES = Object.keys(INVESTMENT_TYPE_META) as InvestmentType[];
