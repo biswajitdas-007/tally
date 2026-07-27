@@ -3,19 +3,20 @@
 import { useMemo } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ChevronLeft, Plus, Wallet, Scale, TrendingUp, CalendarClock, AlertTriangle, Lightbulb, Sparkles, PiggyBank, ChevronRight, Info, ShieldCheck, ShieldAlert, Pencil, type LucideIcon } from "lucide-react";
+import { ChevronLeft, Plus, Wallet, Scale, TrendingUp, TrendingDown, CalendarClock, AlertTriangle, Lightbulb, Sparkles, PiggyBank, ChevronRight, Info, ShieldCheck, ShieldAlert, Pencil, LineChart, type LucideIcon } from "lucide-react";
 import { Card, SectionHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useStore, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
-import { ACCOUNT_KIND_META, LIABILITY_KIND_META } from "@/lib/categories";
+import { ACCOUNT_KIND_META, INVESTMENT_TYPE_META, LIABILITY_KIND_META } from "@/lib/categories";
 import { BankBadge } from "@/components/features/bank-badge";
 import { healthScore, netWorth, gradeColor, avgMonthly, wealthRunway, emergencyStatus } from "@/lib/health";
+import { investmentTotals, holdingGain } from "@/lib/investments";
 import { debtSuggestions, monthlyLiability, type DebtSuggestion } from "@/lib/debt";
 import { withLiveBalances, unparkedAmount } from "@/lib/accounts";
 import { formatINR, cn } from "@/lib/utils";
-import type { AccountKind, LiabilityKind } from "@/lib/types";
+import type { AccountKind, InvestmentType, LiabilityKind } from "@/lib/types";
 
 const SUGGESTION_ICON: Record<DebtSuggestion["tone"], LucideIcon> = { warn: AlertTriangle, info: Lightbulb, good: Sparkles };
 
@@ -51,6 +52,7 @@ export default function WealthPage() {
   const openPark = useUI((s) => s.openPark);
   const openAccountDetail = useUI((s) => s.openAccountDetail);
   const openEmergency = useUI((s) => s.openEmergency);
+  const openInvest = useUI((s) => s.openInvest);
   const myId = useMyId() ?? "";
 
   const liveAccounts = useMemo(
@@ -64,6 +66,9 @@ export default function WealthPage() {
     [finance, expenses, myId, budget, liveAccounts, liabilities, emergency, unparked],
   );
   const ef = useMemo(() => emergencyStatus(emergency, liveAccounts, unparked), [emergency, liveAccounts, unparked]);
+  const cashAccounts = useMemo(() => liveAccounts.filter((a) => a.kind !== "investment"), [liveAccounts]);
+  const investList = useMemo(() => liveAccounts.filter((a) => a.kind === "investment"), [liveAccounts]);
+  const invTotals = useMemo(() => investmentTotals(liveAccounts), [liveAccounts]);
   const nwBase = useMemo(() => netWorth(liveAccounts, liabilities), [liveAccounts, liabilities]);
   const assets = nwBase.assets + unparked;
   const netTotal = assets - nwBase.debts;
@@ -135,7 +140,7 @@ export default function WealthPage() {
                       <ul className="mt-1.5 flex list-disc flex-col gap-1 pl-4">
                         <li><b className="text-text">Savings rate</b> — income minus everything you spend, <i>including EMIs</i></li>
                         <li><b className="text-text">Debt-to-income</b> — EMIs vs your income</li>
-                        <li><b className="text-text">Emergency fund</b> — months of outflow your savings cover</li>
+                        <li><b className="text-text">Emergency fund</b> — how close your buffer is to the target you set</li>
                         <li><b className="text-text">Within means</b> — income covers your monthly outflow</li>
                         <li><b className="text-text">Net worth</b> — savings vs a year of income</li>
                       </ul>
@@ -355,10 +360,10 @@ export default function WealthPage() {
             </button>
           }
         />
-        {liveAccounts.length > 0 ? (
+        {cashAccounts.length > 0 ? (
           <Card className="overflow-hidden">
             <div className="divide-y divide-border">
-              {liveAccounts.map((a) => {
+              {cashAccounts.map((a) => {
                 const Icon = ACCOUNT_KIND_META[a.kind as AccountKind].icon;
                 return (
                   <button
@@ -379,8 +384,90 @@ export default function WealthPage() {
           </Card>
         ) : (
           <Card>
-            <EmptyState icon={Wallet} title="No accounts yet" description="Add your bank, cash, wallets and investments to track net worth." />
+            <EmptyState icon={Wallet} title="No accounts yet" description="Add your bank, cash and wallets to track net worth." />
           </Card>
+        )}
+      </section>
+
+      {/* Investments */}
+      <section>
+        <SectionHeader
+          title="Investments"
+          action={
+            <button onClick={() => openInvest()} className="flex items-center gap-0.5 text-[0.78rem] font-semibold text-brand">
+              <Plus className="h-3.5 w-3.5" /> Add
+            </button>
+          }
+        />
+        {investList.length > 0 ? (
+          <Card className="overflow-hidden">
+            <div className="flex items-center justify-between border-b border-border px-4 py-3.5">
+              <div className="min-w-0">
+                <p className="text-[0.72rem] font-semibold uppercase tracking-wide text-text-3">Portfolio value</p>
+                <p className="mt-0.5 font-display text-xl font-bold tnum text-text">{formatINR(invTotals.value)}</p>
+              </div>
+              {invTotals.hasCost && (
+                <span
+                  className={cn(
+                    "flex items-center gap-1 rounded-full px-2.5 py-1 text-[0.76rem] font-semibold",
+                    invTotals.gain >= 0 ? "bg-positive-soft text-positive" : "bg-negative-soft text-negative",
+                  )}
+                >
+                  {invTotals.gain >= 0 ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
+                  {invTotals.gain >= 0 ? "+" : "−"}
+                  {formatINR(Math.abs(invTotals.gain))} ({Math.abs(Math.round(invTotals.gainPct * 100))}%)
+                </span>
+              )}
+            </div>
+            <div className="divide-y divide-border">
+              {investList.map((a) => {
+                const meta = INVESTMENT_TYPE_META[(a.investmentType ?? "other") as InvestmentType];
+                const Icon = meta.icon;
+                const g = holdingGain(a);
+                return (
+                  <button
+                    key={a.id}
+                    onClick={() => openInvest(a.id)}
+                    className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-2 active:bg-surface-inset"
+                  >
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand">
+                      <Icon className="h-[18px] w-[18px]" strokeWidth={2} />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[0.9rem] font-medium text-text">{a.name}</p>
+                      <p className="truncate text-[0.76rem] text-text-3">
+                        {meta.label}
+                        {g && (
+                          <span className={g.pct >= 0 ? "text-positive" : "text-negative"}>
+                            {" · "}
+                            {g.pct >= 0 ? "+" : "−"}
+                            {Math.abs(Math.round(g.pct * 100))}%
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                    <span className="tnum text-[0.92rem] font-semibold text-text">{formatINR(a.balance)}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </Card>
+        ) : (
+          <button
+            onClick={() => openInvest()}
+            className="flex w-full items-center gap-3.5 rounded-[16px] border border-border bg-surface p-4 text-left shadow-[var(--shadow-xs)] transition-all hover:-translate-y-0.5 hover:border-border-strong hover:shadow-[var(--shadow-md)]"
+          >
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand">
+              <LineChart className="h-5 w-5" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-[0.9rem] font-semibold text-text">Track your investments</p>
+              <p className="text-[0.76rem] leading-snug text-text-3">
+                Add SIPs, stocks, mutual funds, FDs and more — they count toward your net worth.
+              </p>
+            </div>
+            <ChevronRight className="h-5 w-5 shrink-0 text-text-3" />
+          </button>
         )}
       </section>
 

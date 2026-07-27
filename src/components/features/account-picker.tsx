@@ -24,7 +24,8 @@ export function AccountPicker({
   const expenses = useStore((s) => s.expenses);
   const setWealth = useStore((s) => s.setWealth);
   const myId = useMyId() ?? "";
-  const live = withLiveBalances(accounts, finance, expenses, myId);
+  // Investments live in their own section — you don't pay from an SIP.
+  const live = withLiveBalances(accounts, finance, expenses, myId).filter((a) => a.kind !== "investment");
 
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState("");

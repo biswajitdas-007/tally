@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Segmented } from "@/components/ui/segmented";
 import { Switch } from "@/components/ui/switch";
-import { ACCOUNT_KIND_META, ACCOUNT_KINDS, LIABILITY_KIND_META, LIABILITY_KINDS } from "@/lib/categories";
+import { ACCOUNT_KIND_META, LIQUID_ACCOUNT_KINDS, LIABILITY_KIND_META, LIABILITY_KINDS } from "@/lib/categories";
 import { DEFAULT_DUE_DAY, stampNow } from "@/lib/liabilities";
 import { linkedDelta } from "@/lib/accounts";
 import { useStore, useMyId } from "@/store/useStore";
@@ -87,7 +87,7 @@ export function WealthSheet() {
   }
 
   const isAsset = mode === "asset";
-  const kinds: string[] = isAsset ? ACCOUNT_KINDS : LIABILITY_KINDS;
+  const kinds: string[] = isAsset ? LIQUID_ACCOUNT_KINDS : LIABILITY_KINDS;
   const meta = (isAsset ? ACCOUNT_KIND_META : LIABILITY_KIND_META) as Record<string, { label: string; icon: LucideIcon }>;
   const total = parseFloat(amount) || 0;
   const valid = name.trim().length > 0 && amount !== "" && total >= 0;
