@@ -30,7 +30,7 @@ import { NotificationPrompt } from "./notification-prompt";
  * earn the extra width. Everything else is a single list or form, which stays
  * readable at a narrower measure.
  */
-const WIDE_ROUTES = new Set(["/", "/money", "/wealth", "/groups", "/analytics"]);
+const WIDE_ROUTES = new Set(["/", "/money", "/wealth", "/groups", "/analytics", "/debt"]);
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
