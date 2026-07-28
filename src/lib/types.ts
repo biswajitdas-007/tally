@@ -167,6 +167,8 @@ export interface Account {
   investmentType?: InvestmentType;
   /** For investments: how much you've put in, so we can show returns. Optional. */
   invested?: number;
+  /** When you last confirmed this balance against the real account (ISO date). */
+  reconciledAt?: string;
 }
 
 /**

@@ -77,6 +77,10 @@ interface UIState {
   openInvest: (editId?: ID | null) => void;
   closeInvest: () => void;
 
+  reconcileOpen: boolean;
+  openReconcile: () => void;
+  closeReconcile: () => void;
+
   recurOpen: boolean;
   recurEditId: ID | null;
   recurSeed: FinanceType | null;
@@ -149,6 +153,10 @@ export const useUI = create<UIState>((set) => ({
   investEditId: null,
   openInvest: (editId = null) => set({ investOpen: true, investEditId: editId }),
   closeInvest: () => set({ investOpen: false, investEditId: null }),
+
+  reconcileOpen: false,
+  openReconcile: () => set({ reconcileOpen: true }),
+  closeReconcile: () => set({ reconcileOpen: false }),
 
   recurOpen: false,
   recurEditId: null,
