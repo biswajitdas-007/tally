@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
-import { Plus, ArrowLeftRight, Users, UserPlus, ChevronRight, Receipt } from "lucide-react";
+import { Plus, ArrowLeftRight, Users, UserPlus, ChevronRight, Receipt, Sparkles, Check } from "lucide-react";
 import { BalanceHero } from "@/components/features/balance-hero";
 import { GroupCard } from "@/components/features/group-card";
 import { ExpenseRow } from "@/components/features/expense-row";
@@ -14,6 +14,8 @@ import { useStore, useMe, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { useToast } from "@/components/ui/toast";
 import { scopedDebts } from "@/lib/balances";
+import { healthScore, type SetupKey } from "@/lib/health";
+import { cn } from "@/lib/utils";
 
 function greeting() {
   const h = new Date().getHours();
@@ -58,7 +60,29 @@ export default function HomePage() {
   const openInvite = useUI((s) => s.openInvite);
   const openCreateGroup = useUI((s) => s.openCreateGroup);
   const openSettle = useUI((s) => s.openSettle);
+  const openMoney = useUI((s) => s.openMoney);
+  const openWealth = useUI((s) => s.openWealth);
+  const openEmergency = useUI((s) => s.openEmergency);
+  const finance = useStore((s) => s.finance);
+  const budget = useStore((s) => s.budget);
+  const accounts = useStore((s) => s.accounts);
+  const liabilities = useStore((s) => s.liabilities);
+  const emergency = useStore((s) => s.emergency);
   const { toast } = useToast();
+
+  const health = useMemo(
+    () => healthScore({ finance, expenses, meId: myId ?? "", budget, accounts, liabilities, emergency }),
+    [finance, expenses, myId, budget, accounts, liabilities, emergency],
+  );
+  // Only worth showing while they're actually getting started.
+  const fresh = !health.ready && expenses.length === 0;
+
+  function runSetup(key: SetupKey) {
+    if (key === "income") openMoney("income");
+    else if (key === "spending") openMoney("expense");
+    else if (key === "accounts") openWealth("asset");
+    else openEmergency();
+  }
 
   const debts = useMemo(() => scopedDebts(expenses, myId ?? ""), [expenses, myId]);
   const recent = useMemo(
@@ -81,6 +105,56 @@ export default function HomePage() {
           {me?.name?.split(" ")[0] ?? "there"}
         </h1>
       </div>
+
+      {fresh && (
+        <Card className="p-5">
+          <div className="flex items-center gap-3.5">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand">
+              <Sparkles className="h-5 w-5" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-[0.95rem] font-semibold text-text">Welcome to Tally</p>
+              <p className="text-[0.78rem] leading-snug text-text-3">
+                Three quick things and it starts working for you.
+              </p>
+            </div>
+            <span className="shrink-0 text-[0.78rem] font-semibold text-text-2 tnum">
+              {health.setupDone}/{health.setupTotal}
+            </span>
+          </div>
+
+          <div className="mt-4 flex flex-col gap-2">
+            {health.setup.map((step) => (
+              <button
+                key={step.key}
+                onClick={() => runSetup(step.key)}
+                disabled={step.done}
+                className={cn(
+                  "flex items-center gap-3 rounded-[13px] border px-3.5 py-2.5 text-left transition-all",
+                  step.done
+                    ? "border-transparent bg-surface-inset"
+                    : "border-border bg-surface hover:-translate-y-0.5 hover:border-border-strong hover:shadow-[var(--shadow-sm)]",
+                )}
+              >
+                <span
+                  className={cn(
+                    "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border",
+                    step.done ? "border-transparent bg-positive text-white" : "border-border-strong text-text-3",
+                  )}
+                >
+                  {step.done ? <Check className="h-3.5 w-3.5" strokeWidth={3} /> : <Plus className="h-3.5 w-3.5" />}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className={cn("block text-[0.88rem] font-medium", step.done ? "text-text-3 line-through" : "text-text")}>
+                    {step.label}
+                  </span>
+                  {!step.done && <span className="block text-[0.74rem] leading-snug text-text-3">{step.hint}</span>}
+                </span>
+              </button>
+            ))}
+          </div>
+        </Card>
+      )}
 
       <PageGrid>
         <PageCol>

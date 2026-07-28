@@ -68,6 +68,17 @@ export const setBudgetApi = (b: Record<string, unknown>) => req("POST", "/api/bu
 export const setWealthApi = (w: Record<string, unknown>) => req("POST", "/api/wealth", w);
 export const setRecurringApi = (r: Record<string, unknown>) => req("POST", "/api/recurring", r);
 export const importFinanceApi = (entries: Record<string, unknown>[]) => req("POST", "/api/finance/bulk", { entries });
+
+export async function deleteAccount(): Promise<{ ok: boolean; unsettled?: boolean; people?: number; amount?: number }> {
+  const res = await req("DELETE", "/api/account");
+  if (!res) return { ok: false };
+  if (res.ok) return { ok: true };
+  if (res.status === 409) {
+    const b = (await res.json().catch(() => ({}))) as { people?: number; amount?: number };
+    return { ok: false, unsettled: true, people: b.people, amount: b.amount };
+  }
+  return { ok: false };
+}
 export const subscribePushApi = (subscription: unknown) => req("POST", "/api/push/subscribe", { subscription });
 export const unsubscribePushApi = (endpoint: string) => req("POST", "/api/push/unsubscribe", { endpoint });
 
