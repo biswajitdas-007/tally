@@ -400,9 +400,9 @@ export default function MoneyPage() {
           >
             <div
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white"
-              style={{ background: health.enough ? gradeColor(health.grade) : "var(--brand)" }}
+              style={{ background: health.ready ? gradeColor(health.grade) : "var(--brand)" }}
             >
-              {health.enough ? (
+              {health.ready ? (
                 <span className="font-display text-lg font-bold">{health.grade}</span>
               ) : (
                 <Scale className="h-5 w-5" />
@@ -411,7 +411,9 @@ export default function MoneyPage() {
             <div className="min-w-0 flex-1">
               <p className="text-[0.9rem] font-semibold text-text">Wealth health</p>
               <p className="text-[0.76rem] text-text-3">
-                {health.enough ? `Net worth ${formatINR(nw.net)}` : "Set up net worth & health score"}
+                {health.ready
+                  ? `Net worth ${formatINR(nw.net)}`
+                  : `Set up your score — ${health.setupDone} of ${health.setupTotal} done`}
               </p>
             </div>
             <ChevronRight className="h-5 w-5 shrink-0 text-text-3" />

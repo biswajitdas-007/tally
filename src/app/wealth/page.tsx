@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ChevronLeft, Plus, Wallet, Scale, TrendingUp, TrendingDown, CalendarClock, AlertTriangle, Lightbulb, Sparkles, PiggyBank, ChevronRight, Info, ShieldCheck, ShieldAlert, Pencil, LineChart, type LucideIcon } from "lucide-react";
+import { ChevronLeft, Plus, Check, Wallet, Scale, TrendingUp, TrendingDown, CalendarClock, AlertTriangle, Lightbulb, Sparkles, PiggyBank, ChevronRight, Info, ShieldCheck, ShieldAlert, Pencil, LineChart, type LucideIcon } from "lucide-react";
 import { PageGrid, PageCol } from "@/components/app/page-grid";
 import { Card, SectionHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -12,7 +12,7 @@ import { useStore, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { ACCOUNT_KIND_META, INVESTMENT_TYPE_META, LIABILITY_KIND_META } from "@/lib/categories";
 import { BankBadge } from "@/components/features/bank-badge";
-import { healthScore, netWorth, gradeColor, avgMonthly, wealthRunway, emergencyStatus } from "@/lib/health";
+import { healthScore, netWorth, gradeColor, avgMonthly, wealthRunway, emergencyStatus, type SetupKey } from "@/lib/health";
 import { investmentTotals, holdingGain } from "@/lib/investments";
 import { debtSuggestions, monthlyLiability, type DebtSuggestion } from "@/lib/debt";
 import { withLiveBalances, unparkedAmount } from "@/lib/accounts";
@@ -20,6 +20,14 @@ import { formatINR, cn } from "@/lib/utils";
 import type { AccountKind, InvestmentType, LiabilityKind } from "@/lib/types";
 
 const SUGGESTION_ICON: Record<DebtSuggestion["tone"], LucideIcon> = { warn: AlertTriangle, info: Lightbulb, good: Sparkles };
+
+/** What each unfinished setup step offers to do. */
+const SETUP_ACTION: Record<SetupKey, { cta: string }> = {
+  income: { cta: "Add" },
+  spending: { cta: "Add" },
+  accounts: { cta: "Add" },
+  emergency: { cta: "Set" },
+};
 
 function SuggestionCard({ s }: { s: DebtSuggestion }) {
   const Icon = SUGGESTION_ICON[s.tone];
@@ -54,7 +62,15 @@ export default function WealthPage() {
   const openAccountDetail = useUI((s) => s.openAccountDetail);
   const openEmergency = useUI((s) => s.openEmergency);
   const openInvest = useUI((s) => s.openInvest);
+  const openMoney = useUI((s) => s.openMoney);
   const myId = useMyId() ?? "";
+
+  function runSetup(key: SetupKey) {
+    if (key === "income") openMoney("income");
+    else if (key === "spending") openMoney("expense");
+    else if (key === "accounts") openWealth("asset");
+    else openEmergency();
+  }
 
   const liveAccounts = useMemo(
     () => withLiveBalances(accounts, finance, expenses, myId),
@@ -107,8 +123,8 @@ export default function WealthPage() {
 
       <PageGrid>
         <PageCol>
-          {/* Health score */}
-          {health.enough ? (
+          {/* Health score — a grade only once it can mean something */}
+          {health.ready ? (
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
@@ -183,14 +199,91 @@ export default function WealthPage() {
               </Card>
             </motion.div>
           ) : (
-            <Card className="flex flex-col items-center gap-3 p-6 text-center">
-              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-soft text-brand">
-                <Scale className="h-6 w-6" />
-              </span>
-              <p className="max-w-[17rem] text-[0.9rem] text-text-2">
-                Add your income, accounts and any loans to get your Financial Health Score.
-              </p>
-            </Card>
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ type: "spring", stiffness: 240, damping: 26 }}
+            >
+              <Card className="p-5">
+                <div className="flex items-center gap-4">
+                  <div className="relative flex h-20 w-20 shrink-0 items-center justify-center">
+                    <svg viewBox="0 0 80 80" className="absolute inset-0 -rotate-90">
+                      <circle cx="40" cy="40" r="34" fill="none" stroke="var(--surface-inset)" strokeWidth="9" />
+                      <circle
+                        cx="40"
+                        cy="40"
+                        r="34"
+                        fill="none"
+                        stroke="var(--brand)"
+                        strokeWidth="9"
+                        strokeLinecap="round"
+                        strokeDasharray={`${(health.setupDone / health.setupTotal) * 2 * Math.PI * 34} ${2 * Math.PI * 34}`}
+                        className="transition-all duration-500"
+                      />
+                    </svg>
+                    <span className="relative font-display text-[1.35rem] font-bold leading-none text-text">
+                      {health.setupDone}
+                      <span className="text-[0.9rem] text-text-3">/{health.setupTotal}</span>
+                    </span>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[0.72rem] font-semibold uppercase tracking-wide text-text-3">Financial health</p>
+                    <p className="mt-0.5 text-[0.92rem] font-medium leading-snug text-text">
+                      Finish setting up and we&apos;ll score your finances.
+                    </p>
+                    <p className="mt-1 text-[0.78rem] leading-snug text-text-3">
+                      A grade now would measure how much you&apos;ve typed in, not how your money is doing.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-5 flex flex-col gap-2">
+                  {health.setup.map((step) => {
+                    const action = SETUP_ACTION[step.key];
+                    return (
+                      <button
+                        key={step.key}
+                        onClick={() => runSetup(step.key)}
+                        disabled={step.done}
+                        className={cn(
+                          "flex items-center gap-3 rounded-[13px] border px-3.5 py-2.5 text-left transition-all",
+                          step.done
+                            ? "border-transparent bg-surface-inset"
+                            : "border-border bg-surface hover:-translate-y-0.5 hover:border-border-strong hover:shadow-[var(--shadow-sm)]",
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border",
+                            step.done ? "border-transparent bg-positive text-white" : "border-border-strong text-text-3",
+                          )}
+                        >
+                          {step.done ? <Check className="h-3.5 w-3.5" strokeWidth={3} /> : <Plus className="h-3.5 w-3.5" />}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span
+                            className={cn(
+                              "block text-[0.88rem] font-medium",
+                              step.done ? "text-text-3 line-through" : "text-text",
+                            )}
+                          >
+                            {step.label}
+                          </span>
+                          {!step.done && <span className="block text-[0.74rem] leading-snug text-text-3">{step.hint}</span>}
+                        </span>
+                        {!step.done && (
+                          <span className="shrink-0 text-[0.76rem] font-semibold text-brand">{action.cta}</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <p className="mt-4 rounded-[12px] bg-surface-inset px-3 py-2.5 text-[0.78rem] leading-snug text-text-2">
+                  The last one is optional — but an emergency fund is the single best thing to sort out early.
+                </p>
+              </Card>
+            </motion.div>
           )}
 
           {/* Net worth */}
