@@ -11,27 +11,13 @@ import { CategoryIcon } from "@/components/ui/chip";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CATEGORY_LIST } from "@/lib/categories";
+import { guessExpenseCategory } from "@/lib/categorise";
 import { AccountPicker } from "./account-picker";
 import { useStore, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { useToast } from "@/components/ui/toast";
 import { cn, formatINR, formatDate, splitEqually } from "@/lib/utils";
 import type { CategoryKey, ID, Split } from "@/lib/types";
-
-const GUESS: [RegExp, CategoryKey][] = [
-  [/rent|deposit|maintenance|society|flat/i, "rent"],
-  [/grocer|basket|zepto|blinkit|dinner|lunch|breakfast|pizza|swiggy|zomato|restaurant|cafe|coffee|chai|thali|biryani|snack|food|drink/i, "food"],
-  [/uber|ola|cab|taxi|flight|train|bus|fuel|petrol|toll|travel|trip|hotel|villa|airbnb|scooter|auto/i, "travel"],
-  [/movie|netflix|concert|club|party|game|spotify|bar|ticket/i, "fun"],
-  [/electric|water|gas|wifi|broadband|bill|recharge|dth|internet|ott/i, "bills"],
-  [/amazon|flipkart|myntra|shop|clothes|shoes|decor|sweets/i, "shopping"],
-  [/pharmacy|medicine|doctor|hospital|gym|health/i, "health"],
-];
-
-function guessCategory(text: string): CategoryKey | null {
-  for (const [re, cat] of GUESS) if (re.test(text)) return cat;
-  return null;
-}
 
 export function AddExpenseSheet() {
   const open = useUI((s) => s.addOpen);
@@ -123,7 +109,7 @@ export function AddExpenseSheet() {
   function onDescription(v: string) {
     setDescription(v);
     if (!catTouched) {
-      const g = guessCategory(v);
+      const g = guessExpenseCategory(v);
       if (g) setCategory(g);
     }
   }

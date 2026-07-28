@@ -101,6 +101,8 @@ export interface FinanceEntry {
   payeeName?: string;
   /** Set when a recurring rule put this entry in, so we can badge it. */
   recurringId?: ID;
+  /** Fingerprint of the statement row this came from — stops a re-import duplicating it. */
+  importKey?: string;
 }
 
 export type RecurFreq = "monthly" | "weekly";

@@ -67,6 +67,7 @@ export const deleteFinanceApi = (id: string) => req("DELETE", `/api/finance/${id
 export const setBudgetApi = (b: Record<string, unknown>) => req("POST", "/api/budget", b);
 export const setWealthApi = (w: Record<string, unknown>) => req("POST", "/api/wealth", w);
 export const setRecurringApi = (r: Record<string, unknown>) => req("POST", "/api/recurring", r);
+export const importFinanceApi = (entries: Record<string, unknown>[]) => req("POST", "/api/finance/bulk", { entries });
 export const subscribePushApi = (subscription: unknown) => req("POST", "/api/push/subscribe", { subscription });
 export const unsubscribePushApi = (endpoint: string) => req("POST", "/api/push/unsubscribe", { endpoint });
 
