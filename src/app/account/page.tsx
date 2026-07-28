@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { LogOut, ShieldCheck, Bell, Wallet, Check, BellRing, Contact, ChevronRight } from "lucide-react";
+import { LogOut, ShieldCheck, Bell, Wallet, Check, BellRing, Contact, ChevronRight, Download, Trash2 } from "lucide-react";
 import { PageHeader } from "@/components/app/page-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { DeleteAccountDialog } from "@/components/features/delete-account-dialog";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Segmented } from "@/components/ui/segmented";
@@ -16,6 +17,7 @@ import { usePush } from "@/hooks/use-push";
 import { useTheme, type ThemeChoice } from "@/components/theme-provider";
 import { useToast } from "@/components/ui/toast";
 import { isValidVpa } from "@/lib/upi";
+import { buildExport, downloadJson, exportFilename } from "@/lib/export";
 
 function Row({ children }: { children: React.ReactNode }) {
   return <div className="flex items-center gap-3 px-4 py-3.5">{children}</div>;
@@ -31,6 +33,27 @@ export default function AccountPage() {
   const { choice, setChoice } = useTheme();
   const { supported, enabled, busy, enable, disable } = usePush();
   const { toast } = useToast();
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const store = useStore();
+
+  function exportData() {
+    downloadJson(
+      buildExport({
+        me: store.me,
+        people: store.people,
+        accounts: store.accounts,
+        liabilities: store.liabilities,
+        emergency: store.emergency,
+        budget: store.budget,
+        recurrings: store.recurrings,
+        finance: store.finance,
+        groups: store.groups,
+        expenses: store.expenses,
+      }),
+      exportFilename(),
+    );
+    toast({ message: "Your data is downloading" });
+  }
 
   const [upi, setUpi] = useState("");
   useEffect(() => setUpi(me?.upiId ?? ""), [me?.upiId]);
@@ -146,9 +169,40 @@ export default function AccountPage() {
         </Card>
       </section>
 
+      <section>
+        <p className="mb-2 px-1 text-[0.7rem] font-semibold uppercase tracking-[0.08em] text-text-3">Your data</p>
+        <Card className="divide-y divide-border">
+          <button onClick={exportData} className="flex w-full items-center gap-3 p-4 text-left transition-colors hover:bg-surface-2">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-soft text-brand">
+              <Download className="h-4.5 w-4.5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[0.9rem] font-medium text-text">Download everything</p>
+              <p className="text-[0.76rem] leading-snug text-text-3">
+                One JSON file with your accounts, money, groups and splits.
+              </p>
+            </div>
+          </button>
+          <button
+            onClick={() => setConfirmDelete(true)}
+            className="flex w-full items-center gap-3 p-4 text-left transition-colors hover:bg-negative-soft"
+          >
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-negative-soft text-negative">
+              <Trash2 className="h-4.5 w-4.5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[0.9rem] font-medium text-negative">Delete my account</p>
+              <p className="text-[0.76rem] leading-snug text-text-3">Permanently removes your data. Can&apos;t be undone.</p>
+            </div>
+          </button>
+        </Card>
+      </section>
+
       <Button variant="secondary" size="lg" fullWidth onClick={logout} disabled={busy}>
         <LogOut className="h-4.5 w-4.5" /> Sign out
       </Button>
+
+      <DeleteAccountDialog open={confirmDelete} onClose={() => setConfirmDelete(false)} />
 
       <p className="pb-4 text-center text-[0.72rem] text-text-3">Tally · Split expenses, settle over UPI</p>
     </div>
