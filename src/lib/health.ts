@@ -86,6 +86,18 @@ export interface Pillar {
   hint: string;
 }
 
+export type SetupKey = "income" | "spending" | "accounts" | "emergency";
+
+/** One thing the score needs before it can say anything useful. */
+export interface SetupStep {
+  key: SetupKey;
+  label: string;
+  hint: string;
+  done: boolean;
+  /** Required steps gate the grade; the rest are just good next moves. */
+  required: boolean;
+}
+
 export interface Health {
   score: number;
   grade: string;
@@ -94,6 +106,16 @@ export interface Health {
   enough: boolean;
   /** False when there isn't enough logged (income + outflow) to be reliable. */
   confident: boolean;
+  /** What's still missing before a grade means anything. */
+  setup: SetupStep[];
+  setupDone: number;
+  setupTotal: number;
+  /**
+   * True once every required step is done. Until then a grade would be
+   * measuring how much you've typed in, not how your money is doing — so the
+   * UI shows the checklist instead.
+   */
+  ready: boolean;
 }
 
 const GRADES: [number, string][] = [
@@ -210,9 +232,59 @@ export function healthScore(opts: {
 
   const score = pillars.reduce((a, p) => a + p.score, 0);
   const weakest = [...pillars].sort((a, b) => a.score / a.max - b.score / b.max)[0];
-  const nudge = score >= 80 ? "You're in great shape — keep it up." : NUDGES[weakest.key];
 
-  return { score, grade: gradeOf(score), pillars, nudge, enough, confident };
+  // What the score still needs. Until the required ones are in, a grade would
+  // reflect missing data rather than the state of someone's finances.
+  const setup: SetupStep[] = [
+    {
+      key: "income",
+      label: "Add what you earn",
+      hint: "Your salary or any money coming in",
+      done: income > 0,
+      required: true,
+    },
+    {
+      key: "spending",
+      label: "Log some spending",
+      hint: "A few expenses so we can see your cashflow",
+      done: hasOutflow,
+      required: true,
+    },
+    {
+      key: "accounts",
+      label: "Add your accounts",
+      hint: "Bank, cash and wallets — this is your net worth",
+      done: accounts.length > 0,
+      required: true,
+    },
+    {
+      key: "emergency",
+      label: "Set an emergency fund",
+      hint: "A target to keep safe for a rainy day",
+      done: ef.set,
+      required: false,
+    },
+  ];
+  const required = setup.filter((s) => s.required);
+  const ready = required.every((s) => s.done);
+  const nudge = !ready
+    ? "Finish setting up and we'll score your finances."
+    : score >= 80
+      ? "You're in great shape — keep it up."
+      : NUDGES[weakest.key];
+
+  return {
+    score,
+    grade: gradeOf(score),
+    pillars,
+    nudge,
+    enough,
+    confident,
+    setup,
+    setupDone: setup.filter((s) => s.done).length,
+    setupTotal: setup.length,
+    ready,
+  };
 }
 
 export interface Runway {
