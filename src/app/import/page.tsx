@@ -5,12 +5,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ChevronLeft, Upload, FileSpreadsheet, AlertTriangle, Check, X, CopyCheck, Ban, Loader2, ArrowRight,
+  FileText, Table2, Info, type LucideIcon,
 } from "lucide-react";
 import { Card, SectionHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AccountPicker } from "@/components/features/account-picker";
 import { CATEGORIES, INCOME_CATEGORIES } from "@/lib/categories";
-import { parseCsv, MAX_FILE_BYTES, MAX_ROWS, type Delimiter } from "@/lib/csv";
+import { MAX_FILE_BYTES, MAX_ROWS, type Delimiter } from "@/lib/csv";
+import { readStatement, ImportError, kindOf, type SourceKind } from "@/lib/read-file";
 import {
   detectColumns, buildDrafts, summarise, toEntries, usesMonthFirst,
   type ColumnRole, type DraftEntry,
@@ -44,7 +46,11 @@ export default function ImportPage() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [rows, setRows] = useState<string[][]>([]);
-  const [delimiter, setDelimiter] = useState<Delimiter>(",");
+  const [delimiter, setDelimiter] = useState<Delimiter | undefined>(",");
+  const [kind, setKind] = useState<SourceKind>("csv");
+  const [sheets, setSheets] = useState<string[] | undefined>();
+  const [sheetIdx, setSheetIdx] = useState(0);
+  const [file, setFile] = useState<File | null>(null);
   const [roles, setRoles] = useState<ColumnRole[]>([]);
   const [hasHeader, setHasHeader] = useState(true);
   const [monthFirst, setMonthFirst] = useState(false);
@@ -64,66 +70,44 @@ export default function ImportPage() {
     setNotice(null);
     setRows([]);
     setDrafts([]);
+    setFile(null);
+    setSheets(undefined);
+    setSheetIdx(0);
     setAdded(0);
     if (fileRef.current) fileRef.current.value = "";
   }
 
-  async function onFile(file: File | undefined) {
-    if (!file) return;
+  async function onFile(picked: File | undefined, sheet = 0) {
+    if (!picked) return;
     setError(null);
     setNotice(null);
+    setBusy(true);
 
-    if (!/\.(csv|txt|tsv)$/i.test(file.name)) {
-      setError("That's not a CSV. Export your statement as CSV (or Excel → Save As → CSV) and try again.");
-      return;
-    }
-    if (file.size === 0) {
-      setError("That file is empty.");
-      return;
-    }
-    if (file.size > MAX_FILE_BYTES) {
-      setError(
-        `That file is ${(file.size / 1024 / 1024).toFixed(1)} MB — the limit is ${MAX_FILE_BYTES / 1024 / 1024} MB. Export a shorter date range and import it in a couple of goes.`,
-      );
-      return;
-    }
-
-    let text: string;
     try {
-      text = await file.text();
-    } catch {
-      setError("Couldn't read that file. Try re-exporting it from your bank.");
-      return;
+      const res = await readStatement(picked, sheet);
+      const body = res.rows.slice(1);
+      const guessed = detectColumns(res.rows[0], body.slice(0, 20));
+      const dateCol = guessed.indexOf("date");
+      const mf = dateCol >= 0 ? usesMonthFirst(body.slice(0, 50).map((r) => r[dateCol] ?? "")) : false;
+
+      setFile(picked);
+      setFileName(picked.name);
+      setKind(res.kind);
+      setRows(res.rows);
+      setDelimiter(res.delimiter);
+      setSheets(res.sheets);
+      setSheetIdx(res.sheetIndex ?? 0);
+      setRoles(guessed);
+      setHasHeader(true);
+      setMonthFirst(mf);
+      setNotice(res.notices.join(" ") || null);
+      setDrafts(buildDrafts({ rows: res.rows, roles: guessed, hasHeader: true, existing: finance, monthFirst: mf }));
+      setStage("map");
+    } catch (err) {
+      setError(err instanceof ImportError ? err.message : "Couldn't read that file. Try re-exporting it from your bank.");
+    } finally {
+      setBusy(false);
     }
-
-    const parsed = parseCsv(text);
-    if (parsed.rows.length === 0) {
-      setError("There's nothing in that file.");
-      return;
-    }
-    if (parsed.rows.length < 2) {
-      setError("That file has a header but no transactions.");
-      return;
-    }
-
-    const notices: string[] = [];
-    if (parsed.truncated) notices.push(`Only the first ${MAX_ROWS.toLocaleString("en-IN")} rows were read.`);
-    if (parsed.skippedBlank > 0) notices.push(`${parsed.skippedBlank} blank ${parsed.skippedBlank === 1 ? "row" : "rows"} skipped.`);
-
-    const body = parsed.rows.slice(1);
-    const guessed = detectColumns(parsed.rows[0], body.slice(0, 20));
-    const dateCol = guessed.indexOf("date");
-    const mf = dateCol >= 0 ? usesMonthFirst(body.slice(0, 50).map((r) => r[dateCol] ?? "")) : false;
-
-    setFileName(file.name);
-    setRows(parsed.rows);
-    setDelimiter(parsed.delimiter);
-    setRoles(guessed);
-    setHasHeader(true);
-    setMonthFirst(mf);
-    setNotice(notices.join(" ") || null);
-    setDrafts(buildDrafts({ rows: parsed.rows, roles: guessed, hasHeader: true, existing: finance, monthFirst: mf }));
-    setStage("map");
   }
 
   function rebuild(next: Partial<{ roles: ColumnRole[]; hasHeader: boolean; monthFirst: boolean }>) {
@@ -205,7 +189,7 @@ export default function ImportPage() {
         <div>
           <h1 className="font-display text-2xl font-bold tracking-[-0.02em]">Import a statement</h1>
           <p className="mt-0.5 text-[0.84rem] text-text-3">
-            Bring in months of spending at once instead of typing it all in
+            Bring in months of spending at once — CSV, Excel or PDF
           </p>
         </div>
 
@@ -213,32 +197,42 @@ export default function ImportPage() {
 
         <button
           onClick={() => fileRef.current?.click()}
-          className="flex flex-col items-center gap-3 rounded-[20px] border border-dashed border-border-strong bg-surface p-10 text-center transition-colors hover:bg-surface-2"
+          disabled={busy}
+          className="flex flex-col items-center gap-3 rounded-[20px] border border-dashed border-border-strong bg-surface p-10 text-center transition-colors hover:bg-surface-2 disabled:opacity-60"
         >
           <span className="flex h-14 w-14 items-center justify-center rounded-full bg-brand-soft text-brand">
-            <Upload className="h-6 w-6" />
+            {busy ? <Loader2 className="h-6 w-6 animate-spin" /> : <Upload className="h-6 w-6" />}
           </span>
           <span>
-            <span className="block text-[0.95rem] font-semibold text-text">Choose a CSV file</span>
+            <span className="block text-[0.95rem] font-semibold text-text">
+              {busy ? "Reading your statement…" : "Choose a file"}
+            </span>
             <span className="mt-0.5 block text-[0.8rem] text-text-3">
-              Up to {MAX_FILE_BYTES / 1024 / 1024} MB and {MAX_ROWS.toLocaleString("en-IN")} rows
+              CSV, Excel or PDF · up to {MAX_FILE_BYTES / 1024 / 1024} MB and {MAX_ROWS.toLocaleString("en-IN")} rows
             </span>
           </span>
         </button>
         <input
           ref={fileRef}
           type="file"
-          accept=".csv,.txt,.tsv,text/csv"
+          accept=".csv,.txt,.tsv,.xlsx,.xlsm,.pdf,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
           className="hidden"
           onChange={(e) => onFile(e.target.files?.[0])}
         />
+
+        <div className="grid gap-2.5 sm:grid-cols-3">
+          <Format icon={FileSpreadsheet} title="CSV" note="Best results — every bank offers it" />
+          <Format icon={Table2} title="Excel" note=".xlsx straight from net banking" />
+          <Format icon={FileText} title="PDF" note="Text statements, not scans" />
+        </div>
 
         <Card className="p-5">
           <p className="text-[0.72rem] font-semibold uppercase tracking-wide text-text-3">How to get the file</p>
           <ol className="mt-2.5 flex list-decimal flex-col gap-1.5 pl-4 text-[0.85rem] leading-snug text-text-2">
             <li>Open net banking and go to your account statement.</li>
             <li>Pick a date range and download it as CSV or Excel.</li>
-            <li>If it&apos;s an Excel file, open it and save a copy as CSV.</li>
+            <li>CSV works best. Excel and PDF also work — a PDF has to be a real statement, not a scan.</li>
+            <li>If it&apos;s password-protected, open it and save an unlocked copy first.</li>
           </ol>
           <p className="mt-3 rounded-[12px] bg-surface-inset px-3 py-2.5 text-[0.78rem] leading-snug text-text-2">
             Your file is read here on your device — it&apos;s never uploaded anywhere. Only the entries you choose get
@@ -259,6 +253,7 @@ export default function ImportPage() {
           <p className="mt-0.5 truncate text-[0.84rem] text-text-3">
             <FileSpreadsheet className="mr-1 inline h-3.5 w-3.5" />
             {fileName} · {rows.length - (hasHeader ? 1 : 0)} rows
+            {kind === "pdf" && " · read from PDF"}
           </p>
         </div>
         <Button variant="secondary" size="sm" onClick={reset}>
@@ -269,6 +264,35 @@ export default function ImportPage() {
       {error && <Problem>{error}</Problem>}
       {notice && (
         <p className="rounded-[12px] bg-surface-inset px-3.5 py-2.5 text-[0.8rem] leading-snug text-text-2">{notice}</p>
+      )}
+
+      {sheets && sheets.length > 1 && (
+        <section>
+          <SectionHeader title="Which sheet" />
+          <div className="flex flex-wrap gap-2">
+            {sheets.map((name, i) => (
+              <button
+                key={name}
+                onClick={() => file && onFile(file, i)}
+                className={cn(
+                  "rounded-full border px-3.5 py-2 text-[0.82rem] font-medium transition-all",
+                  i === sheetIdx
+                    ? "border-transparent bg-brand-soft text-brand-on-soft"
+                    : "border-border bg-surface text-text-2 hover:border-border-strong",
+                )}
+              >
+                {name}
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {kind === "pdf" && (
+        <p className="flex items-start gap-1.5 rounded-[12px] bg-surface-inset px-3.5 py-2.5 text-[0.8rem] leading-snug text-text-2">
+          <Info className="mt-px h-3.5 w-3.5 shrink-0" />
+          PDFs have no real columns, so these were worked out from the layout. Check the mapping below before importing.
+        </p>
       )}
 
       {/* Columns */}
@@ -306,9 +330,11 @@ export default function ImportPage() {
             <Toggle on={monthFirst} onClick={() => rebuild({ monthFirst: !monthFirst })}>
               Dates are month/day
             </Toggle>
-            <span className="self-center text-[0.76rem] text-text-3">
-              Split by {delimiter === "\t" ? "tab" : `"${delimiter}"`}
-            </span>
+            {delimiter && (
+              <span className="self-center text-[0.76rem] text-text-3">
+                Split by {delimiter === "\t" ? "tab" : `"${delimiter}"`}
+              </span>
+            )}
           </div>
 
           {!mapped && (
@@ -459,6 +485,18 @@ function Back() {
     <Link href="/money" className="-mb-1 flex w-fit items-center gap-1 text-sm font-medium text-text-2 hover:text-text">
       <ChevronLeft className="h-4 w-4" /> Money
     </Link>
+  );
+}
+
+function Format({ icon: Icon, title, note }: { icon: LucideIcon; title: string; note: string }) {
+  return (
+    <div className="flex items-start gap-2.5 rounded-[14px] border border-border bg-surface p-3">
+      <Icon className="mt-0.5 h-4 w-4 shrink-0 text-text-3" />
+      <span className="min-w-0">
+        <span className="block text-[0.84rem] font-semibold text-text">{title}</span>
+        <span className="block text-[0.74rem] leading-snug text-text-3">{note}</span>
+      </span>
+    </div>
   );
 }
 

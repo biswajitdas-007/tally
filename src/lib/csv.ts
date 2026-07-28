@@ -65,6 +65,26 @@ function parseLine(line: string, delim: string): string[] {
   return out.map((c) => c.trim());
 }
 
+/**
+ * Does this actually look like a table? A .txt can be anything — a receipt, a
+ * letter, a wall of prose — and pushing that into the column mapper produces a
+ * meaningless screen. Real tabular data has several columns and a consistent
+ * shape.
+ */
+export function looksTabular(rows: string[][]): boolean {
+  if (rows.length < 2) return false;
+  const sample = rows.slice(0, 30);
+
+  // Judge by the most common row width rather than the widest. Prose has the
+  // odd comma in it, which yields a stray two-column line among ones of width
+  // one — enough to look tabular if you go by the maximum.
+  const counts = new Map<number, number>();
+  for (const r of sample) counts.set(r.length, (counts.get(r.length) ?? 0) + 1);
+  const [modal, hits] = [...counts.entries()].sort((a, b) => b[1] - a[1] || b[0] - a[0])[0];
+
+  return modal >= 2 && hits / sample.length >= 0.6;
+}
+
 export interface ParsedCsv {
   rows: string[][];
   delimiter: Delimiter;
