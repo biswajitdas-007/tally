@@ -243,7 +243,7 @@ export default function MoneyPage() {
             <div className="min-w-0 flex-1">
               <p className="text-[0.9rem] font-semibold text-text">Import a statement</p>
               <p className="text-[0.76rem] leading-snug text-text-3">
-                Bring in months of spending from a bank CSV instead of typing it all in.
+                Bring in months of spending from a bank CSV, Excel or PDF.
               </p>
             </div>
             <ChevronRight className="h-5 w-5 shrink-0 text-text-3" />
