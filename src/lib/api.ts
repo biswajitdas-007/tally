@@ -1,6 +1,6 @@
 import { firebaseAuth } from "@/lib/firebase";
 import { socketId } from "@/lib/pusher-client";
-import type { Account, Budget, Emergency, Expense, FinanceEntry, Group, Liability, Person } from "@/lib/types";
+import type { Account, Budget, Emergency, Expense, FinanceEntry, Group, Liability, Person, Recurring } from "@/lib/types";
 
 export interface ServerState {
   me: Person | null;
@@ -12,6 +12,7 @@ export interface ServerState {
   accounts: Account[];
   liabilities: Liability[];
   emergency: Emergency | null;
+  recurrings: Recurring[];
   removedFriends: string[];
 }
 
@@ -65,6 +66,7 @@ export const updateFinanceApi = (id: string, patch: Record<string, unknown>) => 
 export const deleteFinanceApi = (id: string) => req("DELETE", `/api/finance/${id}`);
 export const setBudgetApi = (b: Record<string, unknown>) => req("POST", "/api/budget", b);
 export const setWealthApi = (w: Record<string, unknown>) => req("POST", "/api/wealth", w);
+export const setRecurringApi = (r: Record<string, unknown>) => req("POST", "/api/recurring", r);
 export const subscribePushApi = (subscription: unknown) => req("POST", "/api/push/subscribe", { subscription });
 export const unsubscribePushApi = (endpoint: string) => req("POST", "/api/push/unsubscribe", { endpoint });
 

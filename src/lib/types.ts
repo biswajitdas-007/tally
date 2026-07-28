@@ -43,6 +43,8 @@ export interface Expense {
   createdAt: string;
   isSettlement?: boolean;
   recurring?: "none" | "monthly" | "weekly";
+  /** Period already repeated ("YYYY-MM" monthly, "YYYY-MM-DD" weekly) — guards against repeating twice. */
+  recurringLast?: string;
   /** The recorder's private account this cash moved through (payer paid, or payee received). */
   accountId?: ID;
 }
@@ -97,6 +99,34 @@ export interface FinanceEntry {
   /** Payee of a scan-&-pay expense — powers the "recent payees" list. */
   payeeVpa?: string;
   payeeName?: string;
+  /** Set when a recurring rule put this entry in, so we can badge it. */
+  recurringId?: ID;
+}
+
+export type RecurFreq = "monthly" | "weekly";
+
+/**
+ * A rule that puts a money entry in on a schedule — salary, rent, a
+ * subscription. It generates ordinary FinanceEntries; the rule itself is never
+ * counted, only what it creates.
+ */
+export interface Recurring {
+  id: ID;
+  type: FinanceType;
+  amount: number;
+  /** CategoryKey for an expense, IncomeCategory for income. */
+  category: string;
+  note?: string;
+  accountId?: ID;
+  freq: RecurFreq;
+  /** Monthly: day of month (1–28). Weekly: weekday, 0 = Sunday. */
+  day: number;
+  /** Add it automatically, or just remind you it's due. */
+  auto: boolean;
+  /** Period already generated ("YYYY-MM" monthly, "YYYY-MM-DD" weekly). */
+  lastRun?: string;
+  paused?: boolean;
+  createdAt: string;
 }
 
 /** Private monthly budget: typical take-home (for 50/30/20) + optional caps. */

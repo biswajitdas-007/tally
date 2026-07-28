@@ -76,6 +76,12 @@ interface UIState {
   investEditId: ID | null;
   openInvest: (editId?: ID | null) => void;
   closeInvest: () => void;
+
+  recurOpen: boolean;
+  recurEditId: ID | null;
+  recurSeed: FinanceType | null;
+  openRecur: (editId?: ID | null, type?: FinanceType) => void;
+  closeRecur: () => void;
 }
 
 export const useUI = create<UIState>((set) => ({
@@ -143,4 +149,10 @@ export const useUI = create<UIState>((set) => ({
   investEditId: null,
   openInvest: (editId = null) => set({ investOpen: true, investEditId: editId }),
   closeInvest: () => set({ investOpen: false, investEditId: null }),
+
+  recurOpen: false,
+  recurEditId: null,
+  recurSeed: null,
+  openRecur: (editId = null, type = "expense") => set({ recurOpen: true, recurEditId: editId, recurSeed: type }),
+  closeRecur: () => set({ recurOpen: false, recurEditId: null, recurSeed: null }),
 }));

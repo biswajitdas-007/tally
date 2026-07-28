@@ -36,6 +36,7 @@ export async function POST(req: Request) {
       transfer: b.transfer === true ? true : undefined,
       payeeVpa: isStr(b.payeeVpa) ? (b.payeeVpa as string).slice(0, 256) : undefined,
       payeeName: isStr(b.payeeName) ? (b.payeeName as string).slice(0, 80) : undefined,
+      recurringId: isStr(b.recurringId) ? (b.recurringId as string).slice(0, 40) : undefined,
     };
     await finance.insertOne(doc);
 

@@ -4,5 +4,4 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
-/** Kept as an alias of /api/cron/daily so any existing schedule keeps working. */
 export const GET = runDaily;

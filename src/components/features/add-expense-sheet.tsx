@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { CalendarDays, Check, Trash2, Repeat, StickyNote } from "lucide-react";
+import { CalendarDays, Check, Trash2, Repeat, StickyNote, Info } from "lucide-react";
 import { Sheet } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
@@ -433,6 +433,14 @@ export function AddExpenseSheet() {
             Monthly
           </button>
         </div>
+
+        {recurring && (
+          <p className="-mt-1 flex items-start gap-1.5 px-0.5 text-[0.76rem] leading-snug text-text-3">
+            <Info className="mt-px h-3.5 w-3.5 shrink-0" />
+            A fresh copy is added each month on the {Math.min(date.getDate(), 28)}
+            {date.getDate() > 28 ? "th (28th)" : ""}, split the same way. Everyone in it gets told.
+          </p>
+        )}
 
         {showNotes && (
           <Textarea

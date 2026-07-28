@@ -5,7 +5,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   Plus, Minus, ChevronLeft, ChevronRight, ArrowUpRight, ArrowDownLeft,
-  TrendingUp, AlertTriangle, Wallet, Coins, Target, Scale, ShieldAlert,
+  TrendingUp, AlertTriangle, Wallet, Coins, Target, Scale, ShieldAlert, Repeat, BellRing,
 } from "lucide-react";
 import { PageHeader } from "@/components/app/page-header";
 import { PageGrid, PageCol } from "@/components/app/page-grid";
@@ -17,8 +17,9 @@ import { useUI } from "@/store/useUI";
 import { CATEGORIES, INCOME_CATEGORIES } from "@/lib/categories";
 import { monthlyMoney, financeForMonth, spendByCategory, monthLabel, budgetView, moneyStatus } from "@/lib/money";
 import { healthScore, netWorth, gradeColor, wealthRunway, emergencyStatus } from "@/lib/health";
+import { isDue, recurLabel, nextOccurrence } from "@/lib/recurring";
 import { withLiveBalances, unparkedAmount } from "@/lib/accounts";
-import { formatINR, monthKey, cn } from "@/lib/utils";
+import { formatINR, formatDate, monthKey, cn } from "@/lib/utils";
 import type { CategoryKey, FinanceEntry, IncomeCategory } from "@/lib/types";
 
 const NOW_KEY = monthKey(new Date().toISOString());
@@ -63,6 +64,9 @@ export default function MoneyPage() {
   const openMoney = useUI((s) => s.openMoney);
   const openBudget = useUI((s) => s.openBudget);
   const openEmergency = useUI((s) => s.openEmergency);
+  const openRecur = useUI((s) => s.openRecur);
+  const recurrings = useStore((s) => s.recurrings);
+  const runRecurring = useStore((s) => s.runRecurring);
   const myId = useMyId() ?? "";
 
   const [mDate, setMDate] = useState(() => {
@@ -95,6 +99,9 @@ export default function MoneyPage() {
     () => wealthRunway({ finance, expenses, meId: myId, accounts: liveAccounts, liabilities, unparked }),
     [finance, expenses, myId, liveAccounts, liabilities, unparked],
   );
+
+  const dueRules = useMemo(() => recurrings.filter((r) => isDue(r)), [recurrings]);
+  const addAllDue = () => dueRules.forEach((r) => runRecurring(r.id));
 
   const overspent = m.net < -0.5;
   const hasData = m.income > 0 || m.spend > 0;
@@ -224,6 +231,100 @@ export default function MoneyPage() {
               Add income
             </button>
           </div>
+
+          {/* Repeats */}
+          <section>
+            <SectionHeader
+              title="Repeats"
+              action={
+                <button onClick={() => openRecur()} className="flex items-center gap-0.5 text-[0.78rem] font-semibold text-brand">
+                  <Plus className="h-3.5 w-3.5" /> Add
+                </button>
+              }
+            />
+            {recurrings.length > 0 ? (
+              <div className="flex flex-col gap-2.5">
+                {dueRules.length > 0 && (
+                  <button
+                    onClick={addAllDue}
+                    className="flex items-center gap-3 rounded-[14px] border border-brand/30 bg-brand-soft px-4 py-3 text-left"
+                  >
+                    <BellRing className="h-4.5 w-4.5 shrink-0 text-brand" />
+                    <span className="min-w-0 flex-1 text-[0.84rem] font-medium leading-snug text-brand-on-soft">
+                      {dueRules.length === 1 ? "1 repeat is due" : `${dueRules.length} repeats are due`} — tap to add{" "}
+                      {dueRules.length === 1 ? "it" : "them"} now.
+                    </span>
+                  </button>
+                )}
+                <Card className="overflow-hidden">
+                  <div className="divide-y divide-border">
+                    {recurrings.map((r) => {
+                      const meta = r.type === "income"
+                        ? INCOME_CATEGORIES[r.category as IncomeCategory] ?? INCOME_CATEGORIES.other
+                        : CATEGORIES[r.category as CategoryKey] ?? CATEGORIES.other;
+                      const Icon = meta.icon;
+                      const due = isDue(r);
+                      const income = r.type === "income";
+                      return (
+                        <button
+                          key={r.id}
+                          onClick={() => openRecur(r.id)}
+                          className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-2 active:bg-surface-inset"
+                        >
+                          <span
+                            className={cn(
+                              "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
+                              income ? "bg-positive-soft text-positive" : "bg-surface-inset text-text-2",
+                            )}
+                          >
+                            <Icon className="h-[18px] w-[18px]" />
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5">
+                              <p className="truncate text-[0.9rem] font-medium text-text">{r.note?.trim() || meta.label}</p>
+                              {!r.auto && (
+                                <span className="shrink-0 rounded-full bg-surface-inset px-1.5 py-0.5 text-[0.58rem] font-bold uppercase tracking-wide text-text-3">
+                                  Remind
+                                </span>
+                              )}
+                            </div>
+                            <p className="truncate text-[0.76rem] text-text-3">
+                              {recurLabel(r)}
+                              {due ? (
+                                <span className="text-brand"> · due now</span>
+                              ) : (
+                                ` · next ${formatDate(nextOccurrence(r.freq, r.day).toISOString(), true)}`
+                              )}
+                            </p>
+                          </div>
+                          <span className={cn("tnum text-[0.92rem] font-semibold", income ? "text-positive" : "text-text")}>
+                            {income ? "+" : "−"}
+                            {formatINR(r.amount)}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </Card>
+              </div>
+            ) : (
+              <button
+                onClick={() => openRecur()}
+                className="flex w-full items-center gap-3.5 rounded-[16px] border border-border bg-surface p-4 text-left shadow-[var(--shadow-xs)] transition-all hover:-translate-y-0.5 hover:border-border-strong hover:shadow-[var(--shadow-md)]"
+              >
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand">
+                  <Repeat className="h-5 w-5" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[0.9rem] font-semibold text-text">Stop typing the same things in</p>
+                  <p className="text-[0.76rem] leading-snug text-text-3">
+                    Salary, rent, subscriptions — set them up once and Tally logs them for you.
+                  </p>
+                </div>
+                <ChevronRight className="h-5 w-5 shrink-0 text-text-3" />
+              </button>
+            )}
+          </section>
 
           {/* Budget */}
           <section>
@@ -373,7 +474,12 @@ export default function MoneyPage() {
                           <Icon className="h-[18px] w-[18px]" />
                         </span>
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-[0.9rem] font-medium text-text">{e.note?.trim() || label}</p>
+                          <div className="flex items-center gap-1.5">
+                            <p className="truncate text-[0.9rem] font-medium text-text">{e.note?.trim() || label}</p>
+                            {e.recurringId && (
+                              <Repeat className="h-3 w-3 shrink-0 text-text-3" aria-label="Added by a repeat" />
+                            )}
+                          </div>
                           <p className="text-[0.76rem] text-text-3">
                             {label} · {new Date(e.date).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
                           </p>
