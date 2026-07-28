@@ -21,6 +21,7 @@ import { SupportSheet } from "@/components/features/support-sheet";
 import { EmergencySheet } from "@/components/features/emergency-sheet";
 import { InvestmentSheet } from "@/components/features/investment-sheet";
 import { RecurringSheet } from "@/components/features/recurring-sheet";
+import { ReconcileSheet } from "@/components/features/reconcile-sheet";
 import { InstallPrompt } from "./install-prompt";
 import { PushAutoEnable } from "./push-auto";
 import { NotificationPrompt } from "./notification-prompt";
@@ -74,6 +75,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <EmergencySheet />
       <InvestmentSheet />
       <RecurringSheet />
+      <ReconcileSheet />
       <InstallPrompt />
       <PushAutoEnable />
       <NotificationPrompt />

@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ChevronLeft, Plus, Check, Flag, Wallet, Scale, TrendingUp, TrendingDown, CalendarClock, AlertTriangle, Lightbulb, Sparkles, PiggyBank, ChevronRight, Info, ShieldCheck, ShieldAlert, Pencil, LineChart, type LucideIcon } from "lucide-react";
+import { ChevronLeft, Plus, Check, Flag, ScanLine, Wallet, Scale, TrendingUp, TrendingDown, CalendarClock, AlertTriangle, Lightbulb, Sparkles, PiggyBank, ChevronRight, Info, ShieldCheck, ShieldAlert, Pencil, LineChart, type LucideIcon } from "lucide-react";
 import { PageGrid, PageCol } from "@/components/app/page-grid";
 import { Card, SectionHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -15,6 +15,7 @@ import { BankBadge } from "@/components/features/bank-badge";
 import { healthScore, netWorth, gradeColor, avgMonthly, wealthRunway, emergencyStatus, type SetupKey } from "@/lib/health";
 import { investmentTotals, holdingGain } from "@/lib/investments";
 import { buildPlan, humanMonths } from "@/lib/payoff";
+import { staleAccounts, lastCheckedLabel } from "@/lib/reconcile";
 import { debtSuggestions, monthlyLiability, type DebtSuggestion } from "@/lib/debt";
 import { withLiveBalances, unparkedAmount } from "@/lib/accounts";
 import { formatINR, cn } from "@/lib/utils";
@@ -64,6 +65,7 @@ export default function WealthPage() {
   const openEmergency = useUI((s) => s.openEmergency);
   const openInvest = useUI((s) => s.openInvest);
   const openMoney = useUI((s) => s.openMoney);
+  const openReconcile = useUI((s) => s.openReconcile);
   const myId = useMyId() ?? "";
 
   function runSetup(key: SetupKey) {
@@ -85,6 +87,7 @@ export default function WealthPage() {
   );
   const ef = useMemo(() => emergencyStatus(emergency, liveAccounts, unparked), [emergency, liveAccounts, unparked]);
   const cashAccounts = useMemo(() => liveAccounts.filter((a) => a.kind !== "investment"), [liveAccounts]);
+  const stale = useMemo(() => staleAccounts(cashAccounts), [cashAccounts]);
   const investList = useMemo(() => liveAccounts.filter((a) => a.kind === "investment"), [liveAccounts]);
   const invTotals = useMemo(() => investmentTotals(liveAccounts), [liveAccounts]);
   const nwBase = useMemo(() => netWorth(liveAccounts, liabilities), [liveAccounts, liabilities]);
@@ -449,6 +452,31 @@ export default function WealthPage() {
                 ))}
               </div>
             </section>
+          )}
+
+          {/* Balances worth a second look */}
+          {stale.length > 0 && (
+            <button
+              onClick={openReconcile}
+              className="flex w-full items-center gap-3.5 rounded-[16px] border border-border bg-surface p-4 text-left shadow-[var(--shadow-xs)] transition-all hover:-translate-y-0.5 hover:border-border-strong hover:shadow-[var(--shadow-md)]"
+            >
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand">
+                <ScanLine className="h-5 w-5" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-[0.9rem] font-semibold text-text">
+                  {stale.length === 1
+                    ? `Is ${stale[0].account.name} still right?`
+                    : `${stale.length} balances worth a check`}
+                </p>
+                <p className="text-[0.76rem] leading-snug text-text-3">
+                  {stale.length === 1
+                    ? `${lastCheckedLabel(stale[0].days)} — a quick look keeps your net worth honest.`
+                    : "Confirm them against your bank so net worth and your score stay trustworthy."}
+                </p>
+              </div>
+              <ChevronRight className="h-5 w-5 shrink-0 text-text-3" />
+            </button>
           )}
 
           {/* Accounts */}

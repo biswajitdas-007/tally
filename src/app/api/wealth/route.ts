@@ -22,6 +22,7 @@ function cleanAccounts(v: unknown): Account[] {
         kind: a.kind as AccountKind,
         balance: a.balance as number,
       };
+      if (isStr(a.reconciledAt)) item.reconciledAt = (a.reconciledAt as string).slice(0, 30);
       if (item.kind === "investment") {
         if (INVESTMENT_TYPES.includes(a.investmentType as InvestmentType)) item.investmentType = a.investmentType as InvestmentType;
         if (isNum(a.invested) && (a.invested as number) >= 0) item.invested = a.invested as number;
