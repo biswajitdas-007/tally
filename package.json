@@ -1,6 +1,6 @@
 {
   "name": "tally",
-  "version": "1.28.0",
+  "version": "1.28.1",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -19,7 +19,7 @@
     "jose": "^6.2.3",
     "lucide-react": "^1.25.0",
     "mongodb": "^7.5.0",
-    "next": "16.2.10",
+    "next": "16.2.12",
     "nodemailer": "^9.0.3",
     "pusher": "^5.3.4",
     "pusher-js": "^8.5.0",
@@ -41,12 +41,13 @@
     "@types/react-dom": "^19",
     "@types/web-push": "^3.6.4",
     "eslint": "^9",
-    "eslint-config-next": "16.2.10",
+    "eslint-config-next": "16.2.12",
     "playwright": "^1.61.1",
     "tailwindcss": "^4",
     "typescript": "^5"
   },
   "overrides": {
-    "postcss": "^8.5.10"
+    "postcss": "^8.5.10",
+    "sharp": "^0.35.3"
   }
 }
