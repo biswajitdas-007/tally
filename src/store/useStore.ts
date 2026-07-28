@@ -1,9 +1,10 @@
 "use client";
 
 import { create } from "zustand";
-import type { Account, Budget, CategoryKey, Emergency, Expense, FinanceEntry, FinanceType, Group, ID, Liability, Person, Split } from "@/lib/types";
+import type { Account, Budget, CategoryKey, Emergency, Expense, FinanceEntry, FinanceType, Group, ID, Liability, Person, Recurring, Split } from "@/lib/types";
 import type { ServerState } from "@/lib/api";
 import * as api from "@/lib/api";
+import { duePeriods } from "@/lib/recurring";
 import { avatarColor, uid } from "@/lib/utils";
 
 interface AddExpenseInput {
@@ -33,6 +34,7 @@ interface State {
   accounts: Account[];
   liabilities: Liability[];
   emergency: Emergency | null;
+  recurrings: Recurring[];
   removedFriends: string[];
   lastDeleted: Expense | null;
 
@@ -56,13 +58,16 @@ interface State {
   updateProfile: (patch: { name?: string; upiId?: string }) => void;
   deleteFriend: (id: ID) => Promise<{ ok: boolean; unsettled?: boolean; amount?: number }>;
 
-  addFinance: (input: { type: FinanceType; amount: number; category: string; date?: string; note?: string; accountId?: ID; transfer?: boolean; payeeVpa?: string; payeeName?: string }) => FinanceEntry;
+  addFinance: (input: { type: FinanceType; amount: number; category: string; date?: string; note?: string; accountId?: ID; transfer?: boolean; payeeVpa?: string; payeeName?: string; recurringId?: ID }) => FinanceEntry;
   updateFinance: (id: ID, patch: Partial<FinanceEntry>) => void;
   deleteFinance: (id: ID) => void;
 
   setBudget: (patch: Partial<Budget>) => void;
   setWealth: (patch: { accounts?: Account[]; liabilities?: Liability[] }) => void;
   setEmergency: (emergency: Emergency | null) => void;
+  saveRecurring: (rule: Recurring) => void;
+  deleteRecurring: (id: ID) => void;
+  runRecurring: (id: ID) => void;
 }
 
 let lastLoadHash = "";
@@ -76,7 +81,8 @@ const stateHash = (s: {
   liabilities: unknown[];
   removedFriends: unknown[];
   emergency: unknown;
-}) => JSON.stringify([s.people, s.groups, s.expenses, s.finance, s.budget, s.accounts, s.liabilities, s.removedFriends, s.emergency]);
+  recurrings: unknown[];
+}) => JSON.stringify([s.people, s.groups, s.expenses, s.finance, s.budget, s.accounts, s.liabilities, s.removedFriends, s.emergency, s.recurrings]);
 
 const now = () => new Date().toISOString();
 const reconcile = (res: Response | null, get: () => State) => {
@@ -97,6 +103,7 @@ export const useStore = create<State>()((set, get) => ({
   accounts: [],
   liabilities: [],
   emergency: null,
+  recurrings: [],
   removedFriends: [],
   lastDeleted: null,
 
@@ -116,6 +123,7 @@ export const useStore = create<State>()((set, get) => ({
       accounts: state.accounts,
       liabilities: state.liabilities,
       emergency: state.emergency ?? null,
+      recurrings: state.recurrings ?? [],
       removedFriends: state.removedFriends ?? [],
       dataReady: true,
       loadError: false,
@@ -134,6 +142,7 @@ export const useStore = create<State>()((set, get) => ({
       accounts: [],
       liabilities: [],
       emergency: null,
+      recurrings: [],
       removedFriends: [],
       lastDeleted: null,
       dataReady: false,
@@ -253,7 +262,7 @@ export const useStore = create<State>()((set, get) => ({
     return res;
   },
 
-  addFinance: ({ type, amount, category, date, note, accountId, transfer, payeeVpa, payeeName }) => {
+  addFinance: ({ type, amount, category, date, note, accountId, transfer, payeeVpa, payeeName, recurringId }) => {
     const e: FinanceEntry = {
       id: uid("f_"),
       type,
@@ -266,6 +275,7 @@ export const useStore = create<State>()((set, get) => ({
       transfer,
       payeeVpa,
       payeeName,
+      recurringId,
     };
     set((s) => ({ finance: [e, ...s.finance] }));
     api.addFinanceApi({ ...e }).then((res) => reconcile(res, get));
@@ -303,6 +313,45 @@ export const useStore = create<State>()((set, get) => ({
     api
       .setWealthApi({ accounts: s.accounts, liabilities: s.liabilities, emergency })
       .then((res) => reconcile(res, get));
+  },
+
+  saveRecurring: (rule) => {
+    set((s) => ({
+      recurrings: s.recurrings.some((r) => r.id === rule.id)
+        ? s.recurrings.map((r) => (r.id === rule.id ? rule : r))
+        : [rule, ...s.recurrings],
+    }));
+    api.setRecurringApi({ recurrings: get().recurrings }).then((res) => reconcile(res, get));
+  },
+
+  deleteRecurring: (id) => {
+    set((s) => ({ recurrings: s.recurrings.filter((r) => r.id !== id) }));
+    api.setRecurringApi({ recurrings: get().recurrings }).then((res) => reconcile(res, get));
+  },
+
+  /**
+   * Add everything a rule owes, right now. The nightly job does this on its own,
+   * but running it here means a due entry shows up the moment you open the app
+   * (and lets you add one early from the Repeats list).
+   */
+  runRecurring: (id) => {
+    const rule = get().recurrings.find((r) => r.id === id);
+    if (!rule) return;
+    const due = duePeriods(rule);
+    if (!due.length) return;
+
+    for (const { date } of due) {
+      get().addFinance({
+        type: rule.type,
+        amount: rule.amount,
+        category: rule.category,
+        date: date.toISOString(),
+        note: rule.note,
+        accountId: rule.accountId,
+        recurringId: rule.id,
+      });
+    }
+    get().saveRecurring({ ...rule, lastRun: due[due.length - 1].key });
   },
 }));
 
