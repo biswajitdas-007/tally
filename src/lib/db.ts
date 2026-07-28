@@ -1,6 +1,6 @@
 import type { Collection } from "mongodb";
 import { getDb } from "./mongodb";
-import type { Account, Budget, Emergency, Expense, FinanceEntry, Group, Liability, Person } from "./types";
+import type { Account, Budget, Emergency, Expense, FinanceEntry, Group, Liability, Person, Recurring } from "./types";
 import type { PushSubscription } from "web-push";
 
 /* ---------- server document shapes ---------- */
@@ -19,6 +19,7 @@ export interface UserDoc {
   accounts?: Account[];
   liabilities?: Liability[];
   emergency?: Emergency;
+  recurrings?: Recurring[];
   updatedAt?: Date;
 }
 
@@ -45,6 +46,7 @@ export interface ExpenseDoc {
   date: string;
   notes?: string;
   recurring?: Expense["recurring"];
+  recurringLast?: string;
   isSettlement?: boolean;
   createdBy: string;
   createdAt: string;
@@ -65,6 +67,7 @@ export interface FinanceDoc {
   transfer?: boolean;
   payeeVpa?: string;
   payeeName?: string;
+  recurringId?: string;
 }
 
 export async function collections() {
@@ -139,6 +142,7 @@ function toClientExpense(e: ExpenseDoc): Expense {
     date: e.date,
     notes: e.notes,
     recurring: e.recurring,
+    recurringLast: e.recurringLast,
     isSettlement: e.isSettlement,
     createdBy: e.createdBy,
     createdAt: e.createdAt,
@@ -159,6 +163,7 @@ function toClientFinance(f: FinanceDoc): FinanceEntry {
     transfer: f.transfer,
     payeeVpa: f.payeeVpa,
     payeeName: f.payeeName,
+    recurringId: f.recurringId,
   };
 }
 
@@ -172,6 +177,7 @@ export interface ClientState {
   accounts: Account[];
   liabilities: Liability[];
   emergency: Emergency | null;
+  recurrings: Recurring[];
   removedFriends: string[];
 }
 
@@ -233,6 +239,7 @@ export async function buildState(uid: string): Promise<ClientState> {
     accounts: meDoc.accounts ?? [],
     liabilities: (meDoc.liabilities ?? []).map(normalizeLiability),
     emergency: meDoc.emergency ?? null,
+    recurrings: meDoc.recurrings ?? [],
     removedFriends: meDoc.removedFriends ?? [],
   };
 }

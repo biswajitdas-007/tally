@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { CalendarDays, Check, Trash2 } from "lucide-react";
+import { CalendarDays, Check, Trash2, Repeat } from "lucide-react";
 import { Sheet } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/input";
 import { Segmented } from "@/components/ui/segmented";
+import { Switch } from "@/components/ui/switch";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CATEGORIES, CATEGORY_LIST, INCOME_LIST } from "@/lib/categories";
@@ -15,9 +16,10 @@ import { useUI } from "@/store/useUI";
 import { useToast } from "@/components/ui/toast";
 import { crossingWarning, monthlyMoney, spendByCategory } from "@/lib/money";
 import { emergencyStatus } from "@/lib/health";
+import { periodKey } from "@/lib/recurring";
 import { withLiveBalances, unparkedAmount } from "@/lib/accounts";
-import { cn, formatDate, formatINR, monthKey } from "@/lib/utils";
-import type { CategoryKey, FinanceType } from "@/lib/types";
+import { cn, formatDate, formatINR, monthKey, uid as newId } from "@/lib/utils";
+import type { CategoryKey, FinanceType, Recurring } from "@/lib/types";
 
 export function AddMoneySheet() {
   const open = useUI((s) => s.moneyOpen);
@@ -32,6 +34,7 @@ export function AddMoneySheet() {
   const addFinance = useStore((s) => s.addFinance);
   const updateFinance = useStore((s) => s.updateFinance);
   const deleteFinance = useStore((s) => s.deleteFinance);
+  const saveRecurring = useStore((s) => s.saveRecurring);
   const myId = useMyId() ?? "";
   const { toast } = useToast();
 
@@ -44,6 +47,7 @@ export function AddMoneySheet() {
   const [dateOpen, setDateOpen] = useState(false);
   const [note, setNote] = useState("");
   const [accountId, setAccountId] = useState<string | null>(null);
+  const [repeat, setRepeat] = useState(false);
 
   // Initialize during render when the sheet opens — no flash of stale values.
   const [wasOpen, setWasOpen] = useState(false);
@@ -56,6 +60,7 @@ export function AddMoneySheet() {
       setDate(new Date(editing.date));
       setNote(editing.note ?? "");
       setAccountId(editing.accountId ?? null);
+      setRepeat(false);
     } else {
       setType(initialType);
       setAmount("");
@@ -63,6 +68,7 @@ export function AddMoneySheet() {
       setDate(new Date());
       setNote("");
       setAccountId(accounts[0]?.id ?? null);
+      setRepeat(false);
     }
   } else if (!open && wasOpen) {
     setWasOpen(false);
@@ -112,7 +118,31 @@ export function AddMoneySheet() {
     } else {
       const warn = budgetWarning() ?? incomeEfNudge();
       addFinance(payload);
-      toast(warn ? { message: warn, tone: "info" } : { message: isIncome ? "Income added" : "Expense added" });
+      if (repeat) {
+        // Stamp the entry's own month as done, so the rule starts from next month
+        // rather than immediately duplicating what was just added.
+        const rule: Recurring = {
+          id: newId("rec_"),
+          type,
+          amount: total,
+          category,
+          note: note.trim() || undefined,
+          accountId: accountId ?? undefined,
+          freq: "monthly",
+          day: Math.min(date.getDate(), 28),
+          auto: true,
+          lastRun: periodKey("monthly", date),
+          createdAt: new Date().toISOString(),
+        };
+        saveRecurring(rule);
+      }
+      toast(
+        warn
+          ? { message: warn, tone: "info" }
+          : repeat
+            ? { message: `Added — and it'll repeat monthly from now on.` }
+            : { message: isIncome ? "Income added" : "Expense added" },
+      );
     }
     close();
   }
@@ -207,6 +237,35 @@ export function AddMoneySheet() {
         </div>
 
         <Textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Add a note (optional)" rows={2} />
+
+        {/* Repeat — only offered on new entries; existing repeats live in Money */}
+        {!editing && (
+          <button
+            onClick={() => setRepeat(!repeat)}
+            className={cn(
+              "flex items-center gap-3 rounded-[16px] border p-4 text-left transition-all",
+              repeat ? "border-brand/40 bg-brand-soft" : "border-border bg-surface-2",
+            )}
+          >
+            <span
+              className={cn(
+                "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
+                repeat ? "bg-brand/15 text-brand" : "bg-surface-inset text-text-3",
+              )}
+            >
+              <Repeat className="h-[18px] w-[18px]" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[0.88rem] font-semibold text-text">Happens every month?</span>
+              <span className="block text-[0.76rem] leading-snug text-text-2">
+                {repeat
+                  ? `We'll add this on the ${Math.min(date.getDate(), 28)}${date.getDate() > 28 ? "th (28th)" : ""} from next month.`
+                  : "Set it up once and stop typing it in."}
+              </span>
+            </span>
+            <Switch checked={repeat} onChange={setRepeat} label="Repeat monthly" />
+          </button>
+        )}
 
         {/* Actions */}
         <div className="sticky bottom-0 -mx-5 flex gap-3 border-t border-border bg-surface px-5 pb-1 pt-3">
