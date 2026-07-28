@@ -68,6 +68,7 @@ interface State {
   saveRecurring: (rule: Recurring) => void;
   deleteRecurring: (id: ID) => void;
   runRecurring: (id: ID) => void;
+  importFinance: (entries: Record<string, unknown>[]) => Promise<{ ok: boolean; added: number }>;
 }
 
 let lastLoadHash = "";
@@ -352,6 +353,19 @@ export const useStore = create<State>()((set, get) => ({
       });
     }
     get().saveRecurring({ ...rule, lastRun: due[due.length - 1].key });
+  },
+
+  /**
+   * Bulk-add entries from a statement import. Unlike the optimistic writes
+   * elsewhere, this waits for the server — the user is confirming a batch and
+   * needs to know it actually landed.
+   */
+  importFinance: async (entries) => {
+    const res = await api.importFinanceApi(entries);
+    if (!res || !res.ok) return { ok: false, added: 0 };
+    const body = (await res.json().catch(() => null)) as { added?: number } | null;
+    await get().refetch();
+    return { ok: true, added: body?.added ?? entries.length };
   },
 }));
 
