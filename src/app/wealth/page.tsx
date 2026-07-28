@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ChevronLeft, Plus, Check, Wallet, Scale, TrendingUp, TrendingDown, CalendarClock, AlertTriangle, Lightbulb, Sparkles, PiggyBank, ChevronRight, Info, ShieldCheck, ShieldAlert, Pencil, LineChart, type LucideIcon } from "lucide-react";
+import { ChevronLeft, Plus, Check, Flag, Wallet, Scale, TrendingUp, TrendingDown, CalendarClock, AlertTriangle, Lightbulb, Sparkles, PiggyBank, ChevronRight, Info, ShieldCheck, ShieldAlert, Pencil, LineChart, type LucideIcon } from "lucide-react";
 import { PageGrid, PageCol } from "@/components/app/page-grid";
 import { Card, SectionHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -14,6 +14,7 @@ import { ACCOUNT_KIND_META, INVESTMENT_TYPE_META, LIABILITY_KIND_META } from "@/
 import { BankBadge } from "@/components/features/bank-badge";
 import { healthScore, netWorth, gradeColor, avgMonthly, wealthRunway, emergencyStatus, type SetupKey } from "@/lib/health";
 import { investmentTotals, holdingGain } from "@/lib/investments";
+import { buildPlan, humanMonths } from "@/lib/payoff";
 import { debtSuggestions, monthlyLiability, type DebtSuggestion } from "@/lib/debt";
 import { withLiveBalances, unparkedAmount } from "@/lib/accounts";
 import { formatINR, cn } from "@/lib/utils";
@@ -97,6 +98,7 @@ export default function WealthPage() {
     [finance, expenses, myId, liveAccounts, liabilities, unparked],
   );
   const emiTotal = useMemo(() => monthlyLiability(liabilities), [liabilities]);
+  const payoff = useMemo(() => buildPlan(liabilities, "avalanche"), [liabilities]);
   const liquid = liveAccounts.filter((a) => a.kind !== "investment").reduce((s, a) => s + a.balance, 0) + unparked;
   const dti = income > 0 ? emiTotal / income : 0;
   const suggestions = useMemo(
@@ -580,6 +582,25 @@ export default function WealthPage() {
                 </button>
               }
             />
+            {payoff.applicable && (
+              <Link
+                href="/debt"
+                className="mb-2.5 flex items-center gap-3.5 rounded-[16px] border border-border bg-surface p-4 shadow-[var(--shadow-xs)] transition-all hover:-translate-y-0.5 hover:border-border-strong hover:shadow-[var(--shadow-md)]"
+              >
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand">
+                  <Flag className="h-5 w-5" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[0.9rem] font-semibold text-text">
+                    Debt-free in {humanMonths(payoff.months)}
+                  </p>
+                  <p className="text-[0.76rem] leading-snug text-text-3">
+                    {formatINR(payoff.totalInterest)} interest to come — see the order to clear them.
+                  </p>
+                </div>
+                <ChevronRight className="h-5 w-5 shrink-0 text-text-3" />
+              </Link>
+            )}
             {liabilities.length > 0 ? (
               <Card className="overflow-hidden">
                 <div className="divide-y divide-border">
