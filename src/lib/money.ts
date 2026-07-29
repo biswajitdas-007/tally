@@ -199,3 +199,38 @@ export function crossingWarning(before: number, after: number, limit: number, la
   }
   return null;
 }
+
+/**
+ * A monthly limit worth believing, from what actually gets spent.
+ *
+ * A budget that's breached every month stops being a signal. This takes the
+ * recent average and rounds it up to a clean figure, so the number is a
+ * stretch rather than a fantasy.
+ */
+export function suggestedBudget(finance: FinanceEntry[], expenses: Expense[], meId: ID, now = new Date()): number {
+  const months: number[] = [];
+  for (let i = 1; i <= 3; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const spent = monthlyMoney(finance, expenses, meId, key).spend;
+    if (spent > 0) months.push(spent);
+  }
+  if (!months.length) return 0;
+  const avg = months.reduce((a, v) => a + v, 0) / months.length;
+  // Round up, never down — a suggestion below the average would be breached
+  // the moment it's accepted.
+  return Math.max(1000, Math.ceil(avg / 1000) * 1000);
+}
+
+/**
+ * Someone logging spending and EMIs but no income at all. Their savings rate
+ * and health score can't say anything until that's fixed, and a recurring
+ * salary fixes it once rather than every month.
+ */
+export function missingIncome(finance: FinanceEntry[], expenses: Expense[], meId: ID, now = new Date()): boolean {
+  const key = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const m = monthlyMoney(finance, expenses, meId, key);
+  if (m.income > 0 || m.spend <= 0) return false;
+  // Only once there's a real habit of logging — not on day one.
+  return finance.filter((f) => !f.transfer && f.type === "expense").length >= 3;
+}
