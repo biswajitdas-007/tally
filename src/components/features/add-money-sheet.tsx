@@ -173,7 +173,6 @@ export function AddMoneySheet() {
               onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
               inputMode="decimal"
               placeholder="0"
-              autoFocus
               style={{ width: `${Math.max((amount || "0").length, 1)}ch`, outline: "none", boxShadow: "none" }}
               className={cn(
                 "bg-transparent text-left font-display text-[3.25rem] font-bold leading-none tracking-tight tnum outline-none placeholder:text-text-3",
