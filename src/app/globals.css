@@ -527,6 +527,8 @@ input[type="number"]::-webkit-inner-spin-button {
 .report-table .wrap {
   white-space: normal;
   overflow: visible;
+  /* A long unbroken string shouldn't be able to widen the page. */
+  overflow-wrap: anywhere;
 }
 .report-table th {
   padding: 0.4rem 0.5rem;
