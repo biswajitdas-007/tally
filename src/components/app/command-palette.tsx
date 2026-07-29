@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { useUI } from "@/store/useUI";
 import { useScrollLock } from "@/hooks/use-scroll-lock";
+import { usePresence } from "@/hooks/use-presence";
 import { cn } from "@/lib/utils";
 
 interface Cmd {
@@ -35,7 +36,8 @@ export function CommandPalette() {
   const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => setMounted(true), []);
-  useScrollLock(open);
+  const [present, onExitComplete] = usePresence(open);
+  useScrollLock(present);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -118,7 +120,7 @@ export function CommandPalette() {
   let lastGroup = "";
 
   return createPortal(
-    <AnimatePresence>
+    <AnimatePresence onExitComplete={onExitComplete}>
       {open && (
         <div className="fixed inset-0 z-[60] flex justify-center px-4 pt-[max(12vh,calc(var(--overlay-top)+8px))]" role="dialog" aria-modal="true" aria-label="Commands">
           <motion.div
