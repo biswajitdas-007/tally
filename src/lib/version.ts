@@ -1,5 +1,5 @@
 /** Human-facing app version, shown in the menu. Bump alongside package.json. */
-export const APP_VERSION = "1.40.0";
+export const APP_VERSION = "1.41.0";
 
 /** Open-source repo + ways to support the project. */
 export const REPO_URL = "https://github.com/biswajitdas-007/tally";
