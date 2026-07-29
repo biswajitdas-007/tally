@@ -61,7 +61,7 @@ export default function ReportPage() {
   const generated = new Date();
 
   return (
-    <div className="report flex flex-col gap-6">
+    <div className="report mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 pb-16 pt-5 md:px-8 md:pt-8 print:max-w-none print:p-0">
       {/* Controls — never printed */}
       <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
         <Link href="/analytics" className="flex w-fit items-center gap-1 text-sm font-medium text-text-2 hover:text-text">
@@ -94,7 +94,9 @@ export default function ReportPage() {
 
       <p className="rounded-[12px] bg-surface-inset px-3.5 py-2.5 text-[0.8rem] leading-snug text-text-2 print:hidden">
         This page is laid out for paper. “Save as PDF” opens your browser&apos;s print dialog — choose{" "}
-        <b className="text-text">Save as PDF</b> as the destination.
+        <b className="text-text">Save as PDF</b> as the destination. Turning off{" "}
+        <b className="text-text">Headers and footers</b> there drops the date and web address your browser adds to each
+        page.
       </p>
 
       {/* ---------- the sheet ---------- */}
@@ -144,8 +146,8 @@ export default function ReportPage() {
               <thead>
                 <tr>
                   <th>Category</th>
-                  <th className="w-24 text-right">Share</th>
-                  <th className="w-32 text-right">Amount</th>
+                  <th style={{ width: "5rem" }} className="text-right">Share</th>
+                  <th style={{ width: "8rem" }} className="text-right">Amount</th>
                 </tr>
               </thead>
               <tbody>
@@ -190,13 +192,13 @@ export default function ReportPage() {
                 <thead>
                   <tr>
                     <th>Person</th>
-                    <th className="w-40 text-right">Balance</th>
+                    <th style={{ width: "12rem" }} className="text-right">Balance</th>
                   </tr>
                 </thead>
                 <tbody>
                   {debts.map((d) => (
                     <tr key={d.personId}>
-                      <td>{nameOf(d.personId)}</td>
+                      <td className="wrap">{nameOf(d.personId)}</td>
                       <td className={cn("text-right tnum font-semibold", d.total > 0 ? "text-positive" : "text-negative")}>
                         {d.total > 0 ? `owes you ${formatINR(d.total)}` : `you owe ${formatINR(-d.total)}`}
                       </td>
@@ -219,11 +221,11 @@ export default function ReportPage() {
             <table className="report-table">
               <thead>
                 <tr>
-                  <th className="w-24">Date</th>
+                  <th style={{ width: "5.6rem" }}>Date</th>
                   <th>Description</th>
-                  <th className="w-32">Category</th>
-                  <th className="w-24">Kind</th>
-                  <th className="w-28 text-right">Amount</th>
+                  <th style={{ width: "7.5rem" }}>Category</th>
+                  <th style={{ width: "6rem" }}>Kind</th>
+                  <th style={{ width: "6.5rem" }} className="text-right">Amount</th>
                 </tr>
               </thead>
               <tbody>
@@ -256,7 +258,7 @@ export default function ReportPage() {
                   .map((r) => (
                     <tr key={r.id}>
                       <td className="tnum text-text-2">{formatDate(r.date, true)}</td>
-                      <td>{r.desc}</td>
+                      <td className="wrap">{r.desc}</td>
                       <td className="text-text-2">{r.cat}</td>
                       <td className="text-text-2">{r.kind}</td>
                       <td className={cn("text-right tnum font-semibold", r.amount > 0 && "text-positive")}>

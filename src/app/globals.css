@@ -513,8 +513,20 @@ input[type="number"]::-webkit-inner-spin-button {
 
 .report-table {
   width: 100%;
+  table-layout: fixed;
   border-collapse: collapse;
-  font-size: 0.86rem;
+  font-size: 0.85rem;
+}
+/* Figures, dates and labels stay on one line; only the description wraps. */
+.report-table th,
+.report-table td {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.report-table .wrap {
+  white-space: normal;
+  overflow: visible;
 }
 .report-table th {
   padding: 0.4rem 0.5rem;
