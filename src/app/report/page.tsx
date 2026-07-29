@@ -68,25 +68,28 @@ export default function ReportPage() {
         <Link href="/analytics" className="flex w-fit items-center gap-1 text-sm font-medium text-text-2 hover:text-text">
           <ChevronLeft className="h-4 w-4" /> Insights
         </Link>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => shift(-1)}
-            className="flex h-9 w-9 items-center justify-center rounded-full text-text-2 transition-colors hover:bg-surface-inset"
-            aria-label="Previous month"
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </button>
-          <span className="min-w-[8rem] text-center font-display text-[0.95rem] font-bold text-text">
-            {monthLabel(mKey)}
-          </span>
-          <button
-            onClick={() => shift(1)}
-            disabled={atCurrent}
-            className="flex h-9 w-9 items-center justify-center rounded-full text-text-2 transition-colors hover:bg-surface-inset disabled:opacity-30"
-            aria-label="Next month"
-          >
-            <ChevronRight className="h-5 w-5" />
-          </button>
+        {/* Wraps rather than pushing the page wider on a narrow phone. */}
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => shift(-1)}
+              className="flex h-9 w-9 items-center justify-center rounded-full text-text-2 transition-colors hover:bg-surface-inset"
+              aria-label="Previous month"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <span className="min-w-[6.5rem] text-center font-display text-[0.95rem] font-bold text-text sm:min-w-[8rem]">
+              {monthLabel(mKey)}
+            </span>
+            <button
+              onClick={() => shift(1)}
+              disabled={atCurrent}
+              className="flex h-9 w-9 items-center justify-center rounded-full text-text-2 transition-colors hover:bg-surface-inset disabled:opacity-30"
+              aria-label="Next month"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
+          </div>
           <Button variant="primary" size="sm" onClick={() => window.print()}>
             <Printer className="h-4 w-4" /> Save as PDF
           </Button>
@@ -147,8 +150,8 @@ export default function ReportPage() {
               <thead>
                 <tr>
                   <th>Category</th>
-                  <th style={{ width: "5rem" }} className="text-right">Share</th>
-                  <th style={{ width: "8rem" }} className="text-right">Amount</th>
+                  <th className="w-[4rem] text-right sm:w-[5rem]">Share</th>
+                  <th className="w-[6.5rem] text-right sm:w-[8rem]">Amount</th>
                 </tr>
               </thead>
               <tbody>
@@ -192,7 +195,7 @@ export default function ReportPage() {
                 <thead>
                   <tr>
                     <th>Person</th>
-                    <th style={{ width: "12rem" }} className="text-right">Balance</th>
+                    <th className="w-[9.5rem] text-right sm:w-[12rem]">Balance</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -221,11 +224,11 @@ export default function ReportPage() {
             <table className="report-table">
               <thead>
                 <tr>
-                  <th style={{ width: "5.6rem" }}>Date</th>
+                  <th className="w-[4.6rem] sm:w-[5.6rem]">Date</th>
                   <th>Description</th>
-                  <th style={{ width: "7.5rem" }}>Category</th>
-                  <th style={{ width: "6rem" }}>Kind</th>
-                  <th style={{ width: "6.5rem" }} className="text-right">Amount</th>
+                  <th className="hidden sm:table-cell sm:w-[7.5rem] print:table-cell">Category</th>
+                  <th className="hidden sm:table-cell sm:w-[6rem] print:table-cell">Kind</th>
+                  <th className="w-[5.2rem] text-right sm:w-[6.5rem]">Amount</th>
                 </tr>
               </thead>
               <tbody>
@@ -258,9 +261,16 @@ export default function ReportPage() {
                   .map((r) => (
                     <tr key={r.id}>
                       <td className="tnum text-text-2">{formatDate(r.date, true)}</td>
-                      <td className="wrap">{r.desc}</td>
-                      <td className="text-text-2">{r.cat}</td>
-                      <td className="text-text-2">{r.kind}</td>
+                      <td className="wrap">
+                        {r.desc}
+                        {/* On a phone the two columns below are folded in here —
+                            skipping the category when it's already the description. */}
+                        <span className="block text-[0.72rem] leading-tight text-text-3 sm:hidden print:hidden">
+                          {r.cat === r.desc ? r.kind : `${r.cat} · ${r.kind}`}
+                        </span>
+                      </td>
+                      <td className="hidden text-text-2 sm:table-cell print:table-cell">{r.cat}</td>
+                      <td className="hidden text-text-2 sm:table-cell print:table-cell">{r.kind}</td>
                       <td className={cn("text-right tnum font-semibold", r.amount > 0 && "text-positive")}>
                         {r.amount > 0 ? "+" : "−"}
                         {formatINR(Math.abs(r.amount))}
