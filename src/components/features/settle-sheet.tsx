@@ -1,17 +1,18 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Check, Copy, Share2 } from "lucide-react";
+import { Check, Copy, QrCode, Share2 } from "lucide-react";
 import { Sheet } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar } from "@/components/ui/avatar";
 import { AccountPicker } from "./account-picker";
+import { UpiQr } from "./upi-qr";
 import { useStore, useMe, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { useToast } from "@/components/ui/toast";
 import { scopedDebts, type ScopeAmount, type ScopeId } from "@/lib/balances";
-import { isValidVpa } from "@/lib/upi";
+import { isValidVpa, upiPayUri } from "@/lib/upi";
 import { formatINR, cn } from "@/lib/utils";
 import { celebrate } from "@/lib/celebrate";
 
@@ -34,6 +35,7 @@ export function SettleSheet() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [accountId, setAccountId] = useState<string | null>(null);
   const [lastTarget, setLastTarget] = useState(target);
+  const [showQr, setShowQr] = useState(false);
 
   const scopes = useMemo<ScopeAmount[]>(() => {
     if (!target) return [];
@@ -49,6 +51,7 @@ export function SettleSheet() {
     setSelected(new Set(scopes.map((s) => scopeKey(s.scopeId))));
     setUpiDraft("");
     setAccountId(accounts[0]?.id ?? null);
+    setShowQr(false);
   }
 
   const person = target ? people.find((p) => p.id === target.personId) ?? null : null;
@@ -65,6 +68,14 @@ export function SettleSheet() {
   const payee = youPay ? person : me;
   const payer = youPay ? me : person;
   const payeeUpi = payee?.upiId && isValidVpa(payee.upiId) ? payee.upiId : null;
+
+  // Names what the money is for on the payer's confirmation screen. A single
+  // group settles under its own name; anything else is just "Tally settle-up".
+  const qrNote =
+    activeScopes.length === 1 && activeScopes[0].scopeId
+      ? `Tally - ${scopeLabel(activeScopes[0].scopeId)}`
+      : "Tally settle-up";
+  const payUri = payeeUpi && amount >= 0.01 ? upiPayUri({ vpa: payeeUpi, name: payee?.name, amount, note: qrNote }) : null;
 
   if (!target || !person) return null;
 
@@ -184,6 +195,45 @@ export function SettleSheet() {
                 ? "Copy their UPI ID, pay in any UPI app, then mark it paid below."
                 : `Share this so ${person.name.split(" ")[0]} can pay you, then mark it received.`}
             </p>
+
+            {/* A QR carries the ID and the amount together, so neither gets
+                retyped. Tally still doesn't move the money — the payer's own
+                UPI app does, and we record that it happened. */}
+            {payUri && (
+              <div className="mt-3 border-t border-border pt-3">
+                {showQr ? (
+                  <div className="flex flex-col gap-3">
+                    <UpiQr
+                      uri={payUri}
+                      amount={amount}
+                      payeeName={payee?.name ?? "them"}
+                      fileLabel={(payee?.name ?? "payee").split(" ")[0].toLowerCase().replace(/[^a-z0-9]/g, "")}
+                    />
+                    <p className="text-[0.78rem] leading-snug text-text-2">
+                      {youPay
+                        ? "Save it, then open your UPI app, tap Scan and pick it from your gallery. Their ID and the amount are already in it."
+                        : `Let ${person.name.split(" ")[0]} scan this — the amount is already filled in. Or share the image so they can scan it from their gallery.`}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setShowQr(false)}
+                      className="self-start text-[0.8rem] font-semibold text-text-3 transition-colors hover:text-text-2"
+                    >
+                      Hide QR
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setShowQr(true)}
+                    className="flex items-center gap-2 text-[0.85rem] font-semibold text-brand transition-opacity hover:opacity-80"
+                  >
+                    <QrCode className="h-4 w-4" />
+                    {youPay ? "Pay by QR instead" : "Show a QR to get paid"}
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         ) : needsOwnUpi ? (
           <div className="rounded-[16px] border border-border bg-surface-2 p-4">
