@@ -20,6 +20,8 @@ export interface UserDoc {
   liabilities?: Liability[];
   emergency?: Emergency;
   recurrings?: Recurring[];
+  /** Explicit choice of home screen; unset means infer it from their data. */
+  moneyMode?: boolean;
   updatedAt?: Date;
 }
 
@@ -180,6 +182,7 @@ export interface ClientState {
   liabilities: Liability[];
   emergency: Emergency | null;
   recurrings: Recurring[];
+  moneyMode: boolean | null;
   removedFriends: string[];
 }
 
@@ -242,6 +245,7 @@ export async function buildState(uid: string): Promise<ClientState> {
     liabilities: (meDoc.liabilities ?? []).map(normalizeLiability),
     emergency: meDoc.emergency ?? null,
     recurrings: meDoc.recurrings ?? [],
+    moneyMode: meDoc.moneyMode ?? null,
     removedFriends: meDoc.removedFriends ?? [],
   };
 }

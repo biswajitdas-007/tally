@@ -200,3 +200,41 @@ export function monthlyTrend(
   }
   return out;
 }
+
+export interface SplitSide extends ScopedTotals {
+  /** How many people you're square-less with on this side. */
+  people: number;
+  /** Distinct groups involved (0 for the direct ledger). */
+  groups: number;
+}
+
+export interface SplitOverview {
+  /** One-on-one splits, outside any group. */
+  direct: SplitSide;
+  /** Everything inside a group. */
+  group: SplitSide;
+  all: ScopedTotals;
+}
+
+/**
+ * Splits broken into the two kinds people actually think in: what you owe a
+ * friend directly, and what's outstanding inside your groups. Each side is
+ * settled independently, so they're computed from their own slice of the
+ * ledger rather than sliced out of a combined total.
+ */
+export function splitOverview(expenses: Expense[], meId: ID): SplitOverview {
+  const side = (list: Expense[]): SplitSide => {
+    const debts = scopedDebts(list, meId);
+    const groups = new Set<string>();
+    for (const e of list) if (e.groupId) groups.add(e.groupId);
+    return { ...scopedTotals(debts), people: debts.length, groups: groups.size };
+  };
+
+  const direct = expenses.filter((e) => !e.groupId);
+  const grouped = expenses.filter((e) => Boolean(e.groupId));
+  return {
+    direct: side(direct),
+    group: side(grouped),
+    all: scopedTotals(scopedDebts(expenses, meId)),
+  };
+}

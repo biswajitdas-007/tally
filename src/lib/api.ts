@@ -13,6 +13,7 @@ export interface ServerState {
   liabilities: Liability[];
   emergency: Emergency | null;
   recurrings: Recurring[];
+  moneyMode: boolean | null;
   removedFriends: string[];
 }
 
