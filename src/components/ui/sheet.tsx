@@ -7,7 +7,8 @@ import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIsDesktop } from "@/hooks/use-media-query";
 import { useScrollLock } from "@/hooks/use-scroll-lock";
-import { useKeyboardInset } from "@/hooks/use-keyboard-inset";
+import { useVisualViewport } from "@/hooks/use-visual-viewport";
+import { usePresence } from "@/hooks/use-presence";
 
 export function Sheet({
   open,
@@ -28,10 +29,13 @@ export function Sheet({
 }) {
   const [mounted, setMounted] = useState(false);
   const isDesktop = useIsDesktop();
-  const keyboard = useKeyboardInset(open && !isDesktop);
+  const vp = useVisualViewport(open && !isDesktop);
+  const keyboard = vp.keyboard;
+  // Hold the page still until the sheet has finished sliding away.
+  const [present, onExitComplete] = usePresence(open);
 
   useEffect(() => setMounted(true), []);
-  useScrollLock(open);
+  useScrollLock(present);
 
   useEffect(() => {
     if (!open) return;
@@ -43,11 +47,14 @@ export function Sheet({
   if (!mounted) return null;
 
   return createPortal(
-    <AnimatePresence>
+    <AnimatePresence onExitComplete={onExitComplete}>
       {open && (
+        // With a keyboard up the visible area both shrinks and slides down the
+        // layout viewport; matching it keeps the sheet off the keys and its top
+        // out from under the notch.
         <div
           className="fixed inset-0 z-50 flex justify-center md:items-center"
-          style={keyboard ? { bottom: keyboard } : undefined}
+          style={keyboard > 0 ? { top: vp.top, height: vp.height, bottom: "auto" } : undefined}
           role="dialog"
           aria-modal="true"
           aria-label={title}
@@ -57,7 +64,7 @@ export function Sheet({
             style={{ background: "var(--scrim)" }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            exit={{ opacity: 0, transition: { duration: 0.2, ease: "easeIn" } }}
             transition={{ duration: 0.22, ease: "easeOut" }}
             onClick={() => dismissable && onClose()}
           />
@@ -72,7 +79,11 @@ export function Sheet({
             )}
             initial={isDesktop ? { opacity: 0, scale: 0.96, y: 8 } : { y: "100%" }}
             animate={isDesktop ? { opacity: 1, scale: 1, y: 0 } : { y: 0 }}
-            exit={isDesktop ? { opacity: 0, scale: 0.97, y: 8 } : { y: "100%" }}
+            exit={
+              isDesktop
+                ? { opacity: 0, scale: 0.97, y: 6, transition: { duration: 0.15, ease: "easeIn" } }
+                : { y: "100%", transition: { duration: 0.24, ease: [0.32, 0, 0.67, 0] } }
+            }
             transition={{ type: "spring", stiffness: 340, damping: 34, mass: 0.9 }}
             drag={isDesktop || !dismissable || keyboard > 0 ? false : "y"}
             dragConstraints={{ top: 0, bottom: 0 }}
