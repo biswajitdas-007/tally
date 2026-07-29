@@ -9,6 +9,7 @@ import {
   FileSpreadsheet, ScanLine, Home, Receipt, PieChart, Activity, User, Flag, CornerDownLeft, type LucideIcon,
 } from "lucide-react";
 import { useUI } from "@/store/useUI";
+import { useScrollLock } from "@/hooks/use-scroll-lock";
 import { cn } from "@/lib/utils";
 
 interface Cmd {
@@ -34,6 +35,7 @@ export function CommandPalette() {
   const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => setMounted(true), []);
+  useScrollLock(open);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
