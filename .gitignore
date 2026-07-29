@@ -48,3 +48,8 @@ next-env.d.ts
 /IMG_*.png
 /Screenshot*.png
 /Screenshot*.PNG
+
+# never commit statements or reports — this repo is public
+*.pdf
+*.xlsx
+*.csv
