@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
-import { TrendingDown, TrendingUp, Download, ChartPie, AlertTriangle, Sparkles, Lightbulb, type LucideIcon } from "lucide-react";
+import Link from "next/link";
+import { TrendingDown, TrendingUp, FileText, ChartPie, AlertTriangle, Sparkles, Lightbulb, type LucideIcon } from "lucide-react";
 import { PageHeader } from "@/components/app/page-header";
 import { PageGrid, PageCol } from "@/components/app/page-grid";
 import { Card } from "@/components/ui/card";
@@ -94,26 +95,6 @@ export default function AnalyticsPage() {
   }, [expenses, groups, myId]);
   const byGroupTotal = byGroup.reduce((a, g) => a + g.amount, 0) || 1;
 
-  function exportCsv() {
-    const rows = [["Date", "Description", "Category", "Total", "Your share", "Group"]];
-    for (const e of [...expenses].sort((a, b) => +new Date(b.date) - +new Date(a.date))) {
-      rows.push([
-        new Date(e.date).toISOString().slice(0, 10),
-        `"${e.description.replace(/"/g, "'")}"`,
-        e.category,
-        String(e.amount),
-        String(myShare(e, myId)),
-        groups.find((g) => g.id === e.groupId)?.name ?? "",
-      ]);
-    }
-    const blob = new Blob([rows.map((r) => r.join(",")).join("\n")], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `tally-expenses-${thisKey}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -121,12 +102,12 @@ export default function AnalyticsPage() {
         title="Insights"
         subtitle="Your full spending picture"
         action={
-          <button
-            onClick={exportCsv}
+          <Link
+            href="/report"
             className="flex h-9 items-center gap-1.5 rounded-full border border-border bg-surface px-3.5 text-[0.8rem] font-semibold text-text-2 transition-colors hover:border-border-strong"
           >
-            <Download className="h-4 w-4" /> Export
-          </button>
+            <FileText className="h-4 w-4" /> Report
+          </Link>
         }
       />
 

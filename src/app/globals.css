@@ -498,3 +498,114 @@ input[type="number"]::-webkit-inner-spin-button {
     animation: none;
   }
 }
+
+/* ---------- printable report ---------- */
+
+.report-h2 {
+  margin-bottom: 0.6rem;
+  font-family: var(--font-display, inherit);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+}
+.report-table th {
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid var(--border-strong);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  text-align: left;
+  color: var(--text-3);
+}
+.report-table td {
+  padding: 0.45rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+  color: var(--text);
+}
+.report-table tfoot td {
+  border-bottom: none;
+  border-top: 1px solid var(--border-strong);
+  font-weight: 600;
+}
+.report-table tr {
+  break-inside: avoid;
+}
+
+@media print {
+  /*
+   * A report is going onto paper, so it renders light whatever the app theme
+   * is — dark backgrounds waste ink and read badly. Everything is themed
+   * through variables, so overriding them here re-colours the whole page.
+   */
+  :root,
+  :root[data-theme="dark"] {
+    color-scheme: light;
+    --bg: #ffffff;
+    --bg-subtle: #ffffff;
+    --surface: #ffffff;
+    --surface-2: #fafbf9;
+    --surface-inset: #f2f4f0;
+    --border: #dfe3da;
+    --border-strong: #c3c9ba;
+    --text: #10160f;
+    --text-2: #4a5348;
+    --text-3: #78806f;
+    --scrim: transparent;
+  }
+
+  @page {
+    size: A4;
+    margin: 14mm;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+    /* Let the page grow past the viewport rather than clipping to it. */
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* App chrome has no business on paper. */
+  aside,
+  header.glass,
+  nav.fixed,
+  .print\:hidden {
+    display: none !important;
+  }
+
+  main > div {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+
+  .report-sheet {
+    gap: 1.5rem;
+  }
+  .report-sheet section {
+    break-inside: auto;
+  }
+  .break-inside-avoid {
+    break-inside: avoid;
+  }
+
+  /* Keep category dots and coloured figures rather than flattening to grey. */
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  a[href]::after {
+    content: "";
+  }
+}
