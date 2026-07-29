@@ -120,7 +120,7 @@ export function CommandPalette() {
   return createPortal(
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-[60] flex justify-center px-4 pt-[12vh]" role="dialog" aria-modal="true" aria-label="Commands">
+        <div className="fixed inset-0 z-[60] flex justify-center px-4 pt-[max(12vh,calc(var(--overlay-top)+8px))]" role="dialog" aria-modal="true" aria-label="Commands">
           <motion.div
             className="absolute inset-0"
             style={{ background: "var(--scrim)" }}

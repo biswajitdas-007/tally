@@ -80,7 +80,7 @@ export function MenuDrawer() {
             <Link
               href="/account"
               onClick={close}
-              className="flex items-center gap-3 border-b border-border px-5 pb-4 pt-[calc(env(safe-area-inset-top)+18px)] transition-colors hover:bg-surface-inset"
+              className="flex items-center gap-3 border-b border-border px-5 pb-4 pt-[calc(var(--overlay-top)+8px)] transition-colors hover:bg-surface-inset"
             >
               <Avatar person={me} size="lg" />
               <div className="min-w-0 flex-1">
@@ -120,7 +120,7 @@ export function MenuDrawer() {
             </div>
 
             {/* Footer */}
-            <div className="flex flex-col gap-1 border-t border-border px-3 pb-[max(env(safe-area-inset-bottom),14px)] pt-2">
+            <div className="flex flex-col gap-1 border-t border-border px-3 pb-[max(var(--safe-bottom),14px)] pt-2">
               <button
                 onClick={() => {
                   close();

@@ -315,11 +315,27 @@ select:focus-visible {
   -webkit-backdrop-filter: saturate(1.6) blur(18px);
 }
 
+/*
+ * The device's safe areas, behind variables.
+ *
+ * viewport-fit=cover lets the app paint edge to edge, which means the top of
+ * the screen is under the notch or Dynamic Island. Naming the insets keeps
+ * every overlay honest about them — and, unlike raw env(), they can be
+ * overridden to check the layout on a device you don't have to hand.
+ */
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  /* Clear of the island, with room to breathe rather than tucked against it. */
+  --overlay-top: max(calc(var(--safe-top) + 12px), 24px);
+  --overlay-bottom: max(var(--safe-bottom), 16px);
+}
+
 .pb-safe {
-  padding-bottom: max(env(safe-area-inset-bottom), 0px);
+  padding-bottom: var(--safe-bottom);
 }
 .pt-safe {
-  padding-top: max(env(safe-area-inset-top), 0px);
+  padding-top: var(--safe-top);
 }
 
 * {

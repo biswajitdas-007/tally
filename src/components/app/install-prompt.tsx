@@ -49,7 +49,7 @@ export function InstallPrompt() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 20 }}
-          className="fixed inset-x-4 bottom-[calc(env(safe-area-inset-bottom)+80px)] z-40 mx-auto flex max-w-sm items-center gap-3 rounded-[18px] border border-border bg-surface p-3 shadow-[var(--shadow-lg)] md:inset-x-auto md:bottom-6 md:right-6"
+          className="fixed inset-x-4 bottom-[calc(var(--safe-bottom)+80px)] z-40 mx-auto flex max-w-sm items-center gap-3 rounded-[18px] border border-border bg-surface p-3 shadow-[var(--shadow-lg)] md:inset-x-auto md:bottom-6 md:right-6"
         >
           <TallyMark size={40} />
           <div className="min-w-0 flex-1">

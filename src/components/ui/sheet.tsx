@@ -66,7 +66,7 @@ export function Sheet({
               // Height is capped against whatever space is left — the container
               // already stops short of the keyboard — minus the top safe-area
               // inset, so the sheet never rides up under the notch.
-              "relative mt-auto flex w-full max-h-[calc(100%-max(env(safe-area-inset-top),20px))] flex-col overflow-hidden border border-border bg-surface shadow-[var(--shadow-lg)]",
+              "relative mt-auto flex w-full max-h-[calc(100%-var(--overlay-top))] flex-col overflow-hidden border border-border bg-surface shadow-[var(--shadow-lg)]",
               "rounded-t-[26px] md:mt-0 md:max-h-[88vh] md:max-w-[440px] md:rounded-[24px]",
               className,
             )}
@@ -106,7 +106,7 @@ export function Sheet({
             <div
               className={cn(
                 "min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pt-2",
-                keyboard ? "pb-4" : "pb-[max(env(safe-area-inset-bottom),20px)]",
+                keyboard ? "pb-4" : "pb-[max(var(--safe-bottom),20px)]",
               )}
             >
               {children}
