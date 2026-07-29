@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useScrollLock } from "@/hooks/use-scroll-lock";
+import { usePresence } from "@/hooks/use-presence";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
@@ -45,7 +46,8 @@ export function MenuDrawer() {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  useScrollLock(open);
+  const [present, onExitComplete] = usePresence(open);
+  useScrollLock(present);
 
   useEffect(() => {
     if (!open) return;
@@ -57,7 +59,7 @@ export function MenuDrawer() {
   if (!mounted) return null;
 
   return createPortal(
-    <AnimatePresence>
+    <AnimatePresence onExitComplete={onExitComplete}>
       {open && (
         <div className="fixed inset-0 z-50 md:hidden" role="dialog" aria-modal="true" aria-label="Menu">
           <motion.div
