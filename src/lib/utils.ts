@@ -129,3 +129,65 @@ export function splitEqually(total: number, count: number): number[] {
   const remainder = cents - base * count;
   return Array.from({ length: count }, (_, i) => (base + (i < remainder ? 1 : 0)) / 100);
 }
+
+/**
+ * One amount's share of a total, for a figure shown on its own.
+ *
+ * Something real but tiny reads "<1%" rather than "0%", which next to an
+ * actual amount looks like a mistake. Use `percentShares` instead for a column
+ * of shares, where the numbers also have to add up.
+ */
+export function formatShare(part: number, total: number): string {
+  if (total <= 0 || part <= 0) return "0%";
+  const pct = (part / total) * 100;
+  if (pct < 1) return "<1%";
+  if (pct > 99 && pct < 100) return ">99%";
+  return `${Math.round(pct)}%`;
+}
+
+/**
+ * Whole-number percentages for a list of amounts, guaranteed to total 100.
+ *
+ * Rounding each share on its own doesn't add up — 83.1, 10.2, 6.4 and 0.2 each
+ * round to 83, 10, 6, 0, which is 99 and leaves a real ₹48 showing as nothing.
+ * So the floors are taken first, every non-zero amount is guaranteed at least
+ * 1%, and whatever is left over goes to the largest fractional parts (the
+ * largest-remainder method). If the minimums overshoot, the excess is taken
+ * back from the biggest shares, never pushing one below 1.
+ */
+export function percentShares(values: number[]): number[] {
+  const total = values.reduce((a, v) => a + Math.max(0, v), 0);
+  if (total <= 0) return values.map(() => 0);
+
+  const exact = values.map((v) => (Math.max(0, v) / total) * 100);
+  const out = exact.map((e) => Math.floor(e));
+  const positives = values.map((v) => v > 0);
+
+  // Nothing real should read as 0% — but only while there's room to give.
+  if (positives.filter(Boolean).length <= 100) {
+    out.forEach((v, i) => {
+      if (positives[i] && v === 0) out[i] = 1;
+    });
+  }
+
+  let diff = 100 - out.reduce((a, v) => a + v, 0);
+  const order = exact
+    .map((e, i) => ({ i, frac: e - Math.floor(e) }))
+    .sort((a, b) => b.frac - a.frac);
+
+  // Hand out what's left, largest fractional part first.
+  for (let k = 0; diff > 0 && order.length; k = (k + 1) % order.length) {
+    out[order[k].i]++;
+    diff--;
+  }
+  // Or claw back, smallest fractional part first, without starving a row.
+  for (let k = order.length - 1; diff < 0 && order.length; k = (k - 1 + order.length) % order.length) {
+    const i = order[k].i;
+    const floor = positives[i] ? 1 : 0;
+    if (out[i] > floor) {
+      out[i]--;
+      diff++;
+    }
+  }
+  return out;
+}
