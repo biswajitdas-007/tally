@@ -24,7 +24,7 @@ export function BottomNav() {
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 md:hidden">
-      <div className="glass border-t border-border pb-[max(env(safe-area-inset-bottom),8px)]">
+      <div className="glass border-t border-border pb-[max(var(--safe-bottom),8px)]">
         <div className="relative mx-auto flex h-16 max-w-md items-center justify-around px-2">
           {left.map((item) => (
             <NavButton key={item.href} item={item} active={activeHref(item.href)} onTap={() => setPending(item.href)} />

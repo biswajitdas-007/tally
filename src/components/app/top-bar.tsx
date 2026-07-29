@@ -12,7 +12,7 @@ export function TopBar() {
   const openMenu = useUI((s) => s.openMenu);
 
   return (
-    <header className="glass sticky top-0 z-30 border-b border-border pt-[env(safe-area-inset-top)] md:hidden">
+    <header className="glass sticky top-0 z-30 border-b border-border pt-[var(--safe-top)] md:hidden">
       <div className="flex h-14 items-center gap-1 px-2.5">
         <button
           onClick={openMenu}

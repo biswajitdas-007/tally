@@ -52,7 +52,7 @@ export function LoginScreen() {
   }
 
   return (
-    <div className="relative flex min-h-dvh flex-col overflow-hidden bg-bg px-6 pb-[max(env(safe-area-inset-bottom),24px)] pt-[max(env(safe-area-inset-top),16px)]">
+    <div className="relative flex min-h-dvh flex-col overflow-hidden bg-bg px-6 pb-[max(var(--safe-bottom),24px)] pt-[max(var(--safe-top),16px)]">
       <div className="pointer-events-none absolute -top-40 left-1/2 h-80 w-[36rem] -translate-x-1/2 rounded-full bg-brand-soft blur-[90px] opacity-70" />
       <div className="pointer-events-none absolute -bottom-32 -right-24 h-72 w-72 rounded-full bg-brass-soft blur-[80px] opacity-50" />
 

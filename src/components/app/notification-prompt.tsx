@@ -43,7 +43,7 @@ export function NotificationPrompt() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 20 }}
           transition={{ type: "spring", stiffness: 360, damping: 30 }}
-          className="fixed inset-x-4 bottom-[calc(env(safe-area-inset-bottom)+80px)] z-40 mx-auto flex max-w-sm items-center gap-3 overflow-hidden rounded-[18px] border border-border bg-surface p-3 shadow-[var(--shadow-lg)] md:inset-x-auto md:bottom-6 md:right-6"
+          className="fixed inset-x-4 bottom-[calc(var(--safe-bottom)+80px)] z-40 mx-auto flex max-w-sm items-center gap-3 overflow-hidden rounded-[18px] border border-border bg-surface p-3 shadow-[var(--shadow-lg)] md:inset-x-auto md:bottom-6 md:right-6"
         >
           <div className="pointer-events-none absolute -right-6 -top-8 h-24 w-24 rounded-full bg-brand-soft opacity-60 blur-2xl" />
           <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-brand text-on-brand">
