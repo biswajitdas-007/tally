@@ -11,7 +11,7 @@ export function MonthNav({
   value,
   onChange,
   className,
-}: {
+}: Readonly<{
   /** First of the month being viewed. */
   value: Date;
   /**
@@ -21,7 +21,7 @@ export function MonthNav({
    */
   onChange: Dispatch<SetStateAction<Date>>;
   className?: string;
-}) {
+}>) {
   const key = `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}`;
   const now = new Date();
   const nowKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
@@ -30,6 +30,7 @@ export function MonthNav({
   return (
     <div className={cn("flex items-center gap-1", className)}>
       <button
+        type="button"
         onClick={() => shift(-1)}
         className="flex h-9 w-9 items-center justify-center rounded-full text-text-2 transition-colors hover:bg-surface-inset"
         aria-label="Previous month"
@@ -40,6 +41,7 @@ export function MonthNav({
         {monthLabel(key)}
       </span>
       <button
+        type="button"
         onClick={() => shift(1)}
         disabled={key >= nowKey}
         className="flex h-9 w-9 items-center justify-center rounded-full text-text-2 transition-colors hover:bg-surface-inset disabled:opacity-30"

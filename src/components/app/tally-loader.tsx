@@ -20,10 +20,10 @@ export function TallyLoader({ size = 78 }: { size?: number }) {
   const [i, setI] = useState(0);
   useEffect(() => {
     // The first line is always the same one so the server and the client render
-    // identical markup — picking at random during render is a hydration
-    // mismatch. From the second line on we start somewhere random, so a reload
-    // doesn't replay the same sequence.
-    let next = 1 + Math.floor(Math.random() * (MESSAGES.length - 1));
+    // identical markup — varying it during render is a hydration mismatch.
+    // Where the rotation picks up is seeded off the clock, so two loads in a
+    // row don't replay the same sequence.
+    let next = 1 + (Date.now() % (MESSAGES.length - 1));
     const t = setInterval(() => {
       setI(next);
       next = (next + 1) % MESSAGES.length;

@@ -70,6 +70,10 @@ function Analytics() {
   const lastSpend = useMemo(() => monthlyMoney(finance, expenses, myId, prevKey).spend, [finance, expenses, myId, prevKey]);
   const delta = lastSpend > 0 ? ((thisSpend - lastSpend) / lastSpend) * 100 : 0;
   const up = thisSpend > lastSpend;
+  const spendCaption =
+    lastSpend > 0
+      ? `${up ? "Up" : "Down"} from ${formatINR(lastSpend)} in ${monthName(prevKey)}`
+      : "Personal spending + your share of splits";
 
   const trend = useMemo(() => {
     const out: { label: string; value: number }[] = [];
@@ -155,11 +159,7 @@ function Analytics() {
                 </span>
               )}
             </div>
-            <p className="mt-1 text-[0.82rem] text-text-2">
-              {lastSpend > 0
-                ? `${up ? "Up" : "Down"} from ${formatINR(lastSpend)} in ${monthName(prevKey)}`
-                : "Personal spending + your share of splits"}
-            </p>
+            <p className="mt-1 text-[0.82rem] text-text-2">{spendCaption}</p>
 
             <div className="mt-5 border-t border-border pt-4">
               <BarChart data={trend} height={130} />
