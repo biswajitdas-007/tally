@@ -35,6 +35,7 @@ interface State {
   liabilities: Liability[];
   emergency: Emergency | null;
   recurrings: Recurring[];
+  moneyMode: boolean | null;
   removedFriends: string[];
   lastDeleted: Expense | null;
 
@@ -55,7 +56,7 @@ interface State {
   deleteGroup: (id: ID) => void;
 
   settleUp: (input: { from: ID; to: ID; amount: number; groupId?: ID | null; note?: string; accountId?: ID }) => void;
-  updateProfile: (patch: { name?: string; upiId?: string }) => void;
+  updateProfile: (patch: { name?: string; upiId?: string; moneyMode?: boolean }) => void;
   deleteFriend: (id: ID) => Promise<{ ok: boolean; unsettled?: boolean; amount?: number }>;
 
   addFinance: (input: { type: FinanceType; amount: number; category: string; date?: string; note?: string; accountId?: ID; transfer?: boolean; payeeVpa?: string; payeeName?: string; recurringId?: ID }) => FinanceEntry;
@@ -83,7 +84,8 @@ const stateHash = (s: {
   removedFriends: unknown[];
   emergency: unknown;
   recurrings: unknown[];
-}) => JSON.stringify([s.people, s.groups, s.expenses, s.finance, s.budget, s.accounts, s.liabilities, s.removedFriends, s.emergency, s.recurrings]);
+  moneyMode: unknown;
+}) => JSON.stringify([s.people, s.groups, s.expenses, s.finance, s.budget, s.accounts, s.liabilities, s.removedFriends, s.emergency, s.recurrings, s.moneyMode]);
 
 const now = () => new Date().toISOString();
 const reconcile = (res: Response | null, get: () => State) => {
@@ -105,6 +107,7 @@ export const useStore = create<State>()((set, get) => ({
   liabilities: [],
   emergency: null,
   recurrings: [],
+  moneyMode: null,
   removedFriends: [],
   lastDeleted: null,
 
@@ -125,6 +128,7 @@ export const useStore = create<State>()((set, get) => ({
       liabilities: state.liabilities,
       emergency: state.emergency ?? null,
       recurrings: state.recurrings ?? [],
+      moneyMode: state.moneyMode ?? null,
       removedFriends: state.removedFriends ?? [],
       dataReady: true,
       loadError: false,
@@ -144,6 +148,7 @@ export const useStore = create<State>()((set, get) => ({
       liabilities: [],
       emergency: null,
       recurrings: [],
+      moneyMode: null,
       removedFriends: [],
       lastDeleted: null,
       dataReady: false,
@@ -246,9 +251,11 @@ export const useStore = create<State>()((set, get) => ({
 
   updateProfile: (patch) => {
     const meId = get().currentUserId ?? "";
+    const { moneyMode, ...person } = patch;
     set((s) => ({
-      me: s.me ? { ...s.me, ...patch } : s.me,
-      people: s.people.map((p) => (p.id === meId ? { ...p, ...patch } : p)),
+      me: s.me ? { ...s.me, ...person } : s.me,
+      people: s.people.map((p) => (p.id === meId ? { ...p, ...person } : p)),
+      moneyMode: moneyMode === undefined ? s.moneyMode : moneyMode,
     }));
     api.updateProfileApi({ ...patch }).then((res) => reconcile(res, get));
   },
