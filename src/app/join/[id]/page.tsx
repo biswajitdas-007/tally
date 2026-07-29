@@ -79,7 +79,7 @@ export default function JoinPage() {
   }
 
   return (
-    <div className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-bg px-6">
+    <div className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-bg px-6 pb-[max(var(--safe-bottom),24px)] pt-[max(var(--safe-top),24px)]">
       <div className="pointer-events-none absolute -top-40 left-1/2 h-80 w-[36rem] -translate-x-1/2 rounded-full bg-brand-soft blur-[90px] opacity-70" />
       <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} className="relative z-10 w-full max-w-sm">
         <div className="mb-6 flex items-center justify-center gap-2.5">

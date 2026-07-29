@@ -62,7 +62,7 @@ export default function ReportPage() {
   const generated = new Date();
 
   return (
-    <div className="report mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 pb-16 pt-5 md:px-8 md:pt-8 print:max-w-none print:p-0">
+    <div className="report mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 pb-[calc(var(--safe-bottom)+4rem)] pt-[calc(var(--safe-top)+1.25rem)] md:px-8 md:pt-[calc(var(--safe-top)+2rem)] print:max-w-none print:p-0">
       {/* Controls — never printed */}
       <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
         <Link href="/analytics" className="flex w-fit items-center gap-1 text-sm font-medium text-text-2 hover:text-text">
