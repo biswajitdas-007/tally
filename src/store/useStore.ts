@@ -59,7 +59,7 @@ interface State {
   updateProfile: (patch: { name?: string; upiId?: string; moneyMode?: boolean }) => void;
   deleteFriend: (id: ID) => Promise<{ ok: boolean; unsettled?: boolean; amount?: number }>;
 
-  addFinance: (input: { type: FinanceType; amount: number; category: string; date?: string; note?: string; accountId?: ID; transfer?: boolean; payeeVpa?: string; payeeName?: string; recurringId?: ID }) => FinanceEntry;
+  addFinance: (input: { type: FinanceType; amount: number; category: string; date?: string; note?: string; accountId?: ID; transfer?: boolean; recurringId?: ID }) => FinanceEntry;
   updateFinance: (id: ID, patch: Partial<FinanceEntry>) => void;
   deleteFinance: (id: ID) => void;
 
@@ -269,7 +269,7 @@ export const useStore = create<State>()((set, get) => ({
     return res;
   },
 
-  addFinance: ({ type, amount, category, date, note, accountId, transfer, payeeVpa, payeeName, recurringId }) => {
+  addFinance: ({ type, amount, category, date, note, accountId, transfer, recurringId }) => {
     const e: FinanceEntry = {
       id: uid("f_"),
       type,
@@ -280,8 +280,6 @@ export const useStore = create<State>()((set, get) => ({
       createdAt: now(),
       accountId,
       transfer,
-      payeeVpa,
-      payeeName,
       recurringId,
     };
     set((s) => ({ finance: [e, ...s.finance] }));

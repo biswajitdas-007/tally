@@ -7,7 +7,6 @@ const uri = process.env.MONGODB_URI;
  * so we don't exhaust the connection pool.
  */
 declare global {
-  // eslint-disable-next-line no-var
   var _tallyMongo: Promise<MongoClient> | undefined;
 }
 

@@ -142,6 +142,25 @@ export function monthLabel(mKey: string): string {
   return new Date(y, m - 1).toLocaleDateString("en-IN", { month: "long", year: "numeric" });
 }
 
+/** First of `d`'s month, never later than the current one — there's nothing to
+ *  show in a month that hasn't happened. */
+export function clampMonth(d: Date, now = new Date()): Date {
+  const ceiling = new Date(now.getFullYear(), now.getMonth(), 1);
+  const first = new Date(d.getFullYear(), d.getMonth(), 1);
+  return first > ceiling ? ceiling : first;
+}
+
+/**
+ * Reads a "YYYY-MM" URL parameter into the first of that month, so moving
+ * between Insights and the report keeps the month you were looking at.
+ * Anything unparseable falls back to the current month.
+ */
+export function monthFromParam(param: string | null | undefined, now = new Date()): Date {
+  const match = param?.match(/^(\d{4})-(0[1-9]|1[0-2])$/);
+  if (!match) return clampMonth(now, now);
+  return clampMonth(new Date(Number(match[1]), Number(match[2]) - 1, 1), now);
+}
+
 /* ---------- budgets (50/30/20 + per-category caps) ---------- */
 
 /** Which half of the 50/30/20 split each spend category falls under. */
@@ -198,4 +217,39 @@ export function crossingWarning(before: number, after: number, limit: number, la
     return `You're at ${Math.round((after / limit) * 100)}% of your ${label} budget.`;
   }
   return null;
+}
+
+/**
+ * A monthly limit worth believing, from what actually gets spent.
+ *
+ * A budget that's breached every month stops being a signal. This takes the
+ * recent average and rounds it up to a clean figure, so the number is a
+ * stretch rather than a fantasy.
+ */
+export function suggestedBudget(finance: FinanceEntry[], expenses: Expense[], meId: ID, now = new Date()): number {
+  const months: number[] = [];
+  for (let i = 1; i <= 3; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const spent = monthlyMoney(finance, expenses, meId, key).spend;
+    if (spent > 0) months.push(spent);
+  }
+  if (!months.length) return 0;
+  const avg = months.reduce((a, v) => a + v, 0) / months.length;
+  // Round up, never down — a suggestion below the average would be breached
+  // the moment it's accepted.
+  return Math.max(1000, Math.ceil(avg / 1000) * 1000);
+}
+
+/**
+ * Someone logging spending and EMIs but no income at all. Their savings rate
+ * and health score can't say anything until that's fixed, and a recurring
+ * salary fixes it once rather than every month.
+ */
+export function missingIncome(finance: FinanceEntry[], expenses: Expense[], meId: ID, now = new Date()): boolean {
+  const key = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const m = monthlyMoney(finance, expenses, meId, key);
+  if (m.income > 0 || m.spend <= 0) return false;
+  // Only once there's a real habit of logging — not on day one.
+  return finance.filter((f) => !f.transfer && f.type === "expense").length >= 3;
 }

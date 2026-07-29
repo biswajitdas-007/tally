@@ -67,8 +67,6 @@ export interface FinanceDoc {
   createdAt: string;
   accountId?: string;
   transfer?: boolean;
-  payeeVpa?: string;
-  payeeName?: string;
   recurringId?: string;
 }
 
@@ -163,8 +161,6 @@ function toClientFinance(f: FinanceDoc): FinanceEntry {
     createdAt: f.createdAt,
     accountId: f.accountId,
     transfer: f.transfer,
-    payeeVpa: f.payeeVpa,
-    payeeName: f.payeeName,
     recurringId: f.recurringId,
   };
 }
