@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 const MESSAGES = [
   "Splitting the bill, not the friendship 🤝",
@@ -15,23 +15,21 @@ const MESSAGES = [
   "Balancing the books 📒",
 ];
 
-function shuffle<T>(arr: T[]): T[] {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
 /** Branded loader: the tally marks draw in one-by-one, with a rotating message. */
 export function TallyLoader({ size = 78 }: { size?: number }) {
-  const messages = useMemo(() => shuffle(MESSAGES), []);
   const [i, setI] = useState(0);
   useEffect(() => {
-    const t = setInterval(() => setI((v) => (v + 1) % messages.length), 1300);
+    // The first line is always the same one so the server and the client render
+    // identical markup — picking at random during render is a hydration
+    // mismatch. From the second line on we start somewhere random, so a reload
+    // doesn't replay the same sequence.
+    let next = 1 + Math.floor(Math.random() * (MESSAGES.length - 1));
+    const t = setInterval(() => {
+      setI(next);
+      next = (next + 1) % MESSAGES.length;
+    }, 1300);
     return () => clearInterval(t);
-  }, [messages.length]);
+  }, []);
 
   return (
     <div className="flex flex-col items-center gap-5">
@@ -64,7 +62,7 @@ export function TallyLoader({ size = 78 }: { size?: number }) {
       </svg>
       <div className="flex min-h-[2.4rem] items-start justify-center px-6 text-center">
         <p key={i} className="animate-fade-up max-w-[17rem] text-sm font-medium text-text-2">
-          {messages[i]}
+          {MESSAGES[i]}
         </p>
       </div>
     </div>

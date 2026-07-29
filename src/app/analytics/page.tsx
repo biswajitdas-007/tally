@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo } from "react";
+import { Suspense, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { TrendingDown, TrendingUp, FileText, ChartPie, AlertTriangle, Sparkles, Lightbulb, type LucideIcon } from "lucide-react";
 import { PageHeader } from "@/components/app/page-header";
 import { PageGrid, PageCol } from "@/components/app/page-grid";
@@ -12,9 +13,10 @@ import { BarChart } from "@/components/charts/bar-chart";
 import { useStore, useMyId } from "@/store/useStore";
 import { CATEGORIES } from "@/lib/categories";
 import { myShare } from "@/lib/balances";
-import { monthlyMoney, spendByCategory } from "@/lib/money";
+import { monthlyMoney, spendByCategory, monthFromParam, monthLabel as monthName } from "@/lib/money";
 import { insights, type Insight } from "@/lib/insights";
 import { formatINR, percentShares, monthLabel, cn } from "@/lib/utils";
+import { MonthNav } from "@/components/app/month-nav";
 
 const INSIGHT_ICON: Record<Insight["tone"], LucideIcon> = { warn: AlertTriangle, good: Sparkles, info: Lightbulb };
 
@@ -40,16 +42,27 @@ function InsightCard({ ins }: { ins: Insight }) {
 }
 
 export default function AnalyticsPage() {
+  // useSearchParams needs a boundary so the rest of the page can prerender.
+  return (
+    <Suspense>
+      <Analytics />
+    </Suspense>
+  );
+}
+
+function Analytics() {
   const expenses = useStore((s) => s.expenses);
   const finance = useStore((s) => s.finance);
   const budget = useStore((s) => s.budget);
   const groups = useStore((s) => s.groups);
   const myId = useMyId() ?? "";
 
-  const now = new Date();
-  const thisKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const prevKey = `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, "0")}`;
+  const requested = useSearchParams().get("m");
+  const [mDate, setMDate] = useState(() => monthFromParam(requested));
+  const key = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  const thisKey = key(mDate);
+  const prevKey = key(new Date(mDate.getFullYear(), mDate.getMonth() - 1, 1));
+  const isCurrent = thisKey === key(new Date());
 
   const tips = useMemo(() => insights(finance, expenses, budget, myId), [finance, expenses, budget, myId]);
 
@@ -59,15 +72,13 @@ export default function AnalyticsPage() {
   const up = thisSpend > lastSpend;
 
   const trend = useMemo(() => {
-    const base = new Date();
     const out: { label: string; value: number }[] = [];
     for (let i = 5; i >= 0; i--) {
-      const d = new Date(base.getFullYear(), base.getMonth() - i, 1);
-      const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      const k = key(new Date(mDate.getFullYear(), mDate.getMonth() - i, 1));
       out.push({ label: monthLabel(k), value: monthlyMoney(finance, expenses, myId, k).spend });
     }
     return out;
-  }, [finance, expenses, myId]);
+  }, [finance, expenses, myId, mDate]);
 
   const breakdown = useMemo(() => spendByCategory(finance, expenses, myId, thisKey), [finance, expenses, myId, thisKey]);
   const breakdownShares = useMemo(() => percentShares(breakdown.map((b) => b.amount)), [breakdown]);
@@ -103,7 +114,7 @@ export default function AnalyticsPage() {
         subtitle="Your full spending picture"
         action={
           <Link
-            href="/report"
+            href={`/report?m=${thisKey}`}
             className="flex h-9 items-center gap-1.5 rounded-full border border-border bg-surface px-3.5 text-[0.8rem] font-semibold text-text-2 transition-colors hover:border-border-strong"
           >
             <FileText className="h-4 w-4" /> Report
@@ -111,10 +122,13 @@ export default function AnalyticsPage() {
         }
       />
 
+      {/* Its own row — beside the title it would push a narrow phone sideways. */}
+      <MonthNav value={mDate} onChange={setMDate} className="-mt-4 -ml-2" />
+
       <PageGrid>
         <PageCol>
           {/* Smart insights */}
-          {tips.length > 0 && (
+          {isCurrent && tips.length > 0 && (
             <section className="flex flex-col gap-2.5">
               {tips.map((t) => (
                 <InsightCard key={t.key} ins={t} />
@@ -124,7 +138,9 @@ export default function AnalyticsPage() {
 
           {/* This month */}
           <Card className="p-5">
-            <p className="text-[0.72rem] font-semibold uppercase tracking-wide text-text-3">You spent this month</p>
+            <p className="text-[0.72rem] font-semibold uppercase tracking-wide text-text-3">
+              {isCurrent ? "You spent this month" : `You spent in ${monthName(thisKey)}`}
+            </p>
             <div className="mt-1 flex items-end gap-3">
               <p className="font-display text-[2.4rem] font-bold leading-none tracking-[-0.03em] tnum">{formatINR(thisSpend)}</p>
               {lastSpend > 0 && (
@@ -140,7 +156,9 @@ export default function AnalyticsPage() {
               )}
             </div>
             <p className="mt-1 text-[0.82rem] text-text-2">
-              {lastSpend > 0 ? `${up ? "Up" : "Down"} from ${formatINR(lastSpend)} last month` : "Personal spending + your share of splits"}
+              {lastSpend > 0
+                ? `${up ? "Up" : "Down"} from ${formatINR(lastSpend)} in ${monthName(prevKey)}`
+                : "Personal spending + your share of splits"}
             </p>
 
             <div className="mt-5 border-t border-border pt-4">
@@ -158,7 +176,7 @@ export default function AnalyticsPage() {
               // Side by side once there's room — but the xl side column is narrow again, so it stacks back there.
               <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-center sm:gap-6 xl:flex-col xl:gap-5">
                 <Donut data={donutData} size={168} stroke={22}>
-                  <span className="text-[0.68rem] font-medium text-text-3">This month</span>
+                  <span className="text-[0.68rem] font-medium text-text-3">{isCurrent ? "This month" : monthName(thisKey)}</span>
                   <span className="font-display text-xl font-bold tnum">{formatINR(thisSpend, { compact: true })}</span>
                 </Donut>
                 <div className="flex w-full flex-1 flex-col gap-2.5">
@@ -178,14 +196,18 @@ export default function AnalyticsPage() {
                 </div>
               </div>
             ) : (
-              <EmptyState icon={ChartPie} title="No spending yet" description="Add expenses to see your category breakdown." />
+              <EmptyState
+                icon={ChartPie}
+                title={isCurrent ? "No spending yet" : `Nothing in ${monthName(thisKey)}`}
+                description={isCurrent ? "Add expenses to see your category breakdown." : "Pick another month to see where the money went."}
+              />
             )}
           </Card>
 
           {/* By group */}
           {byGroup.length > 0 && (
             <Card className="p-5">
-              <p className="mb-3 text-[0.72rem] font-semibold uppercase tracking-wide text-text-3">Split spending by group</p>
+              <p className="mb-3 text-[0.72rem] font-semibold uppercase tracking-wide text-text-3">Split spending by group (all time)</p>
               <div className="flex flex-col gap-3.5">
                 {byGroup.map((g) => (
                   <div key={g.name}>

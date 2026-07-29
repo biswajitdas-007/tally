@@ -1,20 +1,21 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import Link from "next/link";
-import { ChevronLeft, Printer, ChevronRight } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { ChevronLeft, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TallyMark } from "@/components/app/logo";
 import { CATEGORIES, INCOME_CATEGORIES } from "@/lib/categories";
 import { useStore, useMe, useMyId } from "@/store/useStore";
-import { monthlyMoney, financeForMonth, spendByCategory, monthLabel, budgetView } from "@/lib/money";
+import { monthlyMoney, financeForMonth, spendByCategory, monthLabel, monthFromParam, budgetView } from "@/lib/money";
 import { scopedDebts, scopedTotals, splitOverview, myShare } from "@/lib/balances";
 import { netWorth } from "@/lib/health";
 import { withLiveBalances, unparkedAmount } from "@/lib/accounts";
 import { formatINR, formatDate, percentShares, monthKey, cn } from "@/lib/utils";
+import { MonthNav } from "@/components/app/month-nav";
 import type { CategoryKey, Expense, IncomeCategory } from "@/lib/types";
 
-const NOW_KEY = monthKey(new Date().toISOString());
 
 /** Money entries and split expenses for one month, newest first. */
 function rowsForMonth(expenses: Expense[], mKey: string) {
@@ -24,6 +25,15 @@ function rowsForMonth(expenses: Expense[], mKey: string) {
 }
 
 export default function ReportPage() {
+  // useSearchParams needs a boundary so the rest of the page can prerender.
+  return (
+    <Suspense>
+      <Report />
+    </Suspense>
+  );
+}
+
+function Report() {
   const me = useMe();
   const myId = useMyId() ?? "";
   const expenses = useStore((s) => s.expenses);
@@ -34,13 +44,9 @@ export default function ReportPage() {
   const groups = useStore((s) => s.groups);
   const people = useStore((s) => s.people);
 
-  const [mDate, setMDate] = useState(() => {
-    const d = new Date();
-    return new Date(d.getFullYear(), d.getMonth(), 1);
-  });
+  const requested = useSearchParams().get("m");
+  const [mDate, setMDate] = useState(() => monthFromParam(requested));
   const mKey = `${mDate.getFullYear()}-${String(mDate.getMonth() + 1).padStart(2, "0")}`;
-  const atCurrent = mKey >= NOW_KEY;
-  const shift = (n: number) => setMDate((d) => new Date(d.getFullYear(), d.getMonth() + n, 1));
 
   const m = useMemo(() => monthlyMoney(finance, expenses, myId, mKey), [finance, expenses, myId, mKey]);
   const entries = useMemo(() => financeForMonth(finance, mKey).filter((f) => !f.transfer), [finance, mKey]);
@@ -65,31 +71,12 @@ export default function ReportPage() {
     <div className="report mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 pb-[calc(var(--safe-bottom)+4rem)] pt-[calc(var(--safe-top)+1.25rem)] md:px-8 md:pt-[calc(var(--safe-top)+2rem)] print:max-w-none print:p-0">
       {/* Controls — never printed */}
       <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
-        <Link href="/analytics" className="flex w-fit items-center gap-1 text-sm font-medium text-text-2 hover:text-text">
+        <Link href={`/analytics?m=${mKey}`} className="flex w-fit items-center gap-1 text-sm font-medium text-text-2 hover:text-text">
           <ChevronLeft className="h-4 w-4" /> Insights
         </Link>
         {/* Wraps rather than pushing the page wider on a narrow phone. */}
         <div className="flex flex-wrap items-center justify-end gap-2">
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => shift(-1)}
-              className="flex h-9 w-9 items-center justify-center rounded-full text-text-2 transition-colors hover:bg-surface-inset"
-              aria-label="Previous month"
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </button>
-            <span className="min-w-[6.5rem] text-center font-display text-[0.95rem] font-bold text-text sm:min-w-[8rem]">
-              {monthLabel(mKey)}
-            </span>
-            <button
-              onClick={() => shift(1)}
-              disabled={atCurrent}
-              className="flex h-9 w-9 items-center justify-center rounded-full text-text-2 transition-colors hover:bg-surface-inset disabled:opacity-30"
-              aria-label="Next month"
-            >
-              <ChevronRight className="h-5 w-5" />
-            </button>
-          </div>
+          <MonthNav value={mDate} onChange={setMDate} />
           <Button variant="primary" size="sm" onClick={() => window.print()}>
             <Printer className="h-4 w-4" /> Save as PDF
           </Button>

@@ -96,9 +96,6 @@ export interface FinanceEntry {
   accountId?: ID;
   /** True for internal "park" transfers — affects account balances, not your income/spend. */
   transfer?: boolean;
-  /** Payee of a scan-&-pay expense — powers the "recent payees" list. */
-  payeeVpa?: string;
-  payeeName?: string;
   /** Set when a recurring rule put this entry in, so we can badge it. */
   recurringId?: ID;
 }
