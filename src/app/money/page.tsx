@@ -15,7 +15,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { useStore, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { CATEGORIES, INCOME_CATEGORIES } from "@/lib/categories";
-import { monthlyMoney, financeForMonth, spendByCategory, monthLabel, budgetView, moneyStatus } from "@/lib/money";
+import { monthlyMoney, financeForMonth, spendByCategory, monthLabel, budgetView, moneyStatus, missingIncome, suggestedBudget } from "@/lib/money";
 import { healthScore, netWorth, gradeColor, wealthRunway, emergencyStatus } from "@/lib/health";
 import { pendingFromSplits } from "@/lib/balances";
 import { PendingSplitsCard } from "@/components/features/pending-splits-card";
@@ -103,6 +103,10 @@ export default function MoneyPage() {
   );
 
   const pending = useMemo(() => pendingFromSplits(expenses, myId), [expenses, myId]);
+  const needsIncome = useMemo(() => missingIncome(finance, expenses, myId), [finance, expenses, myId]);
+  const suggested = useMemo(() => suggestedBudget(finance, expenses, myId), [finance, expenses, myId]);
+  // A limit that's beaten every month has stopped being a limit.
+  const budgetUnrealistic = bv.hasBudget && bv.monthly > 0 && suggested > bv.monthly * 1.2;
   const dueRules = useMemo(() => recurrings.filter((r) => isDue(r)), [recurrings]);
   const addAllDue = () => dueRules.forEach((r) => runRecurring(r.id));
 
@@ -215,6 +219,24 @@ export default function MoneyPage() {
               )}
               <span className="font-medium">{status.message}</span>
             </div>
+          )}
+
+          {needsIncome && (
+            <button
+              onClick={() => openRecur(null, "income")}
+              className="flex w-full items-start gap-3 rounded-[16px] border border-brand/30 bg-brand-soft p-4 text-left"
+            >
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand/15 text-brand">
+                <Wallet className="h-4.5 w-4.5" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-[0.9rem] font-semibold text-text">Add what you earn</span>
+                <span className="block text-[0.78rem] leading-snug text-text-2">
+                  You&apos;re logging spending but no income, so nothing here can tell you how you&apos;re really doing.
+                  Set your salary up as a repeat and it lands on its own each month.
+                </span>
+              </span>
+            </button>
           )}
 
           {pending.any && <PendingSplitsCard pending={pending} />}
@@ -358,6 +380,15 @@ export default function MoneyPage() {
                     <AlertTriangle className="h-4 w-4 shrink-0" />
                     {formatINR(bv.spent - bv.monthly)} over your monthly budget.
                   </p>
+                )}
+                {budgetUnrealistic && (
+                  <button onClick={openBudget} className="flex items-start gap-1.5 text-left text-[0.78rem] leading-snug text-text-2">
+                    <Target className="mt-px h-3.5 w-3.5 shrink-0 text-text-3" />
+                    <span>
+                      You&apos;ve averaged {formatINR(suggested)} a month lately. A limit you keep passing stops meaning
+                      anything — <b className="text-brand">set it to {formatINR(suggested)}</b>?
+                    </span>
+                  </button>
                 )}
               </Card>
             ) : (

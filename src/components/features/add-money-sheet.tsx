@@ -17,6 +17,7 @@ import { useToast } from "@/components/ui/toast";
 import { crossingWarning, monthlyMoney, spendByCategory } from "@/lib/money";
 import { emergencyStatus } from "@/lib/health";
 import { periodKey } from "@/lib/recurring";
+import { guessCategory } from "@/lib/categorise";
 import { withLiveBalances, unparkedAmount } from "@/lib/accounts";
 import { cn, formatDate, formatINR, monthKey, uid as newId } from "@/lib/utils";
 import type { CategoryKey, FinanceType, Recurring } from "@/lib/types";
@@ -46,6 +47,7 @@ export function AddMoneySheet() {
   const [date, setDate] = useState<Date>(new Date());
   const [dateOpen, setDateOpen] = useState(false);
   const [note, setNote] = useState("");
+  const [catTouched, setCatTouched] = useState(false);
   const [accountId, setAccountId] = useState<string | null>(null);
   const [repeat, setRepeat] = useState(false);
 
@@ -60,6 +62,7 @@ export function AddMoneySheet() {
       setDate(new Date(editing.date));
       setNote(editing.note ?? "");
       setAccountId(editing.accountId ?? null);
+      setCatTouched(true);
       setRepeat(false);
     } else {
       setType(initialType);
@@ -68,6 +71,7 @@ export function AddMoneySheet() {
       setDate(new Date());
       setNote("");
       setAccountId(accounts[0]?.id ?? null);
+      setCatTouched(false);
       setRepeat(false);
     }
   } else if (!open && wasOpen) {
@@ -81,7 +85,20 @@ export function AddMoneySheet() {
 
   function switchType(t: FinanceType) {
     setType(t);
-    setCategory(t === "income" ? "salary" : "food");
+    setCategory(guessFrom(note, t));
+    setCatTouched(false);
+  }
+
+  const guessFrom = (text: string, t: FinanceType) => guessCategory(text, t) || (t === "income" ? "salary" : "other");
+
+  /**
+   * Pick the category up from the note, the way the split sheet already does —
+   * "Petrol" is travel, "Instamart" is food. Stops the moment they choose one
+   * themselves.
+   */
+  function onNote(v: string) {
+    setNote(v);
+    if (!catTouched && v.trim()) setCategory(guessFrom(v, type));
   }
 
   // A nudge if a new current-month expense crosses a category cap or your income.
@@ -192,7 +209,10 @@ export function AddMoneySheet() {
               return (
                 <button
                   key={c.key}
-                  onClick={() => setCategory(c.key)}
+                  onClick={() => {
+                    setCategory(c.key);
+                    setCatTouched(true);
+                  }}
                   className={cn(
                     "flex shrink-0 items-center gap-2 rounded-full border px-3 py-2 text-[0.82rem] font-medium transition-all",
                     active
@@ -235,7 +255,7 @@ export function AddMoneySheet() {
           </Popover>
         </div>
 
-        <Textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Add a note (optional)" rows={2} />
+        <Textarea value={note} onChange={(e) => onNote(e.target.value)} placeholder="Add a note (optional)" rows={2} />
 
         {/* Repeat — only offered on new entries; existing repeats live in Money */}
         {!editing && (
