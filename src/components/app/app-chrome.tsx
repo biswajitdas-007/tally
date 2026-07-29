@@ -62,5 +62,11 @@ export function AppChrome({ children }: { children: React.ReactNode }) {
   if (!currentUserId) return <LoginScreen />;
   if (loadError) return <LoadError />;
   if (!dataReady) return <Splash />; // loading data from the server
+
+  // The report is printed, so it renders on its own. Keeping it outside the
+  // shell means the nav, prompts, toasts and sheets simply aren't on the page
+  // — far safer than trusting a print stylesheet to hide every one of them.
+  if (pathname === "/report") return <>{children}</>;
+
   return <AppShell>{children}</AppShell>;
 }
