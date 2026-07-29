@@ -30,6 +30,22 @@ jobs:
           # Full history gives Sonar accurate new-code / blame data.
           fetch-depth: 0
 
+      - name: Set up Node
+        if: steps.token.outputs.present == 'true'
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        if: steps.token.outputs.present == 'true'
+        run: npm ci
+
+      # Sonar reads coverage/lcov.info; without this the gate sees 0%.
+      - name: Coverage
+        if: steps.token.outputs.present == 'true'
+        run: npm run test:coverage
+
       - name: SonarQube Cloud Scan
         if: steps.token.outputs.present == 'true'
         uses: SonarSource/sonarqube-scan-action@fd88b7d7ccbaefd23d8f36f73b59db7a3d246602 # v6
