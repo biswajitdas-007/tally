@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Search, Plus, Minus, Users, UserPlus, Target, Repeat, Wallet, Landmark, ShieldCheck,
-  FileSpreadsheet, ScanLine, Home, Receipt, PieChart, Activity, User, Flag, CornerDownLeft, type LucideIcon,
+  ScanLine, Home, Receipt, PieChart, Activity, User, Flag, CornerDownLeft, type LucideIcon,
 } from "lucide-react";
 import { useUI } from "@/store/useUI";
 import { useScrollLock } from "@/hooks/use-scroll-lock";
@@ -69,7 +69,6 @@ export function CommandPalette() {
       { id: "budget", label: "Set your budget", hint: "A monthly limit", icon: Target, group: "Manage", run: ui.openBudget },
       { id: "ef", label: "Emergency fund", hint: "Set or edit your target", icon: ShieldCheck, group: "Manage", run: ui.openEmergency },
       { id: "reconcile", label: "Check balances", hint: "Confirm against your bank", icon: ScanLine, group: "Manage", run: ui.openReconcile },
-      { id: "import", label: "Import a statement", hint: "Bring in a bank CSV", icon: FileSpreadsheet, group: "Manage", run: go("/import") },
 
       { id: "home", label: "Home", hint: "Balances and activity", icon: Home, group: "Go to", run: go("/") },
       { id: "money", label: "Money", hint: "Income and spending", icon: Wallet, group: "Go to", run: go("/money") },
