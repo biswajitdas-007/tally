@@ -1,5 +1,5 @@
 import type { Budget, CategoryKey, Expense, FinanceEntry, ID } from "./types";
-import { monthKey, formatINR } from "./utils";
+import { monthKey, formatINR, formatShare } from "./utils";
 import { myShare } from "./balances";
 import { monthlyMoney, spendByCategory } from "./money";
 import { CATEGORIES } from "./categories";
@@ -134,7 +134,7 @@ export function insights(finance: FinanceEntry[], expenses: Expense[], budget: B
       key: "top-cat",
       tone: "info",
       title: `${label(top.category)} is your top spend`,
-      detail: `${formatINR(top.amount)} — ${Math.round((top.amount / total) * 100)}% of everything this month.`,
+      detail: `${formatINR(top.amount)} — ${formatShare(top.amount, total)} of everything this month.`,
       priority: 4,
     });
   }
@@ -146,7 +146,7 @@ export function insights(finance: FinanceEntry[], expenses: Expense[], budget: B
       key: "weekend",
       tone: "info",
       title: "Weekends are your spendiest",
-      detail: `${Math.round((weekend / total) * 100)}% of your spending (${formatINR(weekend)}) lands on weekends.`,
+      detail: `${formatShare(weekend, total)} of your spending (${formatINR(weekend)}) lands on weekends.`,
       priority: 5,
     });
   }
