@@ -149,7 +149,6 @@ export function InvestmentSheet() {
               onChange={(e) => setValue(e.target.value.replace(/[^0-9.]/g, ""))}
               inputMode="decimal"
               placeholder="0"
-              autoFocus
               className="flex-1 bg-transparent font-display text-lg font-bold tnum outline-none placeholder:text-text-3"
             />
           </div>

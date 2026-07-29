@@ -93,7 +93,6 @@ export function EmergencySheet() {
               onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
               inputMode="decimal"
               placeholder="100000"
-              autoFocus
               className="flex-1 bg-transparent font-display text-lg font-bold tnum outline-none placeholder:text-text-3"
             />
           </div>
