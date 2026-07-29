@@ -11,7 +11,7 @@ import { monthlyMoney, financeForMonth, spendByCategory, monthLabel, budgetView 
 import { scopedDebts, scopedTotals, splitOverview, myShare } from "@/lib/balances";
 import { netWorth } from "@/lib/health";
 import { withLiveBalances, unparkedAmount } from "@/lib/accounts";
-import { formatINR, formatDate, monthKey, cn } from "@/lib/utils";
+import { formatINR, formatDate, percentShares, monthKey, cn } from "@/lib/utils";
 import type { CategoryKey, Expense, IncomeCategory } from "@/lib/types";
 
 const NOW_KEY = monthKey(new Date().toISOString());
@@ -56,6 +56,7 @@ export default function ReportPage() {
   const nw = useMemo(() => netWorth(live, liabilities), [live, liabilities]);
 
   const catTotal = byCat.reduce((a, c) => a + c.amount, 0) || 1;
+  const catShares = useMemo(() => percentShares(byCat.map((c) => c.amount)), [byCat]);
   const savingsRate = m.income > 0 ? Math.round((m.net / m.income) * 100) : null;
   const nameOf = (id: string) => (id === myId ? "You" : people.find((p) => p.id === id)?.name ?? "Someone");
   const generated = new Date();
@@ -151,9 +152,8 @@ export default function ReportPage() {
                 </tr>
               </thead>
               <tbody>
-                {byCat.map((c) => {
+                {byCat.map((c, i) => {
                   const meta = CATEGORIES[c.category] ?? CATEGORIES.other;
-                  const pct = Math.round((c.amount / catTotal) * 100);
                   return (
                     <tr key={c.category}>
                       <td>
@@ -162,7 +162,7 @@ export default function ReportPage() {
                           {meta.label}
                         </span>
                       </td>
-                      <td className="text-right tnum text-text-2">{pct}%</td>
+                      <td className="text-right tnum text-text-2">{catShares[i]}%</td>
                       <td className="text-right tnum font-semibold">{formatINR(c.amount)}</td>
                     </tr>
                   );

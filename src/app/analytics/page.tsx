@@ -14,7 +14,7 @@ import { CATEGORIES } from "@/lib/categories";
 import { myShare } from "@/lib/balances";
 import { monthlyMoney, spendByCategory } from "@/lib/money";
 import { insights, type Insight } from "@/lib/insights";
-import { formatINR, monthLabel, cn } from "@/lib/utils";
+import { formatINR, percentShares, monthLabel, cn } from "@/lib/utils";
 
 const INSIGHT_ICON: Record<Insight["tone"], LucideIcon> = { warn: AlertTriangle, good: Sparkles, info: Lightbulb };
 
@@ -70,7 +70,7 @@ export default function AnalyticsPage() {
   }, [finance, expenses, myId]);
 
   const breakdown = useMemo(() => spendByCategory(finance, expenses, myId, thisKey), [finance, expenses, myId, thisKey]);
-  const totalBreakdown = breakdown.reduce((a, b) => a + b.amount, 0) || 1;
+  const breakdownShares = useMemo(() => percentShares(breakdown.map((b) => b.amount)), [breakdown]);
   const donutData = breakdown.map((b) => ({
     label: CATEGORIES[b.category].label,
     value: b.amount,
@@ -162,14 +162,13 @@ export default function AnalyticsPage() {
                   <span className="font-display text-xl font-bold tnum">{formatINR(thisSpend, { compact: true })}</span>
                 </Donut>
                 <div className="flex w-full flex-1 flex-col gap-2.5">
-                  {breakdown.slice(0, 6).map((b) => {
+                  {breakdown.slice(0, 6).map((b, i) => {
                     const meta = CATEGORIES[b.category];
-                    const pct = Math.round((b.amount / totalBreakdown) * 100);
                     return (
                       <div key={b.category} className="flex items-center gap-3">
                         <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: meta.color }} />
                         <span className="flex-1 truncate text-[0.85rem] font-medium text-text">{meta.label}</span>
-                        <span className="text-[0.78rem] text-text-3">{pct}%</span>
+                        <span className="text-[0.78rem] text-text-3">{breakdownShares[i]}%</span>
                         <span className="w-16 text-right text-[0.85rem] font-semibold text-text tnum">
                           {formatINR(b.amount, { compact: true })}
                         </span>
