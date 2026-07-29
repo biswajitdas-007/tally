@@ -238,3 +238,32 @@ export function splitOverview(expenses: Expense[], meId: ID): SplitOverview {
     all: scopedTotals(scopedDebts(expenses, meId)),
   };
 }
+
+export interface Pending {
+  /** Money that lands back in your accounts when others settle. */
+  incoming: number;
+  /** Money that leaves your accounts when you settle. */
+  outgoing: number;
+  /** incoming − outgoing. */
+  net: number;
+  /** True when there's anything worth telling them about. */
+  any: boolean;
+}
+
+/**
+ * What splits still owe your bank balance.
+ *
+ * Paying for a group dinner takes the whole amount out of your account, but
+ * only your share is really your spending — the rest comes back when everyone
+ * settles. Until then it's neither spent nor in the bank, which is exactly the
+ * gap that makes people distrust the numbers. This names it.
+ */
+export function pendingFromSplits(expenses: Expense[], meId: ID): Pending {
+  const t = scopedTotals(scopedDebts(expenses, meId));
+  return {
+    incoming: t.owedToYou,
+    outgoing: t.youOwe,
+    net: t.owedToYou - t.youOwe,
+    any: t.owedToYou > 0.5 || t.youOwe > 0.5,
+  };
+}

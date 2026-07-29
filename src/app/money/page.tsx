@@ -17,6 +17,8 @@ import { useUI } from "@/store/useUI";
 import { CATEGORIES, INCOME_CATEGORIES } from "@/lib/categories";
 import { monthlyMoney, financeForMonth, spendByCategory, monthLabel, budgetView, moneyStatus } from "@/lib/money";
 import { healthScore, netWorth, gradeColor, wealthRunway, emergencyStatus } from "@/lib/health";
+import { pendingFromSplits } from "@/lib/balances";
+import { PendingSplitsCard } from "@/components/features/pending-splits-card";
 import { isDue, recurLabel, nextOccurrence } from "@/lib/recurring";
 import { withLiveBalances, unparkedAmount } from "@/lib/accounts";
 import { formatINR, formatDate, monthKey, cn } from "@/lib/utils";
@@ -100,6 +102,7 @@ export default function MoneyPage() {
     [finance, expenses, myId, liveAccounts, liabilities, unparked],
   );
 
+  const pending = useMemo(() => pendingFromSplits(expenses, myId), [expenses, myId]);
   const dueRules = useMemo(() => recurrings.filter((r) => isDue(r)), [recurrings]);
   const addAllDue = () => dueRules.forEach((r) => runRecurring(r.id));
 
@@ -213,6 +216,8 @@ export default function MoneyPage() {
               <span className="font-medium">{status.message}</span>
             </div>
           )}
+
+          {pending.any && <PendingSplitsCard pending={pending} />}
 
           {/* Add actions */}
           <div className="flex gap-2.5">

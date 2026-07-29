@@ -16,6 +16,7 @@ import { healthScore, netWorth, gradeColor, avgMonthly, wealthRunway, emergencyS
 import { investmentTotals, holdingGain } from "@/lib/investments";
 import { buildPlan, humanMonths } from "@/lib/payoff";
 import { staleAccounts, lastCheckedLabel } from "@/lib/reconcile";
+import { pendingFromSplits } from "@/lib/balances";
 import { debtSuggestions, monthlyLiability, type DebtSuggestion } from "@/lib/debt";
 import { withLiveBalances, unparkedAmount } from "@/lib/accounts";
 import { formatINR, cn } from "@/lib/utils";
@@ -88,6 +89,7 @@ export default function WealthPage() {
   const ef = useMemo(() => emergencyStatus(emergency, liveAccounts, unparked), [emergency, liveAccounts, unparked]);
   const cashAccounts = useMemo(() => liveAccounts.filter((a) => a.kind !== "investment"), [liveAccounts]);
   const stale = useMemo(() => staleAccounts(cashAccounts), [cashAccounts]);
+  const pending = useMemo(() => pendingFromSplits(expenses, myId), [expenses, myId]);
   const investList = useMemo(() => liveAccounts.filter((a) => a.kind === "investment"), [liveAccounts]);
   const invTotals = useMemo(() => investmentTotals(liveAccounts), [liveAccounts]);
   const nwBase = useMemo(() => netWorth(liveAccounts, liabilities), [liveAccounts, liabilities]);
@@ -318,6 +320,24 @@ export default function WealthPage() {
                 <p className="mt-1 tnum text-lg font-bold text-text">{formatINR(nwBase.debts)}</p>
               </div>
             </div>
+
+            {pending.any && (
+              <p className="mt-3 rounded-[12px] bg-surface-inset px-3 py-2.5 text-[0.78rem] leading-snug text-text-2">
+                Not counted above:{" "}
+                {pending.incoming > 0.5 && (
+                  <>
+                    <b className="text-positive">{formatINR(pending.incoming)}</b> owed to you
+                  </>
+                )}
+                {pending.incoming > 0.5 && pending.outgoing > 0.5 && " and "}
+                {pending.outgoing > 0.5 && (
+                  <>
+                    <b className="text-negative">{formatINR(pending.outgoing)}</b> you owe
+                  </>
+                )}{" "}
+                from splits — it settles between accounts, so it isn&apos;t net worth until it does.
+              </p>
+            )}
           </Card>
 
           {/* Emergency fund */}
