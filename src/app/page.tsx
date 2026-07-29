@@ -12,13 +12,16 @@ import { GroupCard } from "@/components/features/group-card";
 import { ExpenseRow } from "@/components/features/expense-row";
 import { PersonDebtRow } from "@/components/features/person-debt-row";
 import { SplitOverviewCard } from "@/components/features/split-overview-card";
+import { PendingSplitsCard } from "@/components/features/pending-splits-card";
+import { MoneyRow } from "@/components/features/money-row";
 import { Card, SectionHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageGrid, PageCol } from "@/components/app/page-grid";
 import { useStore, useMe, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { useToast } from "@/components/ui/toast";
-import { scopedDebts, splitOverview } from "@/lib/balances";
+import { scopedDebts, splitOverview, pendingFromSplits } from "@/lib/balances";
+import { recentActivity } from "@/lib/activity";
 import { monthlyMoney } from "@/lib/money";
 import { healthScore, type SetupKey } from "@/lib/health";
 import { usesMoney } from "@/lib/money-mode";
@@ -152,10 +155,8 @@ export default function HomePage() {
     () => healthScore({ finance, expenses, meId: myId ?? "", budget, accounts, liabilities, emergency }),
     [finance, expenses, myId, budget, accounts, liabilities, emergency],
   );
-  const recent = useMemo(
-    () => [...expenses].sort((a, b) => +new Date(b.date) - +new Date(a.date)).slice(0, 6),
-    [expenses],
-  );
+  const recent = useMemo(() => recentActivity(expenses, finance, 7, money), [expenses, finance, money]);
+  const pending = useMemo(() => pendingFromSplits(expenses, myId ?? ""), [expenses, myId]);
   const topGroups = groups.slice(0, 3);
 
   // Only for a genuinely new account. Someone who already has accounts or
@@ -285,6 +286,8 @@ export default function HomePage() {
             <SplitOverviewCard direct={splits.direct} group={splits.group} />
           </section>
 
+          {money && pending.any && <PendingSplitsCard pending={pending} />}
+
           {money && debtList}
 
           {money && (
@@ -345,17 +348,25 @@ export default function HomePage() {
             {recent.length > 0 ? (
               <Card className="overflow-hidden">
                 <div className="divide-y divide-border">
-                  {recent.map((e) => (
-                    <ExpenseRow key={e.id} expense={e} showGroup />
-                  ))}
+                  {recent.map((item) =>
+                    item.kind === "split" ? (
+                      <ExpenseRow key={item.id} expense={item.expense} showGroup />
+                    ) : (
+                      <MoneyRow key={item.id} entry={item.entry} showKind />
+                    ),
+                  )}
                 </div>
               </Card>
             ) : (
               <Card>
                 <EmptyState
                   icon={Receipt}
-                  title="No expenses yet"
-                  description="Tap the + button to add your first shared expense."
+                  title="Nothing yet"
+                  description={
+                    money
+                      ? "Your spending and splits will show up here."
+                      : "Tap the + button to add your first shared expense."
+                  }
                 />
               </Card>
             )}
