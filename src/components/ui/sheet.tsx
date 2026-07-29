@@ -6,6 +6,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIsDesktop } from "@/hooks/use-media-query";
+import { useScrollLock } from "@/hooks/use-scroll-lock";
+import { useKeyboardInset } from "@/hooks/use-keyboard-inset";
 
 export function Sheet({
   open,
@@ -26,19 +28,16 @@ export function Sheet({
 }) {
   const [mounted, setMounted] = useState(false);
   const isDesktop = useIsDesktop();
+  const keyboard = useKeyboardInset(open && !isDesktop);
 
   useEffect(() => setMounted(true), []);
+  useScrollLock(open);
 
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && dismissable && onClose();
     document.addEventListener("keydown", onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prev;
-    };
+    return () => document.removeEventListener("keydown", onKey);
   }, [open, onClose, dismissable]);
 
   if (!mounted) return null;
@@ -46,7 +45,13 @@ export function Sheet({
   return createPortal(
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-50 flex justify-center md:items-center" role="dialog" aria-modal="true" aria-label={title}>
+        <div
+          className="fixed inset-0 z-50 flex justify-center md:items-center"
+          style={keyboard ? { bottom: keyboard } : undefined}
+          role="dialog"
+          aria-modal="true"
+          aria-label={title}
+        >
           <motion.div
             className="absolute inset-0"
             style={{ background: "var(--scrim)" }}
@@ -58,9 +63,10 @@ export function Sheet({
           />
           <motion.div
             className={cn(
-              // Cap height against the top safe-area inset so the sheet (and its
-              // close button) never rides up under the notch / status bar.
-              "relative mt-auto flex w-full max-h-[calc(100dvh-max(env(safe-area-inset-top),20px))] flex-col overflow-hidden border border-border bg-surface shadow-[var(--shadow-lg)]",
+              // Height is capped against whatever space is left — the container
+              // already stops short of the keyboard — minus the top safe-area
+              // inset, so the sheet never rides up under the notch.
+              "relative mt-auto flex w-full max-h-[calc(100%-max(env(safe-area-inset-top),20px))] flex-col overflow-hidden border border-border bg-surface shadow-[var(--shadow-lg)]",
               "rounded-t-[26px] md:mt-0 md:max-h-[88vh] md:max-w-[440px] md:rounded-[24px]",
               className,
             )}
@@ -68,7 +74,7 @@ export function Sheet({
             animate={isDesktop ? { opacity: 1, scale: 1, y: 0 } : { y: 0 }}
             exit={isDesktop ? { opacity: 0, scale: 0.97, y: 8 } : { y: "100%" }}
             transition={{ type: "spring", stiffness: 340, damping: 34, mass: 0.9 }}
-            drag={isDesktop || !dismissable ? false : "y"}
+            drag={isDesktop || !dismissable || keyboard > 0 ? false : "y"}
             dragConstraints={{ top: 0, bottom: 0 }}
             dragElastic={{ top: 0, bottom: 0.6 }}
             onDragEnd={(_, info) => {
@@ -97,7 +103,12 @@ export function Sheet({
                 )}
               </div>
             )}
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-[max(env(safe-area-inset-bottom),20px)] pt-2">
+            <div
+              className={cn(
+                "min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pt-2",
+                keyboard ? "pb-4" : "pb-[max(env(safe-area-inset-bottom),20px)]",
+              )}
+            >
               {children}
             </div>
           </motion.div>
