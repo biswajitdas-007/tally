@@ -70,7 +70,6 @@ export interface FinanceDoc {
   payeeVpa?: string;
   payeeName?: string;
   recurringId?: string;
-  importKey?: string;
 }
 
 export async function collections() {
@@ -167,7 +166,6 @@ function toClientFinance(f: FinanceDoc): FinanceEntry {
     payeeVpa: f.payeeVpa,
     payeeName: f.payeeName,
     recurringId: f.recurringId,
-    importKey: f.importKey,
   };
 }
 

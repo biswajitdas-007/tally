@@ -5,7 +5,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   Plus, Minus, ChevronLeft, ChevronRight, ArrowUpRight, ArrowDownLeft,
-  TrendingUp, AlertTriangle, Wallet, Coins, Target, Scale, ShieldAlert, Repeat, BellRing, FileSpreadsheet,
+  TrendingUp, AlertTriangle, Wallet, Coins, Target, Scale, ShieldAlert, Repeat, BellRing,
 } from "lucide-react";
 import { PageHeader } from "@/components/app/page-header";
 import { PageGrid, PageCol } from "@/components/app/page-grid";
@@ -237,22 +237,6 @@ export default function MoneyPage() {
             </button>
           </div>
 
-          {/* Import */}
-          <Link
-            href="/import"
-            className="flex items-center gap-3.5 rounded-[16px] border border-border bg-surface p-4 shadow-[var(--shadow-xs)] transition-all hover:-translate-y-0.5 hover:border-border-strong hover:shadow-[var(--shadow-md)]"
-          >
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand">
-              <FileSpreadsheet className="h-5 w-5" />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="text-[0.9rem] font-semibold text-text">Import a statement</p>
-              <p className="text-[0.76rem] leading-snug text-text-3">
-                Bring in months of spending from a bank CSV, Excel or PDF.
-              </p>
-            </div>
-            <ChevronRight className="h-5 w-5 shrink-0 text-text-3" />
-          </Link>
 
           {/* Repeats */}
           <section>
