@@ -18,6 +18,7 @@ export async function POST(req: Request) {
     const set: Partial<UserDoc> = { updatedAt: new Date() };
     if (isStr(b.name) && (b.name as string).trim()) set.name = (b.name as string).trim().slice(0, 80);
     if (isStr(b.upiId)) set.upiId = (b.upiId as string).trim().slice(0, 120);
+    if (typeof b.moneyMode === "boolean") set.moneyMode = b.moneyMode;
     await users.updateOne({ _id: user.uid }, { $set: set }, { upsert: true });
 
     // Let people who share groups with me refresh my profile.
