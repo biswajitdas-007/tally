@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Segmented } from "@/components/ui/segmented";
 import { Switch } from "@/components/ui/switch";
 import { ACCOUNT_KIND_META, LIQUID_ACCOUNT_KINDS, LIABILITY_KIND_META, LIABILITY_KINDS } from "@/lib/categories";
-import { DEFAULT_DUE_DAY, stampNow } from "@/lib/liabilities";
+import { DEFAULT_DUE_DAY, editedPaidCountLastPaidMonth, initialLastPaidMonth } from "@/lib/liabilities";
 import { linkedDelta } from "@/lib/accounts";
 import { useStore, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
@@ -90,7 +90,18 @@ export function WealthSheet() {
   const kinds: string[] = isAsset ? LIQUID_ACCOUNT_KINDS : LIABILITY_KINDS;
   const meta = (isAsset ? ACCOUNT_KIND_META : LIABILITY_KIND_META) as Record<string, { label: string; icon: LucideIcon }>;
   const total = parseFloat(amount) || 0;
-  const valid = name.trim().length > 0 && amount !== "" && total >= 0;
+  const emiValue = parseFloat(emi);
+  const termValue = parseInt(term, 10);
+  const paidValue = paid !== "" ? parseInt(paid, 10) : 0;
+  const scheduleReady =
+    !isAsset &&
+    total > 0 &&
+    emiValue > 0 &&
+    termValue > 0 &&
+    !Number.isNaN(paidValue) &&
+    paidValue >= 0 &&
+    paidValue < termValue;
+  const valid = name.trim().length > 0 && amount !== "" && total >= 0 && (!autoDebit || scheduleReady);
 
   function switchMode(m: Mode) {
     setMode(m);
@@ -107,27 +118,49 @@ export function WealthSheet() {
       setWealth({ accounts: editingAccount ? accounts.map((a) => (a.id === id ? acc : a)) : [acc, ...accounts] });
     } else {
       const liab: Liability = { id, name: name.trim(), kind: kind as LiabilityKind, outstanding: total };
-      const emiN = parseFloat(emi);
+      const emiN = emiValue;
       if (emiN > 0) liab.emi = emiN;
       const rateN = parseFloat(rate);
       if (rate !== "" && rateN >= 0) liab.rate = rateN;
       if (lender.trim()) liab.lender = lender.trim();
-      const termN = parseInt(term, 10);
+      const termN = termValue;
       if (termN > 0) liab.termMonths = termN;
-      const paidN = paid !== "" ? parseInt(paid, 10) : 0;
+      const paidN = paidValue;
       if (!Number.isNaN(paidN) && paidN >= 0) liab.emisPaid = termN > 0 ? Math.min(paidN, termN) : paidN;
 
-      // Payment day drives auto-updates or reminders (defaults to the 3rd).
-      const dueN = parseInt(dueDay, 10);
-      liab.dueDay = Number.isNaN(dueN) ? DEFAULT_DUE_DAY : Math.min(Math.max(dueN, 1), 28);
-      if (autoDebit) liab.autoDebit = true;
+      if (scheduleReady) {
+        // Payment day drives auto-updates or reminders (defaults to the 3rd).
+        const dueN = parseInt(dueDay, 10);
+        liab.dueDay = Number.isNaN(dueN) ? DEFAULT_DUE_DAY : Math.min(Math.max(dueN, 1), 28);
+        if (autoDebit) liab.autoDebit = true;
 
-      // Stamp this month as already counted when creating, or when you change the
-      // paid count — so the monthly job never double-counts the same month.
-      liab.lastPaidMonth =
-        !editingLiability || liab.emisPaid !== editingLiability.emisPaid
-          ? stampNow()
-          : editingLiability.lastPaidMonth;
+        const previousScheduleReady = Boolean(
+          editingLiability &&
+            editingLiability.outstanding > 0 &&
+            (editingLiability.emi ?? 0) > 0 &&
+            (editingLiability.termMonths ?? 0) > 0 &&
+            (editingLiability.emisPaid ?? 0) < (editingLiability.termMonths ?? 0),
+        );
+        const paidChanged = Boolean(editingLiability && liab.emisPaid !== editingLiability.emisPaid);
+        const dueDayChanged = Boolean(
+          editingLiability && liab.dueDay !== (editingLiability.dueDay ?? DEFAULT_DUE_DAY),
+        );
+        const autoModeChanged = Boolean(editingLiability && autoDebit !== Boolean(editingLiability.autoDebit));
+
+        // New or deliberately rescheduled plans start with a safe cursor. A
+        // legacy manual plan with a missing cursor stays missing during an
+        // unrelated edit so its current due EMI still requires confirmation.
+        const paidMonth = paidChanged
+          ? editedPaidCountLastPaidMonth(liab.dueDay)
+          : editingLiability?.lastPaidMonth ??
+            (!editingLiability || !previousScheduleReady || dueDayChanged || autoModeChanged
+              ? initialLastPaidMonth(liab.dueDay)
+              : undefined);
+        if (paidMonth) liab.lastPaidMonth = paidMonth;
+        if (editingLiability?.lastEmiReminder && !dueDayChanged) {
+          liab.lastEmiReminder = editingLiability.lastEmiReminder;
+        }
+      }
 
       setWealth({ liabilities: editingLiability ? liabilities.map((l) => (l.id === id ? liab : l)) : [liab, ...liabilities] });
     }
@@ -296,9 +329,11 @@ export function WealthSheet() {
               </div>
               <p className="mt-2.5 flex items-start gap-1.5 text-[0.76rem] leading-snug text-text-3">
                 <Info className="mt-px h-3.5 w-3.5 shrink-0" />
-                {autoDebit
-                  ? `On day ${dueDay || DEFAULT_DUE_DAY} each month we'll mark one EMI paid, drop it from the balance, and email you a receipt. Made a partial or extra payment? Just update the count.`
-                  : `We'll remind you on day ${dueDay || DEFAULT_DUE_DAY} each month to confirm you paid — nothing changes until you confirm it.`}
+                {!scheduleReady
+                  ? "Add the monthly EMI, total months, and a positive outstanding balance to enable reminders."
+                  : autoDebit
+                    ? `We'll remind you one day before. On day ${dueDay || DEFAULT_DUE_DAY}, we'll mark one EMI paid, drop it from the balance, and email you a receipt.`
+                    : `We'll remind you one day before, then ask on day ${dueDay || DEFAULT_DUE_DAY} to confirm you paid — nothing changes until you confirm it.`}
               </p>
             </div>
           </>

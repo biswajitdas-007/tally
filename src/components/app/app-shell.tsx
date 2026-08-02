@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Sidebar } from "./sidebar";
@@ -68,7 +69,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <WealthSheet />
       <AccountDetailSheet />
       <ParkSheet />
-      <EmiConfirm />
+      <Suspense fallback={null}>
+        <EmiConfirm />
+      </Suspense>
       <SettleSheet />
       <InviteDialog />
       <CreateGroupSheet />

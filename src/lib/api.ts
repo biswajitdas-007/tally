@@ -69,6 +69,30 @@ export const setBudgetApi = (b: Record<string, unknown>) => req("POST", "/api/bu
 export const setWealthApi = (w: Record<string, unknown>) => req("POST", "/api/wealth", w);
 export const setRecurringApi = (r: Record<string, unknown>) => req("POST", "/api/recurring", r);
 
+export interface ConfirmEmiResult {
+  ok: boolean;
+  liability?: Liability;
+  applied: string[];
+  alreadyHandled?: boolean;
+  error?: string;
+}
+
+export async function confirmEmiApi(id: string, period: string): Promise<ConfirmEmiResult> {
+  const res = await req("POST", `/api/liabilities/${encodeURIComponent(id)}/confirm`, { period });
+  if (!res) return { ok: false, applied: [], error: "network-error" };
+
+  const body = (await res.json().catch(() => ({}))) as Partial<ConfirmEmiResult>;
+  if (!res.ok || !body.liability || body.liability.id !== id) {
+    return { ok: false, applied: [], error: body.error ?? "confirm-failed" };
+  }
+  return {
+    ok: true,
+    liability: body.liability,
+    applied: Array.isArray(body.applied) ? body.applied.filter((p): p is string => typeof p === "string") : [],
+    alreadyHandled: body.alreadyHandled === true,
+  };
+}
+
 export async function deleteAccount(): Promise<{ ok: boolean; unsettled?: boolean; people?: number; amount?: number }> {
   const res = await req("DELETE", "/api/account");
   if (!res) return { ok: false };
