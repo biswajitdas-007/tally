@@ -26,7 +26,7 @@ function request() {
   return new Request("https://tally.test/api/cron/daily", { headers: { authorization: "Bearer test-secret" } });
 }
 
-function setup(liabilities: Liability[], modifiedCounts: number[], pushSubs = [sub]) {
+function setup(liabilities: Liability[], modifiedCounts: number[], pushSubs: unknown[] = [sub]) {
   const events: string[] = [];
   const updates: unknown[][] = [];
   const docs = [{ _id: "user-1", name: "Test", liabilities, pushSubs }];
@@ -47,7 +47,7 @@ function setup(liabilities: Liability[], modifiedCounts: number[], pushSubs = [s
     events.push("push");
     return pushResult(1);
   });
-  return { events, updates };
+  return { events, updates, users };
 }
 
 const manual = (patch: Partial<Liability> = {}): Liability => ({
@@ -128,6 +128,38 @@ describe("daily EMI orchestration", () => {
     expect(updates[1][1]).toEqual({ $pull: { pushSubs: { endpoint: { $in: [sub.endpoint] } } } });
     expect(updates[2][1]).toEqual({ $unset: { "liabilities.$.lastEmiReminder": "" } });
     expect(result).toMatchObject({ reminderReleases: 1, push: { sent: 0, failed: 0, dead: 1 } });
+  });
+
+  it("accounts for an unexpected push failure and releases the notice for retry", async () => {
+    vi.setSystemTime(new Date("2026-08-03T04:00:00.000Z"));
+    const { updates } = setup([manual()], [1, 1], [sub, sub, null]);
+    dependencies.sendPush.mockRejectedValueOnce(new Error("push provider unavailable"));
+
+    const result = await (await runDaily(request())).json();
+
+    expect(updates[1][1]).toEqual({ $unset: { "liabilities.$.lastEmiReminder": "" } });
+    expect(result).toMatchObject({
+      reminderReleases: 1,
+      push: { sent: 0, failed: 2, dead: 0, pruneFailed: 0 },
+    });
+  });
+
+  it("reports a dead-endpoint prune failure without failing a successful reminder", async () => {
+    vi.setSystemTime(new Date("2026-08-03T04:00:00.000Z"));
+    const { users } = setup([manual()], [], [sub, sub2]);
+    users.updateOne
+      .mockResolvedValueOnce({ modifiedCount: 1 })
+      .mockRejectedValueOnce(new Error("database unavailable"));
+    dependencies.sendPush.mockResolvedValueOnce(pushResult(1, 0, [sub.endpoint]));
+
+    const result = await (await runDaily(request())).json();
+
+    expect(users.updateOne).toHaveBeenCalledTimes(2);
+    expect(result).toMatchObject({
+      reminders: 1,
+      reminderReleases: 0,
+      push: { sent: 1, failed: 0, dead: 1, pruneFailed: 1 },
+    });
   });
 
   it("claims one upcoming notice for both manual and auto liabilities one day before", async () => {
