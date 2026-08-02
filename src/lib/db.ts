@@ -1,5 +1,6 @@
 import type { Collection } from "mongodb";
 import { getDb } from "./mongodb";
+import { normalizeLiability } from "./liabilities";
 import type { Account, Budget, Emergency, Expense, FinanceEntry, Group, Liability, Person, Recurring } from "./types";
 import type { PushSubscription } from "web-push";
 
@@ -260,15 +261,6 @@ export async function addContact(
     { $pull: { contacts: { id: person.id }, removedFriends: person.id } } as any,
   );
   await users.updateOne({ _id: ownerUid }, { $push: { contacts: person } });
-}
-
-/** Migrate legacy loans that stored "remaining months" to the "EMIs paid" model. */
-function normalizeLiability(l: Liability): Liability {
-  const legacy = l as Liability & { remainingMonths?: number };
-  if (l.emisPaid == null && l.termMonths != null && legacy.remainingMonths != null) {
-    return { ...l, emisPaid: Math.max(0, l.termMonths - legacy.remainingMonths) };
-  }
-  return l;
 }
 
 /** uids to notify about a change (minus the actor). */

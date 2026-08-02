@@ -68,8 +68,12 @@ export default function AccountPage() {
         tone: ok ? "success" : "error",
       });
     } else {
-      await disable();
-      toast({ message: "Notifications off", tone: "info" });
+      const ok = await disable();
+      toast(
+        ok
+          ? { message: "Notifications off", tone: "info" }
+          : { message: "Couldn't turn notifications off", tone: "error" },
+      );
     }
   }
 
@@ -149,7 +153,7 @@ export default function AccountPage() {
             <div className="flex-1">
               <p className="text-[0.9rem] font-medium text-text">Notifications</p>
               <p className="text-[0.76rem] text-text-3">
-                {supported ? "Get alerted when a group updates" : "Install the app to enable"}
+                {supported ? "EMI reminders, payments, and shared expenses" : "Install the app to enable"}
               </p>
             </div>
             <Switch checked={enabled} onChange={toggleNotifications} label="Notifications" />

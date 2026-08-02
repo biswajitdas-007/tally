@@ -9,7 +9,7 @@ export function PushAutoEnable() {
 
   useEffect(() => {
     if (!supported || typeof Notification === "undefined") return;
-    if (Notification.permission === "granted") enable();
+    if (Notification.permission === "granted") enable({ automatic: true });
   }, [supported, enable]);
 
   return null;

@@ -65,6 +65,7 @@ interface State {
 
   setBudget: (patch: Partial<Budget>) => void;
   setWealth: (patch: { accounts?: Account[]; liabilities?: Liability[] }) => void;
+  confirmEmi: (id: ID, period: string) => Promise<api.ConfirmEmiResult>;
   setEmergency: (emergency: Emergency | null) => void;
   saveRecurring: (rule: Recurring) => void;
   deleteRecurring: (id: ID) => void;
@@ -304,20 +305,35 @@ export const useStore = create<State>()((set, get) => ({
   },
 
   setWealth: (patch) => {
+    const previousLiabilities = get().liabilities;
     set((s) => ({
       accounts: patch.accounts ?? s.accounts,
       liabilities: patch.liabilities ?? s.liabilities,
     }));
     const s = get();
-    api.setWealthApi({ accounts: s.accounts, liabilities: s.liabilities }).then((res) => reconcile(res, get));
+    const body: Record<string, unknown> = {};
+    if (patch.accounts !== undefined) body.accounts = s.accounts;
+    if (patch.liabilities !== undefined) {
+      body.liabilities = s.liabilities;
+      body.expectedLiabilities = previousLiabilities;
+    }
+    api.setWealthApi(body).then((res) => reconcile(res, get));
+  },
+
+  confirmEmi: async (id, period) => {
+    const result = await api.confirmEmiApi(id, period);
+    const liability = result.liability;
+    if (result.ok && liability) {
+      set((s) => ({
+        liabilities: s.liabilities.map((l) => (l.id === id ? liability : l)),
+      }));
+    }
+    return result;
   },
 
   setEmergency: (emergency) => {
     set({ emergency });
-    const s = get();
-    api
-      .setWealthApi({ accounts: s.accounts, liabilities: s.liabilities, emergency })
-      .then((res) => reconcile(res, get));
+    api.setWealthApi({ emergency }).then((res) => reconcile(res, get));
   },
 
   saveRecurring: (rule) => {
