@@ -69,6 +69,7 @@ self.addEventListener("push", (event) => {
   } catch {
     data = { title: "Tally", body: event.data.text() };
   }
+  const tag = typeof data.tag === "string" && data.tag ? data.tag : undefined;
   event.waitUntil(
     self.registration.showNotification(data.title || "Tally", {
       body: data.body,
@@ -76,17 +77,50 @@ self.addEventListener("push", (event) => {
       badge: "/icon-192.png",
       vibrate: [80, 40, 80],
       data: data.url ? { url: data.url } : {},
+      tag,
+      renotify: Boolean(tag),
     }),
   );
 });
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const url = (event.notification.data && event.notification.data.url) || "/";
+  const requested = (event.notification.data && event.notification.data.url) || "/";
+  let target = new URL("/", self.location.origin);
+  try {
+    const candidate = new URL(requested, self.location.origin);
+    if (candidate.origin === self.location.origin) target = candidate;
+  } catch {
+    // Invalid or cross-origin targets always fall back to the app home page.
+  }
+
   event.waitUntil(
-    self.clients.matchAll({ type: "window" }).then((list) => {
-      for (const client of list) if (client.url.includes(url) && "focus" in client) return client.focus();
-      return self.clients.openWindow(url);
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(async (list) => {
+      const exact = list.find((client) => client.url === target.href);
+      if (exact && "focus" in exact) {
+        try {
+          return await exact.focus();
+        } catch {
+          // Fall through to another same-origin window or a new one.
+        }
+      }
+
+      const sameOrigin = list.find((client) => {
+        try {
+          return new URL(client.url).origin === self.location.origin;
+        } catch {
+          return false;
+        }
+      });
+      if (sameOrigin && "navigate" in sameOrigin) {
+        try {
+          const navigated = await sameOrigin.navigate(target.href);
+          if (navigated && "focus" in navigated) return await navigated.focus();
+        } catch {
+          // A stale window client should not prevent opening the target.
+        }
+      }
+      return self.clients.openWindow(target.href);
     }),
   );
 });

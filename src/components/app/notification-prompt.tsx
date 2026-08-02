@@ -50,9 +50,9 @@ export function NotificationPrompt() {
             <BellRing className="h-5 w-5" />
           </div>
           <div className="relative min-w-0 flex-1">
-            <p className="text-sm font-semibold text-text">Never miss a settle-up</p>
+            <p className="text-sm font-semibold text-text">Never miss a due date</p>
             <p className="text-[0.78rem] leading-snug text-text-2">
-              Get notified when friends add expenses or pay you back.
+              Get EMI reminders and shared-expense updates, even when Tally is closed.
             </p>
           </div>
           <Button size="sm" loading={busy} onClick={handleEnable} className="relative shrink-0">
