@@ -17,14 +17,55 @@ export interface CreditCardSuggestion {
 export function creditCardSuggestions(cards: Liability[]): CreditCardSuggestion[] {
   const active = cards.filter((c) => c.kind === "card" && (c.limit ?? 0) > 0);
   if (!active.length) return [];
-  const highest = [...active].sort((a, b) => cardUtilization(b) - cardUtilization(a))[0];
-  const utilization = cardUtilization(highest);
-  const pct = Math.round(utilization * 100);
-  if (pct >= 80) {
-    return [{ key: highest.id, title: "High card utilization", detail: `${highest.name} is at ${pct}% utilization. Pay it down before new purchases hit the limit hard.`, tone: "warn" }];
+
+  const suggestions: CreditCardSuggestion[] = [];
+
+  // Calculate overall utilization
+  let totalLimit = 0;
+  let totalOutstanding = 0;
+  for (const c of active) {
+    totalLimit += c.limit ?? 0;
+    totalOutstanding += c.outstanding;
   }
-  if (pct >= 30) {
-    return [{ key: highest.id, title: "Keep utilization in check", detail: `${highest.name} is at ${pct}% utilization. Staying under 30% usually keeps credit healthier.`, tone: "info" }];
+  const overallPct = totalLimit > 0 ? Math.round((totalOutstanding / totalLimit) * 100) : 0;
+
+  if (overallPct >= 80) {
+    suggestions.push({
+      key: "overall-utilization-critical",
+      title: "Critical credit utilization",
+      detail: `Your overall card utilization is ${overallPct}%. This severely impacts your credit score. Prioritize paying down your balances immediately.`,
+      tone: "warn",
+    });
+  } else if (overallPct >= 30) {
+    suggestions.push({
+      key: "overall-utilization-high",
+      title: "High credit utilization",
+      detail: `Your overall card utilization is ${overallPct}%. Keeping it under 30% is best for your credit score.`,
+      tone: "info",
+    });
+  } else {
+    suggestions.push({
+      key: "overall-utilization-good",
+      title: "Healthy credit utilization",
+      detail: `Your overall card utilization is ${overallPct}%. Excellent job keeping it under 30%!`,
+      tone: "good",
+    });
   }
-  return [{ key: highest.id, title: "Healthy card usage", detail: `${highest.name} is at ${pct}% utilization. That's in a comfortable range.`, tone: "good" }];
+
+  // Find outlier cards (individual cards with >= 80% utilization)
+  const outliers = [...active]
+    .map((c) => ({ card: c, pct: Math.round(cardUtilization(c) * 100) }))
+    .filter((x) => x.pct >= 80)
+    .sort((a, b) => b.pct - a.pct);
+
+  for (const { card, pct } of outliers) {
+    suggestions.push({
+      key: card.id,
+      title: "Maxed out card",
+      detail: `${card.name} is at ${pct}% capacity. Pay it down before adding new charges.`,
+      tone: "warn",
+    });
+  }
+
+  return suggestions;
 }
