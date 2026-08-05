@@ -46,6 +46,7 @@ export function WealthSheet() {
   const [paid, setPaid] = useState("");
   const [autoDebit, setAutoDebit] = useState(false);
   const [dueDay, setDueDay] = useState("");
+  const [limit, setLimit] = useState("");
 
   const [wasOpen, setWasOpen] = useState(false);
   if (open && !wasOpen) {
@@ -57,6 +58,7 @@ export function WealthSheet() {
     setPaid("");
     setAutoDebit(false);
     setDueDay("");
+    setLimit("");
     if (editingAccount) {
       setMode("asset");
       setName(editingAccount.name);
@@ -76,11 +78,13 @@ export function WealthSheet() {
       setPaid(el.emisPaid != null ? String(el.emisPaid) : "");
       setAutoDebit(Boolean(el.autoDebit));
       setDueDay(el.dueDay ? String(el.dueDay) : "");
+      setLimit(el.limit ? formatMoneyInput(el.limit) : "");
     } else {
       setMode(initialMode);
       setName("");
       setKind(initialMode === "asset" ? "bank" : "loan");
       setAmount("");
+      setLimit("");
     }
   } else if (!open && wasOpen) {
     setWasOpen(false);
@@ -118,7 +122,10 @@ export function WealthSheet() {
       setWealth({ accounts: editingAccount ? accounts.map((a) => (a.id === id ? acc : a)) : [acc, ...accounts] });
     } else {
       const liab: Liability = { id, name: name.trim(), kind: kind as LiabilityKind, outstanding: total };
-      if (kind === "card") liab.limit = total;
+if (kind === "card") {
+  const limitN = parseMoneyInput(limit);
+  if (limitN > 0) liab.limit = limitN;
+}
       const emiN = emiValue;
       if (emiN > 0) liab.emi = emiN;
       const rateN = parseMoneyInput(rate);
@@ -240,6 +247,22 @@ export function WealthSheet() {
             />
           </div>
         </div>
+
+        {!isAsset && kind === "card" && (
+          <div className="mt-4">
+            <p className="mb-2 px-0.5 text-[0.8rem] font-semibold text-text-2">Credit Limit</p>
+            <div className="flex items-center gap-2 rounded-[14px] border border-border bg-surface px-4 py-3">
+              <span className="font-display text-lg font-semibold text-text-2">₹</span>
+              <input
+                value={limit}
+                onChange={(e) => setLimit(e.target.value.replace(/[^0-9.]/g, "").replace(/(\..*)\./g, "$1"))}
+                inputMode="decimal"
+                placeholder="0"
+                className="flex-1 bg-transparent font-display text-lg font-bold tnum outline-none placeholder:text-text-3"
+              />
+            </div>
+          </div>
+        )}
 
         {!isAsset && (
           <div className="flex gap-3">
