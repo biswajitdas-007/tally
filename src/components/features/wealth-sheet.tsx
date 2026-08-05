@@ -204,7 +204,7 @@ if (kind === "card") {
           <Input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder={isAsset ? "HDFC Savings" : "Car loan"}
+            placeholder={isAsset ? "HDFC Savings" : kind === "card" ? "HDFC Regalia" : kind === "emi" ? "Home Loan" : "Car loan"}
             className="h-12 text-[1rem]"
           />
         </div>
@@ -264,7 +264,7 @@ if (kind === "card") {
           </div>
         )}
 
-        {!isAsset && (
+        {!isAsset && kind !== "card" && (
           <div className="flex gap-3">
             <div className="flex-1">
               <p className="mb-2 px-0.5 text-[0.8rem] font-semibold text-text-2">Monthly EMI</p>
@@ -296,12 +296,14 @@ if (kind === "card") {
         )}
 
         {!isAsset && (
-          <>
-            <div>
-              <p className="mb-2 px-0.5 text-[0.8rem] font-semibold text-text-2">Lender / issuer (optional)</p>
-              <Input value={lender} onChange={(e) => setLender(e.target.value)} placeholder="HDFC Bank" className="h-11" />
-            </div>
+          <div>
+            <p className="mb-2 px-0.5 text-[0.8rem] font-semibold text-text-2">Lender / issuer (optional)</p>
+            <Input value={lender} onChange={(e) => setLender(e.target.value)} placeholder="HDFC Bank" className="h-11" />
+          </div>
+        )}
 
+        {!isAsset && kind !== "card" && (
+          <>
             <div className="flex gap-3">
               <div className="flex-1">
                 <p className="mb-2 px-0.5 text-[0.8rem] font-semibold text-text-2">Total months</p>
