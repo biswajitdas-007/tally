@@ -70,6 +70,7 @@ interface Sim {
   start: number;
   bal: number;
   emi: number;
+  specificExtra: number;
   rate: number;
   r: number;
   interest: number;
@@ -82,7 +83,7 @@ interface Sim {
  * whichever debt the strategy says is next. That rollover is what makes both
  * avalanche and snowball finish faster than paying minimums forever.
  */
-export function buildPlan(liabilities: Liability[], strategy: Strategy, extra = 0, now = new Date()): Plan {
+export function buildPlan(liabilities: Liability[], strategy: Strategy, extra = 0, specificExtra: Record<ID, number> = {}, now = new Date()): Plan {
   const excluded: Plan["excluded"] = [];
   const sims: Sim[] = [];
 
@@ -107,6 +108,7 @@ export function buildPlan(liabilities: Liability[], strategy: Strategy, extra = 
       start: l.outstanding,
       bal: l.outstanding,
       emi,
+      specificExtra: specificExtra[l.id] || 0,
       rate,
       r: monthlyRate(rate),
       interest: 0,
@@ -124,7 +126,7 @@ export function buildPlan(liabilities: Liability[], strategy: Strategy, extra = 
     // Minimums first — and bank any EMI (or part of one) that isn't needed.
     for (const s of sims) {
       if (s.bal <= 0.005) {
-        pool += s.emi; // this debt is gone; its EMI rolls into the attack
+        pool += s.emi + s.specificExtra; // this debt is gone; its EMI and specific extra rolls into the attack
         continue;
       }
       const interest = s.bal * s.r;
@@ -132,9 +134,11 @@ export function buildPlan(liabilities: Liability[], strategy: Strategy, extra = 
       s.interest += interest;
       totalInterest += interest;
 
-      const pay = Math.min(s.emi, s.bal);
+      // Apply base EMI and specific extra payment
+      const targetPay = s.emi + s.specificExtra;
+      const pay = Math.min(targetPay, s.bal);
       s.bal -= pay;
-      if (pay < s.emi) pool += s.emi - pay; // final part-payment frees the rest
+      if (pay < targetPay) pool += targetPay - pay; // final part-payment frees the rest
       if (s.bal <= 0.005) s.months = month;
     }
 
@@ -184,10 +188,11 @@ export function comparePayoff(
   liabilities: Liability[],
   strategy: Strategy,
   extra: number,
+  specificExtra: Record<ID, number> = {},
   now = new Date(),
 ): PayoffComparison {
-  const base = buildPlan(liabilities, strategy, 0, now);
-  const withExtra = buildPlan(liabilities, strategy, Math.max(0, extra), now);
+  const base = buildPlan(liabilities, strategy, 0, {}, now);
+  const withExtra = buildPlan(liabilities, strategy, Math.max(0, extra), specificExtra, now);
   return {
     base,
     withExtra,

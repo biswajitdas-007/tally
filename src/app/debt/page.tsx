@@ -25,14 +25,19 @@ export default function DebtPage() {
 
   const [strategy, setStrategy] = useState<Strategy>("avalanche");
   const [extra, setExtra] = useState(0);
+  const [specificExtra, setSpecificExtra] = useState<Record<string, number>>({});
+  const [foreclosures, setForeclosures] = useState<Set<string>>(new Set());
 
-  const emiTotal = useMemo(() => monthlyLiability(liabilities), [liabilities]);
-  const plan = useMemo(() => buildPlan(liabilities, strategy, extra), [liabilities, strategy, extra]);
-  const cmp = useMemo(() => comparePayoff(liabilities, strategy, extra), [liabilities, strategy, extra]);
+  const activeLiabilities = useMemo(() => liabilities.filter(l => !foreclosures.has(l.id)), [liabilities, foreclosures]);
+  const foreclosedLiabilities = useMemo(() => liabilities.filter(l => foreclosures.has(l.id)), [liabilities, foreclosures]);
+
+  const emiTotal = useMemo(() => monthlyLiability(activeLiabilities), [activeLiabilities]);
+  const plan = useMemo(() => buildPlan(activeLiabilities, strategy, extra, specificExtra), [activeLiabilities, strategy, extra, specificExtra]);
+  const cmp = useMemo(() => comparePayoff(activeLiabilities, strategy, extra, specificExtra), [activeLiabilities, strategy, extra, specificExtra]);
   // What the other strategy would cost, so the trade-off is visible.
   const other = useMemo(
-    () => buildPlan(liabilities, strategy === "avalanche" ? "snowball" : "avalanche", extra),
-    [liabilities, strategy, extra],
+    () => buildPlan(activeLiabilities, strategy === "avalanche" ? "snowball" : "avalanche", extra, specificExtra),
+    [activeLiabilities, strategy, extra, specificExtra],
   );
 
   const totalOwed = liabilities.reduce((a, l) => a + l.outstanding, 0);
@@ -225,46 +230,110 @@ export default function DebtPage() {
                   const Icon = LIABILITY_KIND_META[kind as LiabilityKind].icon;
                   const first = i === 0;
                   return (
-                    <div key={d.id} className="flex items-center gap-3 px-4 py-3">
-                      <div className="relative shrink-0">
-                        <BankBadge name={d.lender ?? d.name} fallback={Icon} tone={first ? "positive" : "negative"} className="h-9 w-9" />
-                        <span
-                          className={cn(
-                            "absolute -left-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full text-[0.58rem] font-bold",
-                            first ? "bg-brand text-on-brand" : "bg-surface-inset text-text-3",
-                          )}
-                        >
-                          {i + 1}
-                        </span>
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5">
-                          <p className="truncate text-[0.9rem] font-medium text-text">{d.name}</p>
-                          {first && (
-                            <span className="flex shrink-0 items-center gap-0.5 rounded-full bg-brand-soft px-1.5 py-0.5 text-[0.58rem] font-bold uppercase tracking-wide text-brand">
-                              <Flag className="h-2.5 w-2.5" /> First
-                            </span>
+                    <div key={d.id} className="flex flex-col gap-2 px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <div className="relative shrink-0">
+                          <BankBadge name={d.lender ?? d.name} fallback={Icon} tone={first ? "positive" : "negative"} className="h-9 w-9" />
+                          <span
+                            className={cn(
+                              "absolute -left-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full text-[0.58rem] font-bold",
+                              first ? "bg-brand text-on-brand" : "bg-surface-inset text-text-3",
+                            )}
+                          >
+                            {i + 1}
+                          </span>
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5">
+                            <p className="truncate text-[0.9rem] font-medium text-text">{d.name}</p>
+                            {first && (
+                              <span className="flex shrink-0 items-center gap-0.5 rounded-full bg-brand-soft px-1.5 py-0.5 text-[0.58rem] font-bold uppercase tracking-wide text-brand">
+                                <Flag className="h-2.5 w-2.5" /> First
+                              </span>
+                            )}
+                          </div>
+                          <p className="truncate text-[0.76rem] text-text-3">
+                            {formatINR(d.outstanding)}
+                            {d.rate > 0 && ` · ${d.rate}%`} · clear by {formatDate(d.clearedOn.toISOString(), true)}
+                          </p>
+                        </div>
+                        <div className="shrink-0 text-right">
+                          <p className="tnum text-[0.82rem] font-semibold text-text">{humanMonths(d.months)}</p>
+                          {d.interest > 0 && (
+                            <p className="flex items-center justify-end gap-0.5 text-[0.72rem] text-text-3">
+                              <TrendingDown className="h-3 w-3" />
+                              {formatINR(d.interest)}
+                            </p>
                           )}
                         </div>
-                        <p className="truncate text-[0.76rem] text-text-3">
-                          {formatINR(d.outstanding)}
-                          {d.rate > 0 && ` · ${d.rate}%`} · clear by {formatDate(d.clearedOn.toISOString(), true)}
-                        </p>
                       </div>
-                      <div className="shrink-0 text-right">
-                        <p className="tnum text-[0.82rem] font-semibold text-text">{humanMonths(d.months)}</p>
-                        {d.interest > 0 && (
-                          <p className="flex items-center justify-end gap-0.5 text-[0.72rem] text-text-3">
-                            <TrendingDown className="h-3 w-3" />
-                            {formatINR(d.interest)}
-                          </p>
-                        )}
+                      <div className="flex flex-wrap items-center justify-between gap-3 rounded-[12px] bg-surface-inset px-3 py-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[0.76rem] font-medium text-text-2">Pay extra:</span>
+                          <div className="flex h-8 items-center rounded-[8px] border border-border bg-surface px-2 focus-within:border-brand">
+                            <span className="text-[0.8rem] text-text-3">₹</span>
+                            <input
+                              value={specificExtra[d.id] || ""}
+                              onChange={(e) => setSpecificExtra((p) => ({ ...p, [d.id]: parseFloat(sanitizeMoneyInput(e.target.value)) || 0 }))}
+                              inputMode="decimal"
+                              placeholder="0"
+                              className="w-16 bg-transparent px-1 font-display text-[0.85rem] font-semibold outline-none"
+                            />
+                          </div>
+                        </div>
+                        <label className="flex cursor-pointer items-center gap-1.5">
+                          <input
+                            type="checkbox"
+                            checked={false}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setForeclosures((p) => new Set([...p, d.id]));
+                                setSpecificExtra((p) => { const next = {...p}; delete next[d.id]; return next; });
+                              }
+                            }}
+                            className="h-3.5 w-3.5 rounded-[4px] accent-brand"
+                          />
+                          <span className="text-[0.76rem] font-medium text-text-2">Foreclose now</span>
+                        </label>
                       </div>
                     </div>
                   );
                 })}
               </div>
             </Card>
+
+            {foreclosedLiabilities.length > 0 && (
+              <Card className="mt-4 overflow-hidden border-positive/30 bg-positive-soft/10">
+                <div className="px-4 py-3 border-b border-positive/10">
+                  <p className="text-[0.82rem] font-semibold text-positive">Planned Foreclosures</p>
+                  <p className="text-[0.72rem] text-positive/70">These are paid off today.</p>
+                </div>
+                <div className="divide-y divide-positive/10">
+                  {foreclosedLiabilities.map((l) => {
+                    const Icon = LIABILITY_KIND_META[l.kind as LiabilityKind].icon;
+                    return (
+                      <div key={l.id} className="flex flex-col gap-2 px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <BankBadge name={l.lender ?? l.name} fallback={Icon} tone="positive" className="h-9 w-9 shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-[0.9rem] font-medium text-text">{l.name}</p>
+                            <p className="truncate text-[0.76rem] text-text-3">Foreclosing with {formatINR(l.outstanding)}</p>
+                          </div>
+                          <button
+                            onClick={() => {
+                                setForeclosures((p) => { const next = new Set(p); next.delete(l.id); return next; });
+                            }}
+                            className="rounded-full bg-surface px-3 py-1.5 text-[0.72rem] font-medium text-text-2 ring-1 ring-border transition-colors hover:text-text hover:ring-border-strong"
+                          >
+                            Undo
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
+            )}
             <p className="mt-2 px-0.5 text-[0.76rem] leading-snug text-text-3">
               Each EMI keeps running. When one debt clears, its payment rolls into the next — which is why the last ones go
               fastest.

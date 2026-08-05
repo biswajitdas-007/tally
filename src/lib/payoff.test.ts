@@ -10,7 +10,7 @@ const NOW = new Date(2026, 0, 15);
 describe("buildPlan", () => {
   it("matches the closed-form amortisation for a single debt", () => {
     // 100000 at 12% paying 10000/mo: n = -ln(1 - Pr/EMI)/ln(1+r) ≈ 10.6 months
-    const plan = buildPlan([L({ id: "a" })], "avalanche", 0, NOW);
+    const plan = buildPlan([L({ id: "a" })], "avalanche", 0, {}, NOW);
     expect(plan.applicable).toBe(true);
     expect(plan.months).toBeGreaterThanOrEqual(10);
     expect(plan.months).toBeLessThanOrEqual(12);
@@ -20,7 +20,7 @@ describe("buildPlan", () => {
   });
 
   it("charges no interest at 0% and clears in exactly principal/emi months", () => {
-    const plan = buildPlan([L({ id: "z", rate: 0, outstanding: 50000, emi: 10000 })], "avalanche", 0, NOW);
+    const plan = buildPlan([L({ id: "z", rate: 0, outstanding: 50000, emi: 10000 })], "avalanche", 0, {}, NOW);
     expect(plan.months).toBe(5);
     expect(plan.totalInterest).toBe(0);
   });
@@ -34,36 +34,37 @@ describe("buildPlan", () => {
       ],
       "snowball",
       0,
+      {},
       NOW,
     );
     expect(plan.months).toBeLessThan(10);
   });
 
   it("reports a debt with no EMI rather than silently dropping it", () => {
-    const plan = buildPlan([L({ id: "card", emi: undefined })], "avalanche", 0, NOW);
+    const plan = buildPlan([L({ id: "card", emi: undefined })], "avalanche", 0, {}, NOW);
     expect(plan.excluded.map((e) => e.reason)).toEqual(["no-emi"]);
     expect(plan.applicable).toBe(false);
   });
 
   it("terminates instead of hanging when the EMI can't cover the interest", () => {
-    const plan = buildPlan([L({ id: "bad", outstanding: 500000, rate: 36, emi: 5000 })], "avalanche", 0, NOW);
+    const plan = buildPlan([L({ id: "bad", outstanding: 500000, rate: 36, emi: 5000 })], "avalanche", 0, {}, NOW);
     expect(plan.excluded.map((e) => e.reason)).toEqual(["never-clears"]);
     expect(plan.months).toBeLessThan(600);
   });
 
   it("plans what it can and still reports what it couldn't", () => {
-    const plan = buildPlan([L({ id: "good" }), L({ id: "card", emi: undefined })], "avalanche", 0, NOW);
+    const plan = buildPlan([L({ id: "good" }), L({ id: "card", emi: undefined })], "avalanche", 0, {}, NOW);
     expect(plan.order).toHaveLength(1);
     expect(plan.excluded).toHaveLength(1);
   });
 
   it("is not applicable with nothing owed", () => {
-    expect(buildPlan([], "avalanche", 0, NOW).applicable).toBe(false);
-    expect(buildPlan([L({ id: "done", outstanding: 0 })], "avalanche", 0, NOW).applicable).toBe(false);
+    expect(buildPlan([], "avalanche", 0, {}, NOW).applicable).toBe(false);
+    expect(buildPlan([L({ id: "done", outstanding: 0 })], "avalanche", 0, {}, NOW).applicable).toBe(false);
   });
 
   it("gives every debt a payoff date and interest that sums to the total", () => {
-    const plan = buildPlan([L({ id: "a" }), L({ id: "b", outstanding: 40000, emi: 4000, rate: 18 })], "avalanche", 0, NOW);
+    const plan = buildPlan([L({ id: "a" }), L({ id: "b", outstanding: 40000, emi: 4000, rate: 18 })], "avalanche", 0, {}, NOW);
     expect(plan.order.every((d) => d.clearedOn instanceof Date)).toBe(true);
     const sum = plan.order.reduce((a, d) => a + d.interest, 0);
     expect(Math.abs(sum - plan.totalInterest)).toBeLessThanOrEqual(2);
@@ -90,8 +91,8 @@ describe("strategy ordering", () => {
       L({ id: "small-cheap", outstanding: 40000, emi: 3000, rate: 9 }),
       L({ id: "big-dear", outstanding: 300000, emi: 10000, rate: 24 }),
     ];
-    const av = buildPlan(debts, "avalanche", 5000, NOW);
-    const sn = buildPlan(debts, "snowball", 5000, NOW);
+    const av = buildPlan(debts, "avalanche", 5000, {}, NOW);
+    const sn = buildPlan(debts, "snowball", 5000, {}, NOW);
     expect(av.totalInterest).toBeLessThanOrEqual(sn.totalInterest);
   });
 });
@@ -103,14 +104,14 @@ describe("comparePayoff", () => {
   ];
 
   it("shortens the plan and saves interest", () => {
-    const cmp = comparePayoff(debts, "avalanche", 10000, NOW);
+    const cmp = comparePayoff(debts, "avalanche", 10000, {}, NOW);
     expect(cmp.withExtra.months).toBeLessThan(cmp.base.months);
     expect(cmp.interestSaved).toBeGreaterThan(0);
     expect(cmp.monthsSaved).toBe(cmp.base.months - cmp.withExtra.months);
   });
 
   it("saves nothing when nothing extra is paid", () => {
-    expect(comparePayoff(debts, "avalanche", 0, NOW).monthsSaved).toBe(0);
+    expect(comparePayoff(debts, "avalanche", 0, {}, NOW).monthsSaved).toBe(0);
   });
 });
 
