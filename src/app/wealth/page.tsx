@@ -18,6 +18,7 @@ import { buildPlan, humanMonths } from "@/lib/payoff";
 import { staleAccounts, lastCheckedLabel } from "@/lib/reconcile";
 import { pendingFromSplits } from "@/lib/balances";
 import { debtSuggestions, monthlyLiability, type DebtSuggestion } from "@/lib/debt";
+import { creditCardSuggestions } from "@/lib/cards";
 import { withLiveBalances, unparkedAmount } from "@/lib/accounts";
 import { formatINR, cn } from "@/lib/utils";
 import type { AccountKind, InvestmentType, LiabilityKind } from "@/lib/types";
@@ -109,6 +110,17 @@ export default function WealthPage() {
   const suggestions = useMemo(
     () => debtSuggestions({ liabilities, income, spend: avg.spend, liquid }),
     [liabilities, income, avg.spend, liquid],
+  );
+  const cardSuggestions = useMemo(
+    () =>
+      creditCardSuggestions(liabilities).map((s) => ({
+        key: s.key,
+        tone: s.tone,
+        title: s.title,
+        detail: s.detail,
+        priority: 99,
+      })),
+    [liabilities],
   );
   const dtiStyle =
     dti >= 0.4
@@ -468,6 +480,9 @@ export default function WealthPage() {
               <SectionHeader title="Suggestions" />
               <div className="flex flex-col gap-2.5">
                 {suggestions.map((s) => (
+                  <SuggestionCard key={s.key} s={s} />
+                ))}
+                {cardSuggestions.map((s) => (
                   <SuggestionCard key={s.key} s={s} />
                 ))}
               </div>

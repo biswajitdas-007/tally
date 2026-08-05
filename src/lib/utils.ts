@@ -15,7 +15,7 @@ export function formatINR(
   opts: { decimals?: boolean; compact?: boolean; signed?: boolean } = {},
 ): string {
   const { decimals = false, compact = false, signed = false } = opts;
-  const abs = Math.abs(value);
+  const abs = Math.abs(roundMoney(value));
   let body: string;
 
   if (compact && abs >= 1000) {
@@ -38,7 +38,11 @@ export function formatNumber(value: number, decimals = false): string {
   return new Intl.NumberFormat("en-IN", {
     minimumFractionDigits: decimals ? 2 : 0,
     maximumFractionDigits: 2,
-  }).format(value);
+  }).format(roundMoney(value));
+}
+
+export function formatMoneyInput(value: number): string {
+  return roundMoney(value).toFixed(2).replace(/\.00$/, "");
 }
 
 export function initials(name: string): string {
@@ -119,6 +123,25 @@ export function uid(prefix = ""): string {
 
 export function clamp(n: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, n));
+}
+
+/** Round a money value to standard currency precision (2 decimals). */
+export function roundMoney(value: number): number {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
+}
+
+export function parseMoneyInput(value: string): number {
+  const cleaned = value.replace(/[^0-9.]/g, "");
+  const parts = cleaned.split(".");
+  const whole = parts[0] ?? "";
+  const fraction = parts.slice(1).join("");
+  const normalized = fraction ? `${whole || "0"}.${fraction.slice(0, 2)}` : whole;
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? roundMoney(parsed) : 0;
+}
+
+export function toCurrencyString(value: number): string {
+  return new Intl.NumberFormat("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(roundMoney(value));
 }
 
 /** Split a total into n near-equal integer paise-safe rupee shares. */

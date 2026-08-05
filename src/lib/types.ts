@@ -184,6 +184,8 @@ export interface Liability {
   name: string;
   kind: LiabilityKind;
   outstanding: number;
+  /** For credit cards: the card limit used for utilization. */
+  limit?: number;
   emi?: number; // monthly payment, for debt-to-income
   rate?: number; // annual interest %
   lender?: string; // who it's from (e.g. "HDFC Bank")

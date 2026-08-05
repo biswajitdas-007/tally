@@ -2,6 +2,7 @@ import { verifyUser } from "@/lib/auth-server";
 import { collections } from "@/lib/db";
 import { badRequest, isStr, json, serverError, unauthorized } from "@/lib/api-helpers";
 import { manualDue, markManualPaid, normalizeLiability, pendingEmis } from "@/lib/liabilities";
+import { sendEmiEmail } from "@/lib/emi-email";
 import type { Liability } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -74,6 +75,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         const updatedDoc = await users.findOne({ _id: user.uid }, { projection: { liabilities: 1 } });
         const updated = updatedDoc?.liabilities?.find((item) => item.id === id);
         if (!updated) return json({ error: "not-found" }, 404);
+        const profile = await users.findOne({ _id: user.uid }, { projection: { email: 1, name: 1 } });
+        if (profile?.email && !normalizeLiability(updated).autoDebit) {
+          await sendEmiEmail(profile.email, profile.name ?? "", normalizeLiability(updated));
+        }
         return json({ ok: true, liability: normalizeLiability(updated), applied });
       }
     }

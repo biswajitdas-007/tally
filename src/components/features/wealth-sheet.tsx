@@ -13,7 +13,7 @@ import { linkedDelta } from "@/lib/accounts";
 import { useStore, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { useToast } from "@/components/ui/toast";
-import { cn, uid as newId } from "@/lib/utils";
+import { cn, parseMoneyInput, formatMoneyInput, uid as newId } from "@/lib/utils";
 import type { Account, AccountKind, Liability, LiabilityKind } from "@/lib/types";
 
 type Mode = "asset" | "liability";
@@ -62,15 +62,15 @@ export function WealthSheet() {
       setName(editingAccount.name);
       setKind(editingAccount.kind);
       // Show the live balance (baseline + everything logged against it).
-      setAmount(String(editingAccount.balance + linkedDelta(editingAccount.id, finance, expenses, myId)));
+      setAmount(formatMoneyInput(editingAccount.balance + linkedDelta(editingAccount.id, finance, expenses, myId)));
     } else if (editingLiability) {
       const el = editingLiability;
       setMode("liability");
       setName(el.name);
       setKind(el.kind);
-      setAmount(String(el.outstanding));
-      setEmi(el.emi ? String(el.emi) : "");
-      setRate(el.rate ? String(el.rate) : "");
+      setAmount(formatMoneyInput(el.outstanding));
+      setEmi(el.emi ? formatMoneyInput(el.emi) : "");
+      setRate(el.rate ? formatMoneyInput(el.rate) : "");
       setLender(el.lender ?? "");
       setTerm(el.termMonths ? String(el.termMonths) : "");
       setPaid(el.emisPaid != null ? String(el.emisPaid) : "");
@@ -89,8 +89,8 @@ export function WealthSheet() {
   const isAsset = mode === "asset";
   const kinds: string[] = isAsset ? LIQUID_ACCOUNT_KINDS : LIABILITY_KINDS;
   const meta = (isAsset ? ACCOUNT_KIND_META : LIABILITY_KIND_META) as Record<string, { label: string; icon: LucideIcon }>;
-  const total = parseFloat(amount) || 0;
-  const emiValue = parseFloat(emi);
+  const total = parseMoneyInput(amount);
+  const emiValue = parseMoneyInput(emi);
   const termValue = parseInt(term, 10);
   const paidValue = paid !== "" ? parseInt(paid, 10) : 0;
   const scheduleReady =
@@ -118,9 +118,10 @@ export function WealthSheet() {
       setWealth({ accounts: editingAccount ? accounts.map((a) => (a.id === id ? acc : a)) : [acc, ...accounts] });
     } else {
       const liab: Liability = { id, name: name.trim(), kind: kind as LiabilityKind, outstanding: total };
+      if (kind === "card") liab.limit = total;
       const emiN = emiValue;
       if (emiN > 0) liab.emi = emiN;
-      const rateN = parseFloat(rate);
+      const rateN = parseMoneyInput(rate);
       if (rate !== "" && rateN >= 0) liab.rate = rateN;
       if (lender.trim()) liab.lender = lender.trim();
       const termN = termValue;
@@ -232,7 +233,7 @@ export function WealthSheet() {
             <span className="font-display text-lg font-semibold text-text-2">₹</span>
             <input
               value={amount}
-              onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
+              onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, "").replace(/(\..*)\./g, "$1"))}
               inputMode="decimal"
               placeholder="0"
               className="flex-1 bg-transparent font-display text-lg font-bold tnum outline-none placeholder:text-text-3"
@@ -248,7 +249,7 @@ export function WealthSheet() {
                 <span className="text-text-2">₹</span>
                 <input
                   value={emi}
-                  onChange={(e) => setEmi(e.target.value.replace(/[^0-9.]/g, ""))}
+                  onChange={(e) => setEmi(e.target.value.replace(/[^0-9.]/g, "").replace(/(\..*)\./g, "$1"))}
                   inputMode="decimal"
                   placeholder="0"
                   className="w-full bg-transparent font-display text-[0.98rem] font-bold tnum outline-none placeholder:text-text-3"
@@ -260,7 +261,7 @@ export function WealthSheet() {
               <div className="flex items-center gap-1.5 rounded-[14px] border border-border bg-surface px-3 py-3">
                 <input
                   value={rate}
-                  onChange={(e) => setRate(e.target.value.replace(/[^0-9.]/g, ""))}
+                  onChange={(e) => setRate(e.target.value.replace(/[^0-9.]/g, "").replace(/(\..*)\./g, "$1"))}
                   inputMode="decimal"
                   placeholder="0"
                   className="w-full bg-transparent font-display text-[0.98rem] font-bold tnum outline-none placeholder:text-text-3"
@@ -274,7 +275,7 @@ export function WealthSheet() {
         {!isAsset && (
           <>
             <div>
-              <p className="mb-2 px-0.5 text-[0.8rem] font-semibold text-text-2">Lender (optional)</p>
+              <p className="mb-2 px-0.5 text-[0.8rem] font-semibold text-text-2">Lender / issuer (optional)</p>
               <Input value={lender} onChange={(e) => setLender(e.target.value)} placeholder="HDFC Bank" className="h-11" />
             </div>
 

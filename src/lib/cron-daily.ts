@@ -271,6 +271,13 @@ async function runEmis(users: Collection<UserDoc>, now: Date, push: PushMetrics)
         const delivery = await pushAndPrune(users, u._id, u.pushSubs ?? [], payload, push);
         if (delivery.sent > 0) {
           updatedUsers.add(u._id);
+          if (!current.autoDebit && notice.kind === "due" && u.email) {
+            try {
+              if (await sendEmiEmail(u.email, u.name, current)) emails++;
+            } catch {
+              emailFailures++;
+            }
+          }
         } else {
           let released = false;
           try {
