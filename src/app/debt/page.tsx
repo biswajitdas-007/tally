@@ -14,7 +14,7 @@ import { useStore } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { buildPlan, comparePayoff, humanMonths, STRATEGY_META, type Strategy } from "@/lib/payoff";
 import { monthlyLiability } from "@/lib/debt";
-import { formatINR, formatDate, cn } from "@/lib/utils";
+import { formatINR, formatDate, cn , sanitizeMoneyInput} from "@/lib/utils";
 import type { LiabilityKind } from "@/lib/types";
 
 const PRESETS = [1000, 2500, 5000, 10000];
@@ -185,7 +185,7 @@ export default function DebtPage() {
               <span className="font-display text-lg font-semibold text-text-2">₹</span>
               <input
                 value={extra || ""}
-                onChange={(e) => setExtra(parseFloat(e.target.value.replace(/[^0-9.]/g, "")) || 0)}
+                onChange={(e) => setExtra(parseFloat(sanitizeMoneyInput(e.target.value)) || 0)}
                 inputMode="decimal"
                 placeholder="Your own amount"
                 className="flex-1 bg-transparent font-display text-lg font-bold tnum outline-none placeholder:text-[0.9rem] placeholder:font-medium placeholder:text-text-3"

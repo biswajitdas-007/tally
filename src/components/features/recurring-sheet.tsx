@@ -13,7 +13,7 @@ import { DEFAULT_RECUR_DAY, WEEKDAYS, nextOccurrence, stampCurrent } from "@/lib
 import { useStore } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { useToast } from "@/components/ui/toast";
-import { cn, formatDate, uid as newId } from "@/lib/utils";
+import { cn, formatDate, uid as newId , sanitizeMoneyInput} from "@/lib/utils";
 import type { FinanceType, RecurFreq, Recurring } from "@/lib/types";
 
 export function RecurringSheet() {
@@ -135,7 +135,7 @@ export function RecurringSheet() {
             <span className={cn("font-display text-3xl font-semibold", isIncome ? "text-positive" : "text-text-2")}>₹</span>
             <input
               value={amount}
-              onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
+              onChange={(e) => setAmount(sanitizeMoneyInput(e.target.value))}
               inputMode="decimal"
               placeholder="0"
               style={{ width: `${Math.max((amount || "0").length, 1)}ch`, outline: "none", boxShadow: "none" }}

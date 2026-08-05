@@ -11,7 +11,7 @@ import { withLiveBalances } from "@/lib/accounts";
 import { avgMonthly, suggestedEmergency } from "@/lib/health";
 import { monthlyEmi } from "@/lib/money";
 import { ACCOUNT_KIND_META } from "@/lib/categories";
-import { formatINR, cn } from "@/lib/utils";
+import { formatINR, cn , sanitizeMoneyInput} from "@/lib/utils";
 import type { AccountKind } from "@/lib/types";
 
 function AccountOption({ label, sub, active, onClick }: { label: string; sub: string; active: boolean; onClick: () => void }) {
@@ -90,7 +90,7 @@ export function EmergencySheet() {
             <span className="font-display text-lg font-semibold text-text-2">₹</span>
             <input
               value={amount}
-              onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
+              onChange={(e) => setAmount(sanitizeMoneyInput(e.target.value))}
               inputMode="decimal"
               placeholder="100000"
               className="flex-1 bg-transparent font-display text-lg font-bold tnum outline-none placeholder:text-text-3"

@@ -8,7 +8,7 @@ import { CATEGORY_LIST } from "@/lib/categories";
 import { useStore } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { useToast } from "@/components/ui/toast";
-import { cn, formatINR } from "@/lib/utils";
+import { cn, formatINR , sanitizeMoneyInput} from "@/lib/utils";
 import type { CategoryKey } from "@/lib/types";
 
 export function BudgetSheet() {
@@ -54,7 +54,7 @@ export function BudgetSheet() {
             <span className="font-display text-lg font-semibold text-text-2">₹</span>
             <input
               value={monthly}
-              onChange={(e) => setMonthly(e.target.value.replace(/[^0-9.]/g, ""))}
+              onChange={(e) => setMonthly(sanitizeMoneyInput(e.target.value))}
               inputMode="decimal"
               placeholder="40000"
               className="flex-1 bg-transparent font-display text-lg font-bold tnum outline-none placeholder:text-text-3"
@@ -84,7 +84,7 @@ export function BudgetSheet() {
                     <span className="text-text-3">₹</span>
                     <input
                       value={limits[c.key] ?? ""}
-                      onChange={(e) => setLimits((p) => ({ ...p, [c.key]: e.target.value.replace(/[^0-9.]/g, "") }))}
+                      onChange={(e) => setLimits((p) => ({ ...p, [c.key]: sanitizeMoneyInput(e.target.value) }))}
                       inputMode="decimal"
                       placeholder="—"
                       className="w-20 rounded-lg bg-surface-inset px-2 py-1 text-right text-[0.9rem] tnum outline-none transition-colors focus:bg-surface"
