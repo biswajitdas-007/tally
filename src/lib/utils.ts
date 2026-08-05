@@ -140,6 +140,16 @@ export function parseMoneyInput(value: string): number {
   return Number.isFinite(parsed) ? roundMoney(parsed) : 0;
 }
 
+/** Sanitizes raw input string to ensure it's a valid monetary amount (max 2 decimal places). */
+export function sanitizeMoneyInput(value: string): string {
+  let cleaned = value.replace(/[^0-9.]/g, "").replace(/(\..*)\./g, "$1");
+  const parts = cleaned.split(".");
+  if (parts.length > 1) {
+    cleaned = `${parts[0]}.${parts[1].slice(0, 2)}`;
+  }
+  return cleaned;
+}
+
 export function toCurrencyString(value: number): string {
   return new Intl.NumberFormat("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(roundMoney(value));
 }

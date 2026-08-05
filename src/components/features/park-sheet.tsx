@@ -9,7 +9,7 @@ import { useStore, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { useToast } from "@/components/ui/toast";
 import { unparkedAmount } from "@/lib/accounts";
-import { formatINR, clamp } from "@/lib/utils";
+import { formatINR, clamp , sanitizeMoneyInput} from "@/lib/utils";
 
 export function ParkSheet() {
   const open = useUI((s) => s.parkOpen);
@@ -63,7 +63,7 @@ export function ParkSheet() {
             <span className="font-display text-lg font-semibold text-text-2">₹</span>
             <input
               value={amount}
-              onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
+              onChange={(e) => setAmount(sanitizeMoneyInput(e.target.value))}
               inputMode="decimal"
               placeholder="0"
               className="flex-1 bg-transparent font-display text-lg font-bold tnum outline-none placeholder:text-text-3"

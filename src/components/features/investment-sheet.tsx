@@ -11,7 +11,7 @@ import { useToast } from "@/components/ui/toast";
 import { INVESTMENT_TYPES, INVESTMENT_TYPE_META } from "@/lib/categories";
 import { emergencyStatus } from "@/lib/health";
 import { withLiveBalances, unparkedAmount } from "@/lib/accounts";
-import { cn, formatINR, uid as newId } from "@/lib/utils";
+import { cn, formatINR, uid as newId , sanitizeMoneyInput} from "@/lib/utils";
 import type { Account, InvestmentType } from "@/lib/types";
 
 export function InvestmentSheet() {
@@ -146,7 +146,7 @@ export function InvestmentSheet() {
             <span className="font-display text-lg font-semibold text-text-2">₹</span>
             <input
               value={value}
-              onChange={(e) => setValue(e.target.value.replace(/[^0-9.]/g, ""))}
+              onChange={(e) => setValue(sanitizeMoneyInput(e.target.value))}
               inputMode="decimal"
               placeholder="0"
               className="flex-1 bg-transparent font-display text-lg font-bold tnum outline-none placeholder:text-text-3"
@@ -161,7 +161,7 @@ export function InvestmentSheet() {
             <span className="font-display text-lg font-semibold text-text-2">₹</span>
             <input
               value={invested}
-              onChange={(e) => setInvested(e.target.value.replace(/[^0-9.]/g, ""))}
+              onChange={(e) => setInvested(sanitizeMoneyInput(e.target.value))}
               inputMode="decimal"
               placeholder="What you put in"
               className="flex-1 bg-transparent font-display text-lg font-bold tnum outline-none placeholder:text-text-3"

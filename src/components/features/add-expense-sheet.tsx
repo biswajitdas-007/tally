@@ -16,7 +16,7 @@ import { AccountPicker } from "./account-picker";
 import { useStore, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { useToast } from "@/components/ui/toast";
-import { cn, formatINR, formatDate, splitEqually } from "@/lib/utils";
+import { cn, formatINR, formatDate, splitEqually , sanitizeMoneyInput} from "@/lib/utils";
 import type { CategoryKey, ID, Split } from "@/lib/types";
 
 export function AddExpenseSheet() {
@@ -180,7 +180,7 @@ export function AddExpenseSheet() {
             <span className="font-display text-3xl font-semibold text-text-2">₹</span>
             <input
               value={amount}
-              onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
+              onChange={(e) => setAmount(sanitizeMoneyInput(e.target.value))}
               inputMode="decimal"
               placeholder="0"
               style={{ width: `${Math.max((amount || "0").length, 1)}ch`, outline: "none", boxShadow: "none" }}
@@ -339,7 +339,7 @@ export function AddExpenseSheet() {
                       <input
                         value={exact[id] ?? ""}
                         onChange={(e) =>
-                          setExact((prev) => ({ ...prev, [id]: e.target.value.replace(/[^0-9.]/g, "") }))
+                          setExact((prev) => ({ ...prev, [id]: sanitizeMoneyInput(e.target.value) }))
                         }
                         inputMode="decimal"
                         placeholder="0"

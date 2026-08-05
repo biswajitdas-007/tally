@@ -13,7 +13,7 @@ import { linkedDelta } from "@/lib/accounts";
 import { useStore, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { useToast } from "@/components/ui/toast";
-import { cn, parseMoneyInput, formatMoneyInput, uid as newId } from "@/lib/utils";
+import { cn, parseMoneyInput, formatMoneyInput, uid as newId , sanitizeMoneyInput} from "@/lib/utils";
 import type { Account, AccountKind, Liability, LiabilityKind } from "@/lib/types";
 
 type Mode = "asset" | "liability";
@@ -233,7 +233,7 @@ export function WealthSheet() {
             <span className="font-display text-lg font-semibold text-text-2">₹</span>
             <input
               value={amount}
-              onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, "").replace(/(\..*)\./g, "$1"))}
+              onChange={(e) => setAmount(sanitizeMoneyInput(e.target.value))}
               inputMode="decimal"
               placeholder="0"
               className="flex-1 bg-transparent font-display text-lg font-bold tnum outline-none placeholder:text-text-3"
@@ -249,7 +249,7 @@ export function WealthSheet() {
                 <span className="text-text-2">₹</span>
                 <input
                   value={emi}
-                  onChange={(e) => setEmi(e.target.value.replace(/[^0-9.]/g, "").replace(/(\..*)\./g, "$1"))}
+                  onChange={(e) => setEmi(sanitizeMoneyInput(e.target.value))}
                   inputMode="decimal"
                   placeholder="0"
                   className="w-full bg-transparent font-display text-[0.98rem] font-bold tnum outline-none placeholder:text-text-3"
@@ -261,7 +261,7 @@ export function WealthSheet() {
               <div className="flex items-center gap-1.5 rounded-[14px] border border-border bg-surface px-3 py-3">
                 <input
                   value={rate}
-                  onChange={(e) => setRate(e.target.value.replace(/[^0-9.]/g, "").replace(/(\..*)\./g, "$1"))}
+                  onChange={(e) => setRate(sanitizeMoneyInput(e.target.value))}
                   inputMode="decimal"
                   placeholder="0"
                   className="w-full bg-transparent font-display text-[0.98rem] font-bold tnum outline-none placeholder:text-text-3"
