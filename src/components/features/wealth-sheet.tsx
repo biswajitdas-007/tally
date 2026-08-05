@@ -122,10 +122,10 @@ export function WealthSheet() {
       setWealth({ accounts: editingAccount ? accounts.map((a) => (a.id === id ? acc : a)) : [acc, ...accounts] });
     } else {
       const liab: Liability = { id, name: name.trim(), kind: kind as LiabilityKind, outstanding: total };
-      if (kind === "card") {
-        const limitN = parseMoneyInput(limit);
-        liab.limit = limitN > 0 ? limitN : total;
-      }
+if (kind === "card") {
+  const limitN = parseMoneyInput(limit);
+  if (limitN > 0) liab.limit = limitN;
+}
       const emiN = emiValue;
       if (emiN > 0) liab.emi = emiN;
       const rateN = parseMoneyInput(rate);
