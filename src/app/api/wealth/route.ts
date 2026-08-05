@@ -51,6 +51,7 @@ function cleanLiabilities(v: unknown, now = new Date()): Liability[] {
       if (isNum(l.rate) && (l.rate as number) >= 0) item.rate = l.rate as number;
       if (isStr(l.lender)) item.lender = (l.lender as string).slice(0, 60);
       if (isNum(l.termMonths) && (l.termMonths as number) > 0) item.termMonths = Math.round(l.termMonths as number);
+      if (item.kind === "card" && isNum(l.limit) && (l.limit as number) > 0) item.limit = l.limit as number;
       if (isNum(l.emisPaid) && (l.emisPaid as number) >= 0) {
         item.emisPaid = item.termMonths
           ? Math.min(Math.round(l.emisPaid as number), item.termMonths)
