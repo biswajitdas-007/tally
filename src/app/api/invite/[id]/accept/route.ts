@@ -99,14 +99,7 @@ async function handleGroupJoin(
     pending: false,
   };
   
-  const members = [
-    ...g.members.filter((m) => {
-      if (m.id === user.uid) return false;
-      if (inv.email && m.email?.toLowerCase() === inv.email.toLowerCase()) return false;
-      return true;
-    }),
-    me,
-  ];
+  const members = resolveGroupMembers(g.members, me, inv.email);
   
   await groups.updateOne(
     { _id: g._id },
@@ -136,4 +129,15 @@ async function makeGroupMembersMutualFriends(
     await addContact(users, m.id, newPerson);
     await addContact(users, newUid, m);
   }
+}
+
+function resolveGroupMembers(existing: Person[], me: Person, invEmail?: string): Person[] {
+  return [
+    ...existing.filter((m) => {
+      if (m.id === me.id) return false;
+      if (invEmail && m.email?.toLowerCase() === invEmail.toLowerCase()) return false;
+      return true;
+    }),
+    me,
+  ];
 }
