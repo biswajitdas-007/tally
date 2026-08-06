@@ -73,7 +73,7 @@ export async function sendWelcomeEmail(to: string, name: string): Promise<boolea
     <a href="https://tally.com" style="display: inline-block; background-color: #10b981; color: white; text-decoration: none; padding: 12px 24px; border-radius: 12px; font-weight: 600; font-size: 15px;">Open Tally</a>
   </div>
   <p style="text-align: center; font-size: 12px; color: #9ca3af; margin-top: 32px;">
-    This is a system generated email, please do not reply to it.
+    This is a system-generated email, please do not reply to it.
   </p>
 </div>
   `.trim();
