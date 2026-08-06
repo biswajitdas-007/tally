@@ -23,6 +23,7 @@ import { useUI } from "@/store/useUI";
 import { useToast } from "@/components/ui/toast";
 import { memberNet, mySettleRows, simplifiedPlan } from "@/lib/balances";
 import { formatINR } from "@/lib/utils";
+import { resendInviteApi } from "@/lib/api";
 
 export default function GroupDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -62,7 +63,11 @@ export default function GroupDetailPage() {
   async function resendInvite(inviteId: string) {
     setResendingId(inviteId);
     try {
-      const res = await fetch(`/api/invite/${inviteId}/resend`, { method: "POST" });
+      const res = await resendInviteApi(inviteId);
+      if (!res) {
+        toast({ message: "Session expired. Please sign in again.", tone: "error" });
+        return;
+      }
       if (res.ok) {
         const data = await res.json();
         if (data.sent) {
@@ -75,8 +80,9 @@ export default function GroupDetailPage() {
       }
     } catch {
       toast({ message: "Something went wrong", tone: "error" });
+    } finally {
+      setResendingId(null);
     }
-    setResendingId(null);
   }
 
   if (!group) {
