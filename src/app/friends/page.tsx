@@ -15,6 +15,7 @@ import { useUI } from "@/store/useUI";
 import { scopedDebts } from "@/lib/balances";
 import { formatINR } from "@/lib/utils";
 import type { Person } from "@/lib/types";
+import { resendInviteApi } from "@/lib/api";
 
 export default function FriendsPage() {
   const people = useStore((s) => s.people);
@@ -56,7 +57,11 @@ export default function FriendsPage() {
   async function resendInvite(inviteId: string) {
     setResendingId(inviteId);
     try {
-      const res = await fetch(`/api/invite/${inviteId}/resend`, { method: "POST" });
+      const res = await resendInviteApi(inviteId);
+      if (!res) {
+        toast({ message: "Session expired. Please sign in again.", tone: "error" });
+        return;
+      }
       if (res.ok) {
         const data = await res.json();
         if (data.sent) {
@@ -69,8 +74,9 @@ export default function FriendsPage() {
       }
     } catch {
       toast({ message: "Something went wrong", tone: "error" });
+    } finally {
+      setResendingId(null);
     }
-    setResendingId(null);
   }
 
   async function confirmRemove() {

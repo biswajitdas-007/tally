@@ -173,3 +173,5 @@ export async function acceptInvite(id: string): Promise<{ ok: boolean; self?: bo
   const res = await req("POST", `/api/invite/${id}/accept`, {});
   return res?.ok ? await res.json() : null;
 }
+
+export const resendInviteApi = (id: string) => req("POST", `/api/invite/${encodeURIComponent(id)}/resend`);
