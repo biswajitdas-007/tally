@@ -64,7 +64,12 @@ export default function GroupDetailPage() {
     try {
       const res = await fetch(`/api/invite/${inviteId}/resend`, { method: "POST" });
       if (res.ok) {
-        toast({ message: "Invitation resent!", tone: "success" });
+        const data = await res.json();
+        if (data.sent) {
+          toast({ message: "Invitation resent!", tone: "success" });
+        } else {
+          toast({ message: "Email not configured. Resend simulated.", tone: "info" });
+        }
       } else {
         toast({ message: "Failed to resend invitation", tone: "error" });
       }
