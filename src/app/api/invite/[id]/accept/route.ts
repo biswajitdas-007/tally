@@ -34,7 +34,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const { doc: meDoc, isNew } = await upsertUser(users, user.uid, { name: user.name, email: user.email, photoURL: user.picture });
 
   if (isNew && user.email) {
-    sendWelcomeEmail(user.email, user.name || "there").catch(console.error);
+    await sendWelcomeEmail(user.email, user.name || "there").catch(console.error);
   }
 
   await handleDirectFriendship(users, inv.inviterUid, user.uid, meDoc);
