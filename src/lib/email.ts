@@ -54,27 +54,38 @@ export async function sendWelcomeEmail(to: string, name: string): Promise<boolea
   const firstName = rawFirstName.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
   
   const html = `
-<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 40px 20px; background-color: #f7f9fc;">
-  <div style="max-width: 500px; margin: 0 auto; background: white; border-radius: 24px; padding: 40px; box-shadow: 0 4px 24px rgba(0,0,0,0.04);">
-    <h1 style="margin: 0 0 16px; font-size: 24px; color: #111827;">Welcome to Tally 👋</h1>
-    <p style="margin: 0 0 24px; font-size: 16px; color: #4b5563; line-height: 1.6;">
-      Hi ${firstName},<br><br>
-      Thanks for joining Tally! We're thrilled to have you on board.
-      Tally makes it incredibly easy to split expenses with friends, track your personal finances, and settle up in seconds.
-    </p>
-    <div style="background: #f3f4f6; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
-      <h3 style="margin: 0 0 12px; font-size: 14px; color: #111827; text-transform: uppercase; letter-spacing: 0.05em;">Quick Start Guide</h3>
-      <ul style="margin: 0; padding: 0 0 0 20px; color: #4b5563; font-size: 15px; line-height: 1.6;">
-        <li style="margin-bottom: 8px;">Create a group for your next trip or flatmates.</li>
-        <li style="margin-bottom: 8px;">Add your UPI ID in your account settings so friends can pay you back instantly.</li>
-        <li>Switch to "Money Mode" to track your personal income and budgets!</li>
-      </ul>
+<div style="margin:0;padding:0;background:#eef2ec;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <div style="max-width:520px;margin:0 auto;padding:28px 18px;">
+    <div style="text-align:center;padding-bottom:20px;">
+      <span style="font-size:20px;font-weight:800;letter-spacing:-.03em;color:#1c6b52;">Tally</span>
     </div>
-    <a href="https://tally.com" style="display: inline-block; background-color: #10b981; color: white; text-decoration: none; padding: 12px 24px; border-radius: 12px; font-weight: 600; font-size: 15px;">Open Tally</a>
+    <div style="background:#ffffff;border-radius:20px;overflow:hidden;box-shadow:0 10px 30px -14px rgba(20,32,26,.25);">
+      <div style="background:linear-gradient(152deg,#22795d 0%,#155741 100%);padding:30px 26px 26px;color:#ffffff;text-align:center;">
+        <div style="width:54px;height:54px;margin:0 auto 14px;border-radius:50%;background:rgba(255,255,255,.16);text-align:center;line-height:54px;font-size:21px;font-weight:800;letter-spacing:-.02em;">👋</div>
+        <div style="font-size:12.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;opacity:.72;">Welcome aboard</div>
+        <div style="font-size:23px;font-weight:800;letter-spacing:-.02em;margin-top:8px;line-height:1.28;">Hi ${firstName}, welcome to Tally!</div>
+      </div>
+      <div style="padding:26px;">
+        <p style="margin:0 0 18px;font-size:15px;line-height:1.55;color:#3d4c44;">
+          We're thrilled to have you on board. Tally is the easiest way to split expenses with friends, track your personal finances, and settle up in seconds.
+        </p>
+        
+        <div style="margin: 24px 0;">
+          <h3 style="margin: 0 0 14px; font-size: 12.5px; color:#1c6b52; font-weight:700; letter-spacing:.1em; text-transform:uppercase;">Quick Start Guide</h3>
+          <table role="presentation" width="100%" style="border-collapse:collapse;">
+            <tr><td style="padding:7px 0;font-size:14.5px;color:#3d4c44;"><span style="display:inline-block;width:30px;">🏖️</span> Create a group for your next trip or flatmates</td></tr>
+            <tr><td style="padding:7px 0;font-size:14.5px;color:#3d4c44;"><span style="display:inline-block;width:30px;">⚡</span> Add your UPI ID so friends can pay you instantly</td></tr>
+            <tr><td style="padding:7px 0;font-size:14.5px;color:#3d4c44;"><span style="display:inline-block;width:30px;">💰</span> Use "Money Mode" to track personal budgets</td></tr>
+          </table>
+        </div>
+
+        <div style="text-align:center;margin:26px 0 6px;">
+          <a href="https://tally.com" style="display:inline-block;background:#1c6b52;color:#ffffff;padding:14px 34px;border-radius:12px;text-decoration:none;font-weight:700;font-size:15px;">Open Tally</a>
+        </div>
+      </div>
+    </div>
+    <p style="text-align:center;font-size:12px;color:#a3aca3;margin-top:24px;">Tally · your money, quietly kept in order<br><span style="opacity:0.7">This is a system generated email, please do not reply.</span></p>
   </div>
-  <p style="text-align: center; font-size: 12px; color: #9ca3af; margin-top: 32px;">
-    This is a system-generated email, please do not reply to it.
-  </p>
 </div>
   `.trim();
 
