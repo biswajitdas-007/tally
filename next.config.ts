@@ -1,14 +1,16 @@
 import type { NextConfig } from "next";
 
+const isDev = process.env.NODE_ENV !== "production";
+
 const csp = [
   "default-src 'self'",
   // 'unsafe-inline' is required for the pre-hydration theme script and Next's
   // streaming inline scripts; there are no user-controlled script sinks.
-  "script-src 'self' 'unsafe-inline' https://apis.google.com",
+  `script-src 'self' 'unsafe-inline' https://apis.google.com${isDev ? " 'unsafe-eval'" : ""}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https://*.googleusercontent.com https://*.google.com",
   "font-src 'self'",
-  "connect-src 'self' https://*.googleapis.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://firebaseinstallations.googleapis.com https://*.firebaseio.com wss://*.pusher.com https://*.pusher.com https://sockjs-*.pusher.com",
+  "connect-src 'self' https://*.googleapis.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://firebaseinstallations.googleapis.com https://*.firebaseio.com wss://*.pusher.com https://*.pusher.com",
   "frame-src 'self' https://*.firebaseapp.com https://accounts.google.com https://apis.google.com",
   "worker-src 'self'",
   "manifest-src 'self'",
@@ -25,7 +27,7 @@ const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "X-Frame-Options", value: "DENY" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), interest-cohort=()" },
+  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
   { key: "X-DNS-Prefetch-Control", value: "off" },
 ];
 

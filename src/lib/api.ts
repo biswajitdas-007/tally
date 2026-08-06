@@ -1,6 +1,6 @@
 import { firebaseAuth } from "@/lib/firebase";
 import { socketId } from "@/lib/pusher-client";
-import type { Account, Budget, Emergency, Expense, FinanceEntry, Group, Liability, Person, Recurring } from "@/lib/types";
+import type { Account, Budget, Emergency, Expense, FinanceEntry, Group, Liability, Person, Recurring, DebtPlanData, PendingInvite } from "@/lib/types";
 
 export interface ServerState {
   me: Person | null;
@@ -15,6 +15,8 @@ export interface ServerState {
   recurrings: Recurring[];
   moneyMode: boolean | null;
   removedFriends: string[];
+  debtPlan: DebtPlanData | null;
+  pendingInvites: PendingInvite[];
 }
 
 async function token(): Promise<string | null> {
@@ -77,8 +79,8 @@ export interface ConfirmEmiResult {
   error?: string;
 }
 
-export async function confirmEmiApi(id: string, period: string): Promise<ConfirmEmiResult> {
-  const res = await req("POST", `/api/liabilities/${encodeURIComponent(id)}/confirm`, { period });
+export async function confirmEmiApi(id: string, period: string, options?: { extraPayment?: number; declineBoth?: boolean }): Promise<ConfirmEmiResult> {
+  const res = await req("POST", `/api/liabilities/${encodeURIComponent(id)}/confirm`, { period, ...options });
   if (!res) return { ok: false, applied: [], error: "network-error" };
 
   const body = (await res.json().catch(() => ({}))) as Partial<ConfirmEmiResult>;
@@ -91,6 +93,12 @@ export async function confirmEmiApi(id: string, period: string): Promise<Confirm
     applied: Array.isArray(body.applied) ? body.applied.filter((p): p is string => typeof p === "string") : [],
     alreadyHandled: body.alreadyHandled === true,
   };
+}
+
+export async function declineEmiApi(id: string, period: string): Promise<{ ok: boolean }> {
+  const res = await req("POST", `/api/liabilities/${encodeURIComponent(id)}/decline`, { period });
+  if (!res) return { ok: false };
+  return { ok: res.ok };
 }
 
 export async function deleteAccount(): Promise<{ ok: boolean; unsettled?: boolean; people?: number; amount?: number }> {
@@ -117,12 +125,13 @@ export interface InviteInfo {
 }
 
 export async function sendInvite(input: {
-  email: string;
+  email?: string;
   inviteId: string;
   groupId: string | null;
   groupName?: string;
   groupIcon?: string;
   inviterName?: string;
+  isGeneric?: boolean;
 }): Promise<{
   ok: boolean;
   sent?: boolean;
@@ -130,6 +139,8 @@ export async function sendInvite(input: {
   alreadyFriend?: boolean;
   self?: boolean;
   name?: string;
+  duplicate?: boolean;
+  existingId?: string;
 } | null> {
   const res = await req("POST", "/api/invite", input);
   return res?.ok ? await res.json() : null;

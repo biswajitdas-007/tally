@@ -2,18 +2,22 @@ import { NextResponse } from "next/server";
 import { verifyUser } from "@/lib/auth-server";
 import { addContact, collections, upsertUser } from "@/lib/db";
 import { notifyChange } from "@/lib/notify";
+import { sendWelcomeEmail } from "@/lib/email";
 import type { Person } from "@/lib/types";
+import type { Collection } from "mongodb";
+import type { UserDoc, GroupDoc, ExpenseDoc } from "@/lib/db";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 interface InviteDoc {
   _id: string;
-  email: string;
+  email?: string;
   groupId: string | null;
   inviterUid: string;
   inviterName: string;
   status: string;
+  isGeneric?: boolean;
 }
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -27,11 +31,33 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   if (inv.inviterUid === user.uid) return NextResponse.json({ ok: true, self: true });
 
-  const meDoc = await upsertUser(users, user.uid, { name: user.name, email: user.email, photoURL: user.picture });
+  const { doc: meDoc, isNew } = await upsertUser(users, user.uid, { name: user.name, email: user.email, photoURL: user.picture });
 
-  // Make the two people friends on both sides, so a joined invitee shows up in
-  // the inviter's friends list (and vice-versa) even for non-group invites.
-  const inviterDoc = await users.findOne({ _id: inv.inviterUid });
+  if (isNew && user.email) {
+    await sendWelcomeEmail(user.email, user.name || "there").catch(console.error);
+  }
+
+  await handleDirectFriendship(inv.inviterUid, user.uid, meDoc);
+
+  const groupId = await handleGroupJoin(inv, user);
+
+  if (!inv.isGeneric) {
+    await invites.updateOne(
+      { _id: id },
+      { $set: { status: "accepted", acceptedByUid: user.uid, acceptedAt: new Date() } },
+    );
+  }
+
+  return NextResponse.json({ ok: true, groupId });
+}
+
+async function handleDirectFriendship(
+  inviterUid: string,
+  userUid: string,
+  meDoc: UserDoc
+) {
+  const { users } = await collections();
+  const inviterDoc = await users.findOne({ _id: inviterUid });
   if (inviterDoc) {
     const mePerson: Person = {
       id: meDoc._id,
@@ -49,49 +75,69 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       upiId: inviterDoc.upiId,
       avatarColor: inviterDoc.avatarColor ?? "#1c6b52",
     };
-    await addContact(users, inv.inviterUid, mePerson);
-    await addContact(users, user.uid, inviterPerson);
+    await addContact(users, inviterUid, mePerson);
+    await addContact(users, userUid, inviterPerson);
   }
+}
 
-  let groupId: string | null = null;
-  if (inv.groupId) {
-    const g = await groups.findOne({ _id: inv.groupId });
-    if (g) {
-      groupId = g._id;
-      if (!g.memberUids.includes(user.uid)) {
-        const me: Person = {
-          id: user.uid,
-          name: user.name || inv.email,
-          email: user.email,
-          photoURL: user.picture,
-          avatarColor: "#1c6b52",
-          pending: false,
-        };
-        // Drop any pending placeholder for this email, add the real member.
-        const members = [
-          ...g.members.filter((m) => m.email?.toLowerCase() !== inv.email.toLowerCase() && m.id !== user.uid),
-          me,
-        ];
-        await groups.updateOne(
-          { _id: g._id },
-          { $set: { members }, $addToSet: { memberUids: user.uid } },
-        );
-        // Backfill visibility of the group's existing expenses.
-        await expenses.updateMany({ groupId: g._id }, { $addToSet: { memberUids: user.uid } });
+async function handleGroupJoin(
+  inv: InviteDoc,
+  user: { uid: string; name?: string; email?: string; picture?: string }
+): Promise<string | null> {
+  if (!inv.groupId) return null;
+  
+  const { groups, expenses, users } = await collections();
+  const g = await groups.findOne({ _id: inv.groupId });
+  if (!g || g.memberUids.includes(user.uid)) return null;
 
-        await notifyChange([...g.memberUids, user.uid], user.uid, {
-          title: g.name,
-          body: `${user.name || "Someone"} joined "${g.name}"`,
-          url: `/groups/${g._id}`,
-        });
-      }
-    }
-  }
-
-  await invites.updateOne(
-    { _id: id },
-    { $set: { status: "accepted", acceptedByUid: user.uid, acceptedAt: new Date() } },
+  const me: Person = {
+    id: user.uid,
+    name: user.name || inv.email || "Someone",
+    email: user.email,
+    photoURL: user.picture,
+    avatarColor: "#1c6b52",
+    pending: false,
+  };
+  
+  const members = resolveGroupMembers(g.members, me, inv.email);
+  
+  await groups.updateOne(
+    { _id: g._id },
+    { $set: { members }, $addToSet: { memberUids: user.uid } },
   );
+  await expenses.updateMany({ groupId: g._id }, { $addToSet: { memberUids: user.uid } });
 
-  return NextResponse.json({ ok: true, groupId });
+  await notifyChange([...g.memberUids, user.uid], user.uid, {
+    title: g.name,
+    body: `${me.name} joined "${g.name}"`,
+    url: `/groups/${g._id}`,
+  });
+
+  await makeGroupMembersMutualFriends(users, g.members, user.uid, me);
+
+  return g._id;
+}
+
+async function makeGroupMembersMutualFriends(
+  users: Collection<UserDoc>,
+  existingMembers: Person[],
+  newUid: string,
+  newPerson: Person
+) {
+  const existingRealMembers = existingMembers.filter((m) => !m.pending && m.id !== newUid);
+  for (const m of existingRealMembers) {
+    await addContact(users, m.id, newPerson);
+    await addContact(users, newUid, m);
+  }
+}
+
+function resolveGroupMembers(existing: Person[], me: Person, invEmail?: string): Person[] {
+  return [
+    ...existing.filter((m) => {
+      if (m.id === me.id) return false;
+      if (invEmail && m.email?.toLowerCase() === invEmail.toLowerCase()) return false;
+      return true;
+    }),
+    me,
+  ];
 }

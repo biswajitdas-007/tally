@@ -71,7 +71,7 @@ export async function sendSettledEmail(to: string, recipientName: string, info: 
         </p>
       </div>
     </div>
-    <p style="text-align:center;font-size:12px;color:#8b958c;margin-top:18px;">Tally · your money, quietly kept in order</p>
+    <p style="text-align:center;font-size:12px;color:#8b958c;margin-top:18px;">Tally · your money, quietly kept in order<br><span style="opacity:0.7">This is a system generated email, please do not reply.</span></p>
   </div>
 </div>`;
 

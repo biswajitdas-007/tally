@@ -184,6 +184,8 @@ export interface Liability {
   name: string;
   kind: LiabilityKind;
   outstanding: number;
+  /** For credit cards: the card limit used for utilization. */
+  limit?: number;
   emi?: number; // monthly payment, for debt-to-income
   rate?: number; // annual interest %
   lender?: string; // who it's from (e.g. "HDFC Bank")
@@ -193,4 +195,23 @@ export interface Liability {
   dueDay?: number; // day of month the EMI is paid (1–28; defaults to 3)
   lastPaidMonth?: string; // "YYYY-MM" already counted — guards against double-counting
   lastEmiReminder?: string; // "<liability-id>:YYYY-MM:<upcoming|due>" — dedupes scheduled push notices
+  lastEmiReminderDate?: string; // ISO date of when the last reminder was sent (for smart backoff)
+  foreclosed?: boolean; // user marked this loan as foreclosed (manually paid off)
+  lastExtraPaidMonth?: string; // "YYYY-MM" when they last made an extra payment
+}
+
+export type Strategy = "snowball" | "avalanche";
+
+export interface DebtPlanData {
+  strategy: Strategy;
+  extra: number;
+  specificExtra: Record<ID, number>;
+}
+
+export interface PendingInvite {
+  id: string;
+  email: string;
+  groupId: ID | null;
+  groupName: string | null;
+  createdAt: string;
 }

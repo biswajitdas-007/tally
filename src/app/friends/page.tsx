@@ -20,6 +20,7 @@ export default function FriendsPage() {
   const people = useStore((s) => s.people);
   const expenses = useStore((s) => s.expenses);
   const removedFriends = useStore((s) => s.removedFriends);
+  const pendingInvites = useStore((s) => s.pendingInvites);
   const deleteFriend = useStore((s) => s.deleteFriend);
   const myId = useMyId() ?? "";
   const openInvite = useUI((s) => s.openInvite);
@@ -44,6 +45,33 @@ export default function FriendsPage() {
         .sort((a, b) => a.name.localeCompare(b.name)),
     [people, myId, removedFriends, balMap],
   );
+
+  const individualPending = useMemo(
+    () => pendingInvites.filter((i) => !i.groupId).sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+    [pendingInvites],
+  );
+
+  const [resendingId, setResendingId] = useState<string | null>(null);
+
+  async function resendInvite(inviteId: string) {
+    setResendingId(inviteId);
+    try {
+      const res = await fetch(`/api/invite/${inviteId}/resend`, { method: "POST" });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.sent) {
+          toast({ message: "Invitation resent!", tone: "success" });
+        } else {
+          toast({ message: "Email not configured. Resend simulated.", tone: "info" });
+        }
+      } else {
+        toast({ message: "Failed to resend invitation", tone: "error" });
+      }
+    } catch {
+      toast({ message: "Something went wrong", tone: "error" });
+    }
+    setResendingId(null);
+  }
 
   async function confirmRemove() {
     if (!toRemove) return;
@@ -142,6 +170,39 @@ export default function FriendsPage() {
             }
           />
         </Card>
+      )}
+
+      {individualPending.length > 0 && (
+        <div className="mt-8">
+          <p className="mb-2 px-1 text-[0.7rem] font-semibold uppercase tracking-[0.08em] text-text-3">
+            Pending Invites
+          </p>
+          <Card className="overflow-hidden">
+            <div className="divide-y divide-border">
+              {individualPending.map((inv) => (
+                <div key={inv.id} className="flex items-center gap-3 px-4 py-3 text-left">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-2 text-text-3">
+                    <UserPlus className="h-4 w-4 opacity-50" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium text-text">{inv.email}</p>
+                    <p className="truncate text-[0.78rem] text-text-3">
+                      Sent on {new Date(inv.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    loading={resendingId === inv.id}
+                    onClick={() => resendInvite(inv.id)}
+                  >
+                    Resend
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
       )}
 
       <Sheet

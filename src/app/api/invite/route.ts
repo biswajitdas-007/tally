@@ -9,13 +9,14 @@ export const dynamic = "force-dynamic";
 
 interface InviteDoc {
   _id: string;
-  email: string;
+  email?: string;
   groupId: string | null;
   groupName: string | null;
   groupIcon: string | null;
   inviterUid: string;
   inviterName: string;
   status: "pending" | "accepted";
+  isGeneric?: boolean;
   createdAt: Date;
 }
 
@@ -33,7 +34,7 @@ function escapeRegex(s: string): string {
 }
 
 /** The branded invitation email (mirrors Tally's receipt emails). */
-function inviteEmailHtml(o: {
+export function inviteEmailHtml(o: {
   initial: string;
   inviter: string; // already HTML-escaped
   groupName: string; // already HTML-escaped ("" when none)
@@ -78,7 +79,7 @@ function inviteEmailHtml(o: {
       Button not working? Paste this link:<br>
       <span style="color:#6a7a70;word-break:break-all;">${o.link}</span>
     </p>
-    <p style="text-align:center;font-size:12px;color:#a3aca3;margin-top:14px;">Tally · your money, quietly kept in order</p>
+    <p style="text-align:center;font-size:12px;color:#a3aca3;margin-top:14px;">Tally · your money, quietly kept in order<br><span style="opacity:0.7">This is a system generated email, please do not reply.</span></p>
   </div>
 </div>`;
 }
@@ -94,10 +95,11 @@ export async function POST(req: Request) {
 
   try {
     const b = (await req.json().catch(() => null)) as Record<string, unknown> | null;
-    if (!b || !isStr(b.email) || !isStr(b.inviteId)) return badRequest();
+    if (!b || (!isStr(b.email) && !b.isGeneric) || !isStr(b.inviteId)) return badRequest();
 
-    const email = (b.email as string).toLowerCase().trim();
-    if (!EMAIL_RE.test(email) || email.length > 254) return badRequest("bad-email");
+    const isGeneric = Boolean(b.isGeneric);
+    const email = isStr(b.email) ? (b.email as string).toLowerCase().trim() : undefined;
+    if (!isGeneric && (!email || !EMAIL_RE.test(email) || email.length > 254)) return badRequest("bad-email");
 
     const inviteId = (b.inviteId as string).slice(0, 64);
     // The inviter's display name comes from the verified token, not the body —
@@ -113,37 +115,55 @@ export async function POST(req: Request) {
       const db = await getDb();
       const users = db.collection<UserDoc>("users");
 
-      // Don't re-invite someone who's already in your circle.
-      const existing = await users.findOne({ email: { $regex: `^${escapeRegex(email)}$`, $options: "i" } });
-      if (existing) {
-        if (existing._id === user.uid) return json({ ok: true, self: true });
-        const [sharedGroup, sharedExpense, me] = await Promise.all([
-          db.collection("groups").findOne({ memberUids: { $all: [user.uid, existing._id] } }, { projection: { _id: 1 } }),
-          db.collection("expenses").findOne({ memberUids: { $all: [user.uid, existing._id] } }, { projection: { _id: 1 } }),
-          users.findOne({ _id: user.uid }, { projection: { contacts: 1 } }),
-        ]);
-        const inContacts = (me?.contacts ?? []).some((c) => c.id === existing._id);
-        if (sharedGroup || sharedExpense || inContacts) {
-          return json({ ok: true, alreadyFriend: true, name: existing.name });
+      // Don't re-invite someone who's already in your circle (skip if generic).
+      if (!isGeneric && email) {
+        const existing = await users.findOne({ email: { $regex: `^${escapeRegex(email)}$`, $options: "i" } });
+        if (existing) {
+          if (existing._id === user.uid) return json({ ok: true, self: true });
+          const [sharedGroup, sharedExpense, me] = await Promise.all([
+            db.collection("groups").findOne({ memberUids: { $all: [user.uid, existing._id] } }, { projection: { _id: 1 } }),
+            db.collection("expenses").findOne({ memberUids: { $all: [user.uid, existing._id] } }, { projection: { _id: 1 } }),
+            users.findOne({ _id: user.uid }, { projection: { contacts: 1 } }),
+          ]);
+          const inContacts = (me?.contacts ?? []).some((c) => c.id === existing._id);
+          if (sharedGroup || sharedExpense || inContacts) {
+            return json({ ok: true, alreadyFriend: true, name: existing.name });
+          }
+        }
+
+        // Prevent multiple pending invites to the same email by the same user for the same context
+        const existingPending = await db.collection<InviteDoc>("invites").findOne({
+          email: { $regex: `^${escapeRegex(email)}$`, $options: "i" },
+          status: "pending",
+          groupId,
+          inviterUid: user.uid,
+        });
+        if (existingPending) {
+          return json({ ok: true, duplicate: true, existingId: existingPending._id });
         }
       }
 
+      const inviteDoc: Partial<InviteDoc> = {
+        groupId,
+        groupName,
+        groupIcon,
+        inviterUid: user.uid,
+        inviterName,
+        status: "pending",
+        createdAt: new Date(),
+      };
+      if (isGeneric) inviteDoc.isGeneric = true;
+      if (email) inviteDoc.email = email;
+
       await db.collection<InviteDoc>("invites").updateOne(
         { _id: inviteId },
-        {
-          $set: {
-            email,
-            groupId,
-            groupName,
-            groupIcon,
-            inviterUid: user.uid,
-            inviterName,
-            status: "pending",
-            createdAt: new Date(),
-          },
-        },
+        { $set: inviteDoc },
         { upsert: true },
       );
+    }
+
+    if (isGeneric || !email) {
+      return json({ ok: true, sent: false, link });
     }
 
     // Escape everything user-controlled before it lands in the email HTML.

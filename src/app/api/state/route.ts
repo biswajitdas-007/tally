@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { verifyUser } from "@/lib/auth-server";
 import { buildState, collections, upsertUser } from "@/lib/db";
 import { isDbConfigured } from "@/lib/mongodb";
+import { sendWelcomeEmail } from "@/lib/email";
+import { anchorLastPaidMonth, initialLastPaidMonth } from "@/lib/liabilities";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,6 +14,33 @@ export async function GET(req: Request) {
   if (!isDbConfigured) return NextResponse.json({ me: null, people: [], groups: [], expenses: [] });
 
   const { users } = await collections();
-  await upsertUser(users, user.uid, { name: user.name, email: user.email, photoURL: user.picture });
+  const { isNew } = await upsertUser(users, user.uid, { name: user.name, email: user.email, photoURL: user.picture });
+
+  if (isNew && user.email) {
+    await sendWelcomeEmail(user.email, user.name || "there").catch(console.error);
+  }
+
+  // Silent migration: anchor any existing legacy loans that missed the lastPaidMonth creation
+  const doc = await users.findOne({ _id: user.uid }, { projection: { liabilities: 1 } });
+  if (doc?.liabilities) {
+    let modified = false;
+    const now = new Date();
+    const updated = doc.liabilities.map((l) => {
+      if ((l.kind === "emi" || l.kind === "loan") && !l.lastPaidMonth) {
+        modified = true;
+        return {
+          ...l,
+          lastPaidMonth: l.autoDebit
+            ? initialLastPaidMonth(l.dueDay ?? 3, now)
+            : anchorLastPaidMonth(l, now),
+        };
+      }
+      return l;
+    });
+    if (modified) {
+      await users.updateOne({ _id: user.uid }, { $set: { liabilities: updated } });
+    }
+  }
+
   return NextResponse.json(await buildState(user.uid));
 }

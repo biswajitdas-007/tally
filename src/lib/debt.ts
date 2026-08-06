@@ -1,5 +1,6 @@
 import type { Liability } from "./types";
 import { formatINR } from "./utils";
+import { creditCardSuggestions } from "./cards";
 
 /** Total monthly outflow toward debt — the sum of every EMI. */
 export function monthlyLiability(liabilities: Liability[]): number {
@@ -110,4 +111,14 @@ export function debtSuggestions(opts: {
   }
 
   return out.sort((a, b) => a.priority - b.priority).slice(0, 4);
+}
+
+export function cardInsights(liabilities: Liability[]) {
+  return creditCardSuggestions(liabilities).map((s) => ({
+    key: s.key,
+    tone: s.tone,
+    title: s.title,
+    detail: s.detail,
+    priority: 99,
+  }));
 }

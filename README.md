@@ -72,11 +72,12 @@ Copy `.env.local.example` → `.env.local` and fill in what you need:
 ## Deploy to Vercel
 
 1. Push the repo to GitHub and import it in Vercel (or run `vercel`).
-2. Add the env vars from `.env.local` in **Vercel → Settings → Environment
+2. In **Vercel → Project → Git**, disable preview deployments for branch pushes and keep **Production Branch** set to `main`.
+3. Add the env vars from `.env.local` in **Vercel → Settings → Environment
    Variables** (`NEXT_PUBLIC_FIREBASE_*` and `MONGODB_URI` are required).
-3. In **MongoDB Atlas → Network Access**, allow `0.0.0.0/0` (Vercel functions use
+4. In **MongoDB Atlas → Network Access**, allow `0.0.0.0/0` (Vercel functions use
    dynamic IPs) or use the Atlas Vercel integration.
-4. In **Firebase → Authentication → Settings → Authorized domains**, add your
+5. In **Firebase → Authentication → Settings → Authorized domains**, add your
    Vercel domain so Google sign-in works in production.
 
 ## Scripts

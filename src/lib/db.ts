@@ -1,7 +1,7 @@
 import type { Collection } from "mongodb";
 import { getDb } from "./mongodb";
 import { normalizeLiability } from "./liabilities";
-import type { Account, Budget, Emergency, Expense, FinanceEntry, Group, Liability, Person, Recurring } from "./types";
+import type { Account, Budget, DebtPlanData, Emergency, Expense, FinanceEntry, Group, Liability, Person, Recurring, PendingInvite } from "./types";
 import type { PushSubscription } from "web-push";
 
 /* ---------- server document shapes ---------- */
@@ -21,6 +21,7 @@ export interface UserDoc {
   liabilities?: Liability[];
   emergency?: Emergency;
   recurrings?: Recurring[];
+  debtPlan?: DebtPlanData;
   /** Explicit choice of home screen; unset means infer it from their data. */
   moneyMode?: boolean;
   updatedAt?: Date;
@@ -71,6 +72,19 @@ export interface FinanceDoc {
   recurringId?: string;
 }
 
+export interface InviteDoc {
+  _id: string;
+  email?: string;
+  groupId: string | null;
+  groupName: string | null;
+  groupIcon: string | null;
+  inviterUid: string;
+  inviterName: string;
+  status: "pending" | "accepted";
+  isGeneric?: boolean;
+  createdAt: Date;
+}
+
 export async function collections() {
   const db = await getDb();
   return {
@@ -78,7 +92,7 @@ export async function collections() {
     groups: db.collection<GroupDoc>("groups"),
     expenses: db.collection<ExpenseDoc>("expenses"),
     finance: db.collection<FinanceDoc>("finance"),
-    invites: db.collection<{ _id: string }>("invites"),
+    invites: db.collection<InviteDoc>("invites"),
   };
 }
 
@@ -91,8 +105,8 @@ export async function upsertUser(
   users: Collection<UserDoc>,
   uid: string,
   profile: { name?: string; email?: string; photoURL?: string },
-): Promise<UserDoc> {
-  await users.updateOne(
+): Promise<{ doc: UserDoc; isNew: boolean }> {
+  const result = await users.updateOne(
     { _id: uid },
     {
       $set: {
@@ -105,7 +119,8 @@ export async function upsertUser(
     },
     { upsert: true },
   );
-  return (await users.findOne({ _id: uid }))!;
+  const doc = (await users.findOne({ _id: uid }))!;
+  return { doc, isNew: result.upsertedCount > 0 };
 }
 
 function toPerson(u: UserDoc, isYou: boolean): Person {
@@ -179,11 +194,13 @@ export interface ClientState {
   recurrings: Recurring[];
   moneyMode: boolean | null;
   removedFriends: string[];
+  debtPlan: DebtPlanData | null;
+  pendingInvites: PendingInvite[];
 }
 
 /** The full view for one user: profile, everyone they share with, groups, expenses. */
 export async function buildState(uid: string): Promise<ClientState> {
-  const { users, groups, expenses, finance } = await collections();
+  const { users, groups, expenses, finance, invites } = await collections();
   const meDoc = ((await users.findOne({ _id: uid })) ?? { _id: uid, name: "You" }) as UserDoc;
 
   const groupDocs = await groups.find({ memberUids: uid }).toArray();
@@ -229,6 +246,22 @@ export async function buildState(uid: string): Promise<ClientState> {
   for (const c of meDoc.contacts ?? []) if (!byId.has(c.id)) byId.set(c.id, c);
   for (const id of realIds) if (!byId.has(id)) byId.set(id, { id, name: "Someone", avatarColor: "#7b8a80" });
 
+  const groupIds = groupDocs.map((g) => g._id);
+  const pendingInvitesDocs = await invites.find({
+    status: "pending",
+    isGeneric: { $ne: true },
+    email: { $exists: true },
+    $or: [{ inviterUid: uid }, { groupId: { $in: groupIds } }],
+  }).toArray();
+
+  const pendingInvites = pendingInvitesDocs.map((i) => ({
+    id: i._id,
+    email: i.email!,
+    groupId: i.groupId,
+    groupName: i.groupName,
+    createdAt: i.createdAt.toISOString(),
+  }));
+
   return {
     me: byId.get(uid)!,
     people: [...byId.values()],
@@ -242,6 +275,8 @@ export async function buildState(uid: string): Promise<ClientState> {
     recurrings: meDoc.recurrings ?? [],
     moneyMode: meDoc.moneyMode ?? null,
     removedFriends: meDoc.removedFriends ?? [],
+    debtPlan: meDoc.debtPlan ?? null,
+    pendingInvites,
   };
 }
 

@@ -2,7 +2,7 @@ import { verifyUser } from "@/lib/auth-server";
 import { collections } from "@/lib/db";
 import { badRequest, isNum, isStr, json, serverError, unauthorized } from "@/lib/api-helpers";
 import { anchorLastPaidMonth, initialLastPaidMonth, normalizeLiability } from "@/lib/liabilities";
-import type { Account, AccountKind, Emergency, InvestmentType, Liability, LiabilityKind } from "@/lib/types";
+import type { Account, AccountKind, Emergency, InvestmentType, Liability, LiabilityKind, DebtPlanData } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -51,6 +51,7 @@ function cleanLiabilities(v: unknown, now = new Date()): Liability[] {
       if (isNum(l.rate) && (l.rate as number) >= 0) item.rate = l.rate as number;
       if (isStr(l.lender)) item.lender = (l.lender as string).slice(0, 60);
       if (isNum(l.termMonths) && (l.termMonths as number) > 0) item.termMonths = Math.round(l.termMonths as number);
+      if (item.kind === "card" && isNum(l.limit) && (l.limit as number) > 0) item.limit = l.limit as number;
       if (isNum(l.emisPaid) && (l.emisPaid as number) >= 0) {
         item.emisPaid = item.termMonths
           ? Math.min(Math.round(l.emisPaid as number), item.termMonths)
@@ -91,9 +92,25 @@ function cleanEmergency(v: unknown): Emergency | null {
   if (!v || typeof v !== "object") return null;
   const e = v as Record<string, unknown>;
   if (!isNum(e.target) || (e.target as number) <= 0) return null;
-  const out: Emergency = { target: e.target as number };
-  if (isStr(e.accountId)) out.accountId = (e.accountId as string).slice(0, 40);
-  return out;
+  const t = e.target as number;
+  const accountId = isStr(e.accountId) ? (e.accountId as string).slice(0, 40) : undefined;
+  return { target: t, ...(accountId ? { accountId } : {}) };
+}
+
+function cleanDebtPlan(v: unknown): DebtPlanData | null {
+  if (typeof v !== "object" || v === null) return null;
+  const d = v as Record<string, unknown>;
+  const strategy = d.strategy === "snowball" || d.strategy === "avalanche" ? d.strategy : "avalanche";
+  const extra = isNum(d.extra) && (d.extra as number) >= 0 ? (d.extra as number) : 0;
+  const specificExtra: Record<string, number> = {};
+  if (typeof d.specificExtra === "object" && d.specificExtra !== null) {
+    for (const [k, val] of Object.entries(d.specificExtra)) {
+      if (isNum(val) && (val as number) >= 0) {
+        specificExtra[k] = val as number;
+      }
+    }
+  }
+  return { strategy, extra, specificExtra };
 }
 
 export async function POST(req: Request) {
@@ -109,6 +126,7 @@ export async function POST(req: Request) {
     const update: Record<string, unknown> = {};
     if ("accounts" in b) update.accounts = cleanAccounts(b.accounts);
     if ("emergency" in b) update.emergency = cleanEmergency(b.emergency);
+    if ("debtPlan" in b) update.debtPlan = cleanDebtPlan(b.debtPlan);
 
     const { users } = await collections();
     let filter: Record<string, unknown> = { _id: user.uid };

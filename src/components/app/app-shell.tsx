@@ -23,6 +23,7 @@ import { EmergencySheet } from "@/components/features/emergency-sheet";
 import { InvestmentSheet } from "@/components/features/investment-sheet";
 import { RecurringSheet } from "@/components/features/recurring-sheet";
 import { ReconcileSheet } from "@/components/features/reconcile-sheet";
+import { WhoOwesWhomSheet } from "@/components/features/who-owes-whom-sheet";
 import { CommandPalette } from "./command-palette";
 import { InstallPrompt } from "./install-prompt";
 import { PushAutoEnable } from "./push-auto";
@@ -80,6 +81,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <InvestmentSheet />
       <RecurringSheet />
       <ReconcileSheet />
+      <WhoOwesWhomSheet />
       <CommandPalette />
       <InstallPrompt />
       <PushAutoEnable />

@@ -12,7 +12,7 @@ import { staleAccounts, reconciled, confirmed, lastCheckedLabel, DRIFT_EPSILON }
 import { useStore, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { useToast } from "@/components/ui/toast";
-import { formatINR, cn } from "@/lib/utils";
+import { formatINR, cn , sanitizeMoneyInput} from "@/lib/utils";
 import type { Account, AccountKind } from "@/lib/types";
 
 export function ReconcileSheet() {
@@ -162,7 +162,7 @@ export function ReconcileSheet() {
             <span className="font-display text-lg font-semibold text-text-2">₹</span>
             <input
               value={value}
-              onChange={(e) => setValue(e.target.value.replace(/[^0-9.-]/g, ""))}
+              onChange={(e) => setValue(sanitizeMoneyInput(e.target.value))}
               inputMode="decimal"
               placeholder={String(Math.round(shown))}
               className="flex-1 bg-transparent font-display text-lg font-bold tnum outline-none placeholder:text-text-3"

@@ -19,7 +19,7 @@ import { emergencyStatus } from "@/lib/health";
 import { periodKey } from "@/lib/recurring";
 import { guessCategory } from "@/lib/categorise";
 import { withLiveBalances, unparkedAmount } from "@/lib/accounts";
-import { cn, formatDate, formatINR, monthKey, uid as newId } from "@/lib/utils";
+import { cn, formatDate, formatINR, monthKey, uid as newId , sanitizeMoneyInput} from "@/lib/utils";
 import type { CategoryKey, FinanceType, Recurring } from "@/lib/types";
 
 export function AddMoneySheet() {
@@ -187,7 +187,7 @@ export function AddMoneySheet() {
             <span className={cn("font-display text-3xl font-semibold", isIncome ? "text-positive" : "text-text-2")}>₹</span>
             <input
               value={amount}
-              onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
+              onChange={(e) => setAmount(sanitizeMoneyInput(e.target.value))}
               inputMode="decimal"
               placeholder="0"
               style={{ width: `${Math.max((amount || "0").length, 1)}ch`, outline: "none", boxShadow: "none" }}

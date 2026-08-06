@@ -1,4 +1,5 @@
 import type { Liability } from "./types";
+import { roundMoney } from "./utils";
 
 export const DEFAULT_DUE_DAY = 3;
 export const EMI_TIME_ZONE = "Asia/Kolkata";
@@ -28,15 +29,9 @@ const calendarFormatter = new Intl.DateTimeFormat("en-CA", {
   day: "2-digit",
 });
 
-/**
- * Convert the pre-`emisPaid` liability shape before any schedule calculation.
- * The legacy field is deliberately removed so it cannot leak back to clients
- * or later override the migrated paid count.
- */
 export function normalizeLiability(liability: Liability): Liability {
   const legacy = liability as LegacyLiability;
   if (!("remainingMonths" in legacy)) return liability;
-
   const { remainingMonths, ...current } = legacy;
   if (
     current.emisPaid == null &&
@@ -64,59 +59,41 @@ function calendarDate(now: Date): CalendarDate {
 }
 
 const periodIndex = (date: Pick<CalendarDate, "year" | "month">): number => date.year * 12 + date.month - 1;
-
-function periodFromIndex(index: number): string {
+const periodFromIndex = (index: number): string => {
   const year = Math.floor(index / 12);
   const month = index - year * 12 + 1;
   return `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}`;
-}
-
+};
 const periodOf = (date: Pick<CalendarDate, "year" | "month">): string => periodFromIndex(periodIndex(date));
-
-function parsePeriod(value: string | undefined): number | null {
+const parsePeriod = (value: string | undefined): number | null => {
   const match = /^(\d{4})-(0[1-9]|1[0-2])$/.exec(value ?? "");
   return match ? Number(match[1]) * 12 + Number(match[2]) - 1 : null;
-}
+};
 
 function addCalendarDays(date: CalendarDate, days: number): CalendarDate {
   const next = new Date(Date.UTC(date.year, date.month - 1, date.day + days));
   return { year: next.getUTCFullYear(), month: next.getUTCMonth() + 1, day: next.getUTCDate() };
 }
 
-/** EMIs still to pay = total − paid. */
 export const remainingOf = (l: Liability): number => Math.max(0, (l.termMonths ?? 0) - (l.emisPaid ?? 0));
-
-function eligible(l: Liability): boolean {
-  return (l.emi ?? 0) > 0 && (l.termMonths ?? 0) > 0 && remainingOf(l) > 0 && l.outstanding > 0;
-}
+const eligible = (l: Liability): boolean => (l.emi ?? 0) > 0 && (l.termMonths ?? 0) > 0 && remainingOf(l) > 0 && l.outstanding > 0;
 
 function initialCursor(today: CalendarDate, dueDay: number): number {
   const current = periodIndex(today);
   return today.day > clampDay(dueDay) ? current : current - 1;
 }
 
-/**
- * Cursor for a newly-created schedule in the India calendar. A due date earlier
- * than today is treated as already accounted for; today and future dates remain
- * eligible so a schedule created on its due day can still run.
- */
 export function initialLastPaidMonth(dueDay = DEFAULT_DUE_DAY, now = new Date()): string {
   const today = calendarDate(now);
   return periodFromIndex(initialCursor(today, dueDay));
 }
 
-/** Cursor to use when the user manually corrects the paid count. */
 export function editedPaidCountLastPaidMonth(dueDay = DEFAULT_DUE_DAY, now = new Date()): string {
   const today = calendarDate(now);
   const current = periodIndex(today);
   return periodFromIndex(today.day >= clampDay(dueDay) ? current : current - 1);
 }
 
-/**
- * Legacy rows may not have a cursor. Auto schedules skip an ambiguous due date
- * that has already passed, then start at the next due date. Manual schedules
- * expose the current due period so the user can explicitly confirm it.
- */
 function effectiveCursor(l: Liability, today: CalendarDate): number {
   const stored = parsePeriod(l.lastPaidMonth);
   if (stored != null) return stored;
@@ -124,16 +101,10 @@ function effectiveCursor(l: Liability, today: CalendarDate): number {
   return initialCursor(today, l.dueDay ?? DEFAULT_DUE_DAY);
 }
 
-/**
- * Resolve a missing or malformed legacy cursor once so cron can persist a
- * stable baseline. Without this anchor, an unconfirmed manual EMI would move
- * forward with the calendar and disappear at the next month boundary.
- */
 export function anchorLastPaidMonth(l: Liability, now = new Date()): string {
   return periodFromIndex(effectiveCursor(l, calendarDate(now)));
 }
 
-/** Due period keys after the effective cursor, in chronological order. */
 function duePeriods(l: Liability, today: CalendarDate, limit: number): string[] {
   const day = clampDay(l.dueDay ?? DEFAULT_DUE_DAY);
   const current = periodIndex(today);
@@ -143,7 +114,6 @@ function duePeriods(l: Liability, today: CalendarDate, limit: number): string[] 
   return Array.from({ length: count }, (_, i) => periodFromIndex(firstDue + i));
 }
 
-/** Months whose EMI is due but not yet counted (capped at what's left to pay). */
 export function pendingEmis(l: Liability, now = new Date()): string[] {
   if (!eligible(l)) return [];
   return duePeriods(l, calendarDate(now), remainingOf(l));
@@ -154,12 +124,11 @@ function apply(l: Liability, months: string[]): Liability {
   return {
     ...l,
     emisPaid: (l.emisPaid ?? 0) + months.length,
-    outstanding: Math.max(0, Math.round((l.outstanding - emi * months.length) * 100) / 100),
+    outstanding: Math.max(0, roundMoney(l.outstanding - emi * months.length)),
     lastPaidMonth: months[months.length - 1],
   };
 }
 
-/** Auto-debit only: count any due EMIs. Returns the updated loan + months applied. */
 export function applyAuto(l: Liability, now = new Date()): { liability: Liability; applied: string[] } {
   if (!l.autoDebit) return { liability: l, applied: [] };
   const due = pendingEmis(l, now);
@@ -167,45 +136,45 @@ export function applyAuto(l: Liability, now = new Date()): { liability: Liabilit
   return { liability: apply(l, due), applied: due };
 }
 
-/** Manual loans with an EMI due but not yet confirmed this month. */
 export function manualDue(l: Liability, now = new Date()): boolean {
   return !l.autoDebit && pendingEmis(l, now).length > 0;
 }
 
-/** Mark a manual loan's due EMI(s) paid after the user confirms. */
 export function markManualPaid(l: Liability, now = new Date()): Liability {
   const due = pendingEmis(l, now);
   return due.length > 0 ? apply(l, due) : l;
 }
 
-/** A deduplicated one-day-before or due reminder event. */
 export function emiNotice(l: Liability, now = new Date()): EmiNotice | null {
   if (!eligible(l)) return null;
-
   const today = calendarDate(now);
   const due = pendingEmis(l, now);
   const tomorrow = addCalendarDays(today, 1);
   const day = clampDay(l.dueDay ?? DEFAULT_DUE_DAY);
   const nextPeriod = periodOf(tomorrow);
-  const upcoming =
-    tomorrow.day === day &&
-    effectiveCursor(l, today) < periodIndex(tomorrow) &&
-    due.length < remainingOf(l);
+  const upcoming = tomorrow.day === day && effectiveCursor(l, today) < periodIndex(tomorrow) && due.length < remainingOf(l);
 
   let notice: EmiNotice | null = null;
   if (upcoming) {
-    notice = {
-      key: `${l.id}:${nextPeriod}:upcoming`,
-      period: nextPeriod,
-      kind: "upcoming",
-      dueCount: due.length + 1,
-    };
+    notice = { key: `${l.id}:${nextPeriod}:upcoming`, period: nextPeriod, kind: "upcoming", dueCount: due.length + 1 };
   } else if (due.length > 0) {
     const period = due[due.length - 1];
     notice = { key: `${l.id}:${period}:due`, period, kind: "due", dueCount: due.length };
   }
 
-  return notice && (l as ReminderAwareLiability).lastEmiReminder !== notice.key ? notice : null;
+  if (!notice) return null;
+  const isSameNotice = (l as ReminderAwareLiability).lastEmiReminder === notice.key;
+  if (!isSameNotice) return notice;
+
+  // Smart backoff for due EMIs (every 3 days)
+  if (notice.kind === "due" && l.lastEmiReminderDate) {
+    const lastDate = new Date(l.lastEmiReminderDate);
+    const diffTime = Math.abs(now.getTime() - lastDate.getTime());
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    if (diffDays >= 3) return notice;
+  }
+
+  return null;
 }
 
 /** Stamp the current month in the India calendar. */
