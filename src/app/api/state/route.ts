@@ -17,7 +17,7 @@ export async function GET(req: Request) {
   const { isNew } = await upsertUser(users, user.uid, { name: user.name, email: user.email, photoURL: user.picture });
 
   if (isNew && user.email) {
-    sendWelcomeEmail(user.email, user.name || "there").catch(console.error);
+    await sendWelcomeEmail(user.email, user.name || "there").catch(console.error);
   }
 
   // Silent migration: anchor any existing legacy loans that missed the lastPaidMonth creation
