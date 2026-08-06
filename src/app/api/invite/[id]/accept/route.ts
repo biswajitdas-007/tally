@@ -37,9 +37,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     await sendWelcomeEmail(user.email, user.name || "there").catch(console.error);
   }
 
-  await handleDirectFriendship(users, inv.inviterUid, user.uid, meDoc);
+  await handleDirectFriendship(inv.inviterUid, user.uid, meDoc);
 
-  const groupId = await handleGroupJoin(groups, expenses, users, inv, user);
+  const groupId = await handleGroupJoin(inv, user);
 
   if (!inv.isGeneric) {
     await invites.updateOne(
@@ -52,11 +52,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 }
 
 async function handleDirectFriendship(
-  users: Collection<UserDoc>,
   inviterUid: string,
   userUid: string,
   meDoc: UserDoc
 ) {
+  const { users } = await collections();
   const inviterDoc = await users.findOne({ _id: inviterUid });
   if (inviterDoc) {
     const mePerson: Person = {
@@ -81,54 +81,59 @@ async function handleDirectFriendship(
 }
 
 async function handleGroupJoin(
-  groups: Collection<GroupDoc>,
-  expenses: Collection<ExpenseDoc>,
-  users: Collection<UserDoc>,
   inv: InviteDoc,
   user: { uid: string; name?: string; email?: string; picture?: string }
 ): Promise<string | null> {
   if (!inv.groupId) return null;
   
+  const { groups, expenses, users } = await collections();
   const g = await groups.findOne({ _id: inv.groupId });
-  if (!g) return null;
+  if (!g || g.memberUids.includes(user.uid)) return null;
 
-  if (!g.memberUids.includes(user.uid)) {
-    const me: Person = {
-      id: user.uid,
-      name: user.name || inv.email || "Someone",
-      email: user.email,
-      photoURL: user.picture,
-      avatarColor: "#1c6b52",
-      pending: false,
-    };
-    
-    const members = [
-      ...g.members.filter((m) => {
-        if (m.id === user.uid) return false;
-        if (inv.email && m.email?.toLowerCase() === inv.email.toLowerCase()) return false;
-        return true;
-      }),
-      me,
-    ];
-    
-    await groups.updateOne(
-      { _id: g._id },
-      { $set: { members }, $addToSet: { memberUids: user.uid } },
-    );
-    await expenses.updateMany({ groupId: g._id }, { $addToSet: { memberUids: user.uid } });
+  const me: Person = {
+    id: user.uid,
+    name: user.name || inv.email || "Someone",
+    email: user.email,
+    photoURL: user.picture,
+    avatarColor: "#1c6b52",
+    pending: false,
+  };
+  
+  const members = [
+    ...g.members.filter((m) => {
+      if (m.id === user.uid) return false;
+      if (inv.email && m.email?.toLowerCase() === inv.email.toLowerCase()) return false;
+      return true;
+    }),
+    me,
+  ];
+  
+  await groups.updateOne(
+    { _id: g._id },
+    { $set: { members }, $addToSet: { memberUids: user.uid } },
+  );
+  await expenses.updateMany({ groupId: g._id }, { $addToSet: { memberUids: user.uid } });
 
-    await notifyChange([...g.memberUids, user.uid], user.uid, {
-      title: g.name,
-      body: `${user.name || "Someone"} joined "${g.name}"`,
-      url: `/groups/${g._id}`,
-    });
+  await notifyChange([...g.memberUids, user.uid], user.uid, {
+    title: g.name,
+    body: `${me.name} joined "${g.name}"`,
+    url: `/groups/${g._id}`,
+  });
 
-    const existingRealMembers = g.members.filter((m) => !m.pending && m.id !== user.uid);
-    for (const m of existingRealMembers) {
-      await addContact(users, m.id, me);
-      await addContact(users, user.uid, m);
-    }
-  }
+  await makeGroupMembersMutualFriends(users, g.members, user.uid, me);
 
   return g._id;
+}
+
+async function makeGroupMembersMutualFriends(
+  users: Collection<UserDoc>,
+  existingMembers: Person[],
+  newUid: string,
+  newPerson: Person
+) {
+  const existingRealMembers = existingMembers.filter((m) => !m.pending && m.id !== newUid);
+  for (const m of existingRealMembers) {
+    await addContact(users, m.id, newPerson);
+    await addContact(users, newUid, m);
+  }
 }
