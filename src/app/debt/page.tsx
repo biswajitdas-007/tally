@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ChevronLeft, PartyPopper, TrendingDown, AlertTriangle, Sparkles, Flag, Info, Save, Check } from "lucide-react";
+import { ChevronLeft, PartyPopper, AlertTriangle, Sparkles, Info, Save, Check } from "lucide-react";
 import { PageGrid, PageCol } from "@/components/app/page-grid";
 import { Card, SectionHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
