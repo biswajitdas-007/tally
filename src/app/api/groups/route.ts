@@ -52,14 +52,13 @@ export async function POST(req: Request) {
       isStr(b.socketId) ? (b.socketId as string) : undefined,
     );
 
-    // Transitive friendships: mutually add all real members to each other's contacts
-    // so the group friend graph is fully connected right from creation.
-    const existingRealMembers = members.filter((m) => !m.pending && m.id !== "unknown_id_or_something");
-    for (const m1 of existingRealMembers) {
-      for (const m2 of existingRealMembers) {
-        if (m1.id !== m2.id) {
-          await addContact(users, m1.id, m2);
-        }
+    const existingRealMembers = members.filter((m) => !m.pending && memberUids.includes(m.id));
+    for (let i = 0; i < existingRealMembers.length; i++) {
+      for (let j = i + 1; j < existingRealMembers.length; j++) {
+        const a = existingRealMembers[i]!;
+        const b = existingRealMembers[j]!;
+        await addContact(users, a.id, b);
+        await addContact(users, b.id, a);
       }
     }
 
