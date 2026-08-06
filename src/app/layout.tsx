@@ -33,13 +33,11 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Tally",
     description: "Split expenses, track net worth, and settle up.",
-    images: [{ url: "/icon-512.png" }],
   },
   twitter: {
     card: "summary",
     title: "Tally",
     description: "Split expenses, track net worth, and settle up.",
-    images: ["/icon-512.png"],
   },
 };
 
