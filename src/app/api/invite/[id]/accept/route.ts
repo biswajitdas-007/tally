@@ -9,11 +9,12 @@ export const dynamic = "force-dynamic";
 
 interface InviteDoc {
   _id: string;
-  email: string;
+  email?: string;
   groupId: string | null;
   inviterUid: string;
   inviterName: string;
   status: string;
+  isGeneric?: boolean;
 }
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -61,15 +62,19 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       if (!g.memberUids.includes(user.uid)) {
         const me: Person = {
           id: user.uid,
-          name: user.name || inv.email,
+          name: user.name || inv.email || "Someone",
           email: user.email,
           photoURL: user.picture,
           avatarColor: "#1c6b52",
           pending: false,
         };
-        // Drop any pending placeholder for this email, add the real member.
+        // Drop any pending placeholder for this email (if present), add the real member.
         const members = [
-          ...g.members.filter((m) => m.email?.toLowerCase() !== inv.email.toLowerCase() && m.id !== user.uid),
+          ...g.members.filter((m) => {
+            if (m.id === user.uid) return false;
+            if (inv.email && m.email?.toLowerCase() === inv.email.toLowerCase()) return false;
+            return true;
+          }),
           me,
         ];
         await groups.updateOne(
@@ -88,10 +93,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     }
   }
 
-  await invites.updateOne(
-    { _id: id },
-    { $set: { status: "accepted", acceptedByUid: user.uid, acceptedAt: new Date() } },
-  );
+  if (!inv.isGeneric) {
+    await invites.updateOne(
+      { _id: id },
+      { $set: { status: "accepted", acceptedByUid: user.uid, acceptedAt: new Date() } },
+    );
+  }
 
   return NextResponse.json({ ok: true, groupId });
 }

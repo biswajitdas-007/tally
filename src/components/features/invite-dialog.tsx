@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Mail, Copy, Share2, CircleCheckBig } from "lucide-react";
+import { Mail, Copy, Share2, CircleCheckBig, Link as LinkIcon } from "lucide-react";
 import { Sheet } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input, Field } from "@/components/ui/input";
@@ -68,6 +68,25 @@ export function InviteDialog() {
     setEmailSent(Boolean(result?.sent));
     await refetch(); // pull the pending member into the group
     toast({ message: result?.sent ? `Invite emailed to ${email.trim()}` : "Invite created — share the link" });
+  }
+
+  async function generateGenericLink() {
+    setSending(true);
+    const inviteId = uid("i_");
+    const result = await sendInvite({
+      inviteId,
+      groupId: groupId ?? null,
+      groupName: group?.name,
+      groupIcon: group?.icon,
+      inviterName: me?.name,
+      isGeneric: true,
+    });
+    setSending(false);
+
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    setSentLink(result?.link ?? `${origin}/join/${inviteId}`);
+    setEmailSent(false);
+    toast({ message: "Share link created" });
   }
 
   async function shareLink() {
@@ -148,6 +167,16 @@ export function InviteDialog() {
 
           <Button variant="primary" size="lg" fullWidth disabled={!valid} loading={sending} onClick={send}>
             Send invite
+          </Button>
+
+          <div className="relative flex items-center py-2">
+            <div className="grow border-t border-border"></div>
+            <span className="shrink-0 px-3 text-xs text-text-3 uppercase tracking-wider font-semibold">Or</span>
+            <div className="grow border-t border-border"></div>
+          </div>
+
+          <Button variant="secondary" size="lg" fullWidth loading={sending} onClick={generateGenericLink}>
+            <LinkIcon className="h-4.5 w-4.5" /> Share via link instead
           </Button>
         </div>
       )}

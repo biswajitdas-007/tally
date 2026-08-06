@@ -124,12 +124,13 @@ export interface InviteInfo {
 }
 
 export async function sendInvite(input: {
-  email: string;
+  email?: string;
   inviteId: string;
   groupId: string | null;
   groupName?: string;
   groupIcon?: string;
   inviterName?: string;
+  isGeneric?: boolean;
 }): Promise<{
   ok: boolean;
   sent?: boolean;
