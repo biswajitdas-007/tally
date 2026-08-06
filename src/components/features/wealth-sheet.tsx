@@ -115,7 +115,11 @@ export function WealthSheet() {
     !Number.isNaN(paidValue) &&
     paidValue >= 0 &&
     paidValue < termValue;
-  const valid = name.trim().length > 0 && amount !== "" && total >= 0 && (!autoDebit || scheduleReady);
+  const valid =
+    name.trim().length > 0 &&
+    amount !== "" &&
+    total >= 0 &&
+    (isAsset || kind === "card" || !autoDebit || scheduleReady);
 
   function switchMode(m: Mode) {
     setMode(m);
