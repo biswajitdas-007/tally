@@ -99,7 +99,7 @@ export const useStore = create<State>()((set, get) => ({
   authReady: false,
   dataReady: false,
   loadError: false,
-  currentUserId: null,
+  currentUserId: typeof window !== "undefined" ? localStorage.getItem("tally_uid") : null,
   me: null,
   people: [],
   groups: [],
@@ -117,7 +117,10 @@ export const useStore = create<State>()((set, get) => ({
 
   setAuthReady: () => set({ authReady: true }),
   setLoadError: (v) => set({ loadError: v }),
-  setUser: (id) => set({ currentUserId: id }),
+  setUser: (id) => {
+    if (id && typeof window !== "undefined") localStorage.setItem("tally_uid", id);
+    set({ currentUserId: id });
+  },
 
   loadState: (state) => {
     lastLoadHash = stateHash(state);
@@ -140,7 +143,8 @@ export const useStore = create<State>()((set, get) => ({
     });
   },
 
-  signOut: () =>
+  signOut: () => {
+    if (typeof window !== "undefined") localStorage.removeItem("tally_uid");
     set({
       currentUserId: null,
       me: null,
@@ -159,7 +163,8 @@ export const useStore = create<State>()((set, get) => ({
       lastDeleted: null,
       dataReady: false,
       loadError: false,
-    }),
+    });
+  },
 
   refetch: async () => {
     const data = await api.fetchState();
