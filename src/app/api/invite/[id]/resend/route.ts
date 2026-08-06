@@ -62,11 +62,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       html: inviteEmailHtml({ initial, inviter: safeName, groupName: safeGroup, groupIcon: safeIcon, link }),
     });
 
-    if (sent) {
-      return NextResponse.json({ ok: true });
-    } else {
-      return NextResponse.json({ error: "failed-to-send" }, { status: 500 });
+    if (!sent) {
+      console.warn("sendEmail returned false. Is email configured?");
     }
+    
+    return NextResponse.json({ ok: true, sent });
   } catch (error) {
     console.error("Failed to resend invite:", error);
     return NextResponse.json({ error: "internal-server-error" }, { status: 500 });
