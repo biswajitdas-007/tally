@@ -1,10 +1,12 @@
 import type { NextConfig } from "next";
 
+const isDev = process.env.NODE_ENV !== "production";
+
 const csp = [
   "default-src 'self'",
   // 'unsafe-inline' is required for the pre-hydration theme script and Next's
   // streaming inline scripts; there are no user-controlled script sinks.
-  "script-src 'self' 'unsafe-inline' https://apis.google.com",
+  `script-src 'self' 'unsafe-inline' https://apis.google.com${isDev ? " 'unsafe-eval'" : ""}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https://*.googleusercontent.com https://*.google.com",
   "font-src 'self'",

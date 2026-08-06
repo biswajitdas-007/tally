@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider, type Auth } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, browserLocalPersistence, setPersistence, type Auth } from "firebase/auth";
 import { getFirestore, type Firestore } from "firebase/firestore";
 
 /**
@@ -30,6 +30,22 @@ export function firebaseApp(): FirebaseApp | null {
 export function firebaseAuth(): Auth | null {
   const app = firebaseApp();
   return app ? getAuth(app) : null;
+}
+
+/**
+ * Returns the Auth instance after persistence has been configured.
+ * Use this before sign-in calls to ensure localStorage is used instead of
+ * IndexedDB (avoids "Database is closing/hidden" errors on desktop Chrome).
+ */
+let persistenceReady: Promise<Auth> | null = null;
+
+export function firebaseAuthReady(): Promise<Auth | null> {
+  const auth = firebaseAuth();
+  if (!auth) return Promise.resolve(null);
+  if (!persistenceReady) {
+    persistenceReady = setPersistence(auth, browserLocalPersistence).then(() => auth);
+  }
+  return persistenceReady;
 }
 
 export function firestore(): Firestore | null {
