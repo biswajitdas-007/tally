@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Check, Trash2, Info, type LucideIcon } from "lucide-react";
 import { Sheet } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,7 @@ export function WealthSheet() {
   const liabilities = useStore((s) => s.liabilities);
   const finance = useStore((s) => s.finance);
   const expenses = useStore((s) => s.expenses);
+  const debtPlan = useStore((s) => s.debtPlan);
   const setWealth = useStore((s) => s.setWealth);
   const myId = useMyId() ?? "";
   const { toast } = useToast();
@@ -44,51 +45,60 @@ export function WealthSheet() {
   const [lender, setLender] = useState("");
   const [term, setTerm] = useState("");
   const [paid, setPaid] = useState("");
-  const [autoDebit, setAutoDebit] = useState(false);
-  const [dueDay, setDueDay] = useState("");
+  const [autoDebit, setAutoDebit] = useState(true);
+  const [dueDay, setDueDay] = useState(DEFAULT_DUE_DAY.toString());
+  const [foreclosed, setForeclosed] = useState(false);
   const [limit, setLimit] = useState("");
+  const [specificExtraAmt, setSpecificExtraAmt] = useState("");
+
+  const initialSpecificExtra = editingLiability && debtPlan?.specificExtra ? debtPlan.specificExtra[editingLiability.id] || 0 : 0;
 
   const [wasOpen, setWasOpen] = useState(false);
-  if (open && !wasOpen) {
-    setWasOpen(true);
-    setEmi("");
-    setRate("");
-    setLender("");
-    setTerm("");
-    setPaid("");
-    setAutoDebit(false);
-    setDueDay("");
-    setLimit("");
-    if (editingAccount) {
-      setMode("asset");
-      setName(editingAccount.name);
-      setKind(editingAccount.kind);
-      // Show the live balance (baseline + everything logged against it).
-      setAmount(formatMoneyInput(editingAccount.balance + linkedDelta(editingAccount.id, finance, expenses, myId)));
-    } else if (editingLiability) {
-      const el = editingLiability;
-      setMode("liability");
-      setName(el.name);
-      setKind(el.kind);
-      setAmount(formatMoneyInput(el.outstanding));
-      setEmi(el.emi ? formatMoneyInput(el.emi) : "");
-      setRate(el.rate ? formatMoneyInput(el.rate) : "");
-      setLender(el.lender ?? "");
-      setTerm(el.termMonths ? String(el.termMonths) : "");
-      setPaid(el.emisPaid != null ? String(el.emisPaid) : "");
-      setAutoDebit(Boolean(el.autoDebit));
-      setDueDay(el.dueDay ? String(el.dueDay) : "");
-      setLimit(el.limit ? formatMoneyInput(el.limit) : "");
-    } else {
-      setMode(initialMode);
-      setName("");
-      setKind(initialMode === "asset" ? "bank" : "loan");
-      setAmount("");
+  useEffect(() => {
+    if (open && !wasOpen) {
+      setWasOpen(true);
+      setEmi("");
+      setRate("");
+      setLender("");
+      setTerm("");
+      setPaid("");
+      setAutoDebit(true);
+      setDueDay(DEFAULT_DUE_DAY.toString());
+      setForeclosed(false);
       setLimit("");
+      if (editingAccount) {
+        setMode("asset");
+        setName(editingAccount.name);
+        setKind(editingAccount.kind);
+        setAmount(formatMoneyInput(editingAccount.balance + linkedDelta(editingAccount.id, finance, expenses, myId)));
+      } else if (editingLiability) {
+        const el = editingLiability;
+        setMode("liability");
+        setName(el.name);
+        setKind(el.kind);
+        setAmount(formatMoneyInput(el.outstanding));
+        setEmi(el.emi ? formatMoneyInput(el.emi) : "");
+        setRate(el.rate ? formatMoneyInput(el.rate) : "");
+        setLender(el.lender ?? "");
+        setTerm(el.termMonths ? String(el.termMonths) : "");
+        setPaid(el.emisPaid != null ? String(el.emisPaid) : "");
+        setAutoDebit(Boolean(el.autoDebit));
+        setDueDay(el.dueDay ? String(el.dueDay) : "");
+        setForeclosed(el.foreclosed ?? false);
+        setLimit(el.limit ? formatMoneyInput(el.limit) : "");
+        const specific = useStore.getState().debtPlan?.specificExtra?.[el.id] ?? 0;
+        setSpecificExtraAmt(specific > 0 ? formatMoneyInput(specific) : "");
+      } else {
+        setMode(initialMode);
+        setName("");
+        setKind(initialMode === "asset" ? "bank" : "loan");
+        setAmount("");
+        setLimit("");
+      }
+    } else if (!open && wasOpen) {
+      setWasOpen(false);
     }
-  } else if (!open && wasOpen) {
-    setWasOpen(false);
-  }
+  }, [open, wasOpen, editingAccount, editingLiability, initialMode, finance, expenses, myId]);
 
   const isAsset = mode === "asset";
   const kinds: string[] = isAsset ? LIQUID_ACCOUNT_KINDS : LIABILITY_KINDS;
@@ -121,6 +131,7 @@ export function WealthSheet() {
       const acc: Account = { id, name: name.trim(), kind: kind as AccountKind, balance: baseline };
       setWealth({ accounts: editingAccount ? accounts.map((a) => (a.id === id ? acc : a)) : [acc, ...accounts] });
     } else {
+      const patch: Parameters<typeof setWealth>[0] = {};
       const liab: Liability = { id, name: name.trim(), kind: kind as LiabilityKind, outstanding: total };
 if (kind === "card") {
   const limitN = parseMoneyInput(limit);
@@ -170,7 +181,20 @@ if (kind === "card") {
         }
       }
 
-      setWealth({ liabilities: editingLiability ? liabilities.map((l) => (l.id === id ? liab : l)) : [liab, ...liabilities] });
+      patch.liabilities = editingLiability ? liabilities.map((l) => (l.id === id ? liab : l)) : [liab, ...liabilities];
+
+      if (initialSpecificExtra > 0) {
+        const val = parseMoneyInput(specificExtraAmt);
+        const currentDebtPlan = useStore.getState().debtPlan;
+        if (currentDebtPlan) {
+           const newSpecific = { ...currentDebtPlan.specificExtra };
+           if (val > 0) newSpecific[id] = val;
+           else delete newSpecific[id];
+           patch.debtPlan = { ...currentDebtPlan, specificExtra: newSpecific };
+        }
+      }
+
+      setWealth(patch);
     }
     toast({ message: editing ? "Saved" : isAsset ? "Account added" : "Liability added" });
     close();
@@ -362,7 +386,48 @@ if (kind === "card") {
                     : `We'll remind you one day before, then ask on day ${dueDay || DEFAULT_DUE_DAY} to confirm you paid — nothing changes until you confirm it.`}
               </p>
             </div>
+            
+            {editing && (
+              <label className="flex items-start gap-3 rounded-[12px] bg-surface-inset p-3 transition-colors cursor-pointer border border-border mt-2">
+                <input
+                  type="checkbox"
+                  checked={foreclosed}
+                  onChange={(e) => setForeclosed(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 shrink-0 rounded-[4px] border-border text-brand focus:ring-brand"
+                />
+                <div className="flex flex-col">
+                  <span className="text-[0.8rem] font-medium text-text">Mark as foreclosed</span>
+                  <span className="text-[0.7rem] leading-[1.3] text-text-3">This loan has been paid off manually. It won't show up in your active debt plan.</span>
+                </div>
+              </label>
+            )}
           </>
+        )}
+
+        {!isAsset && initialSpecificExtra > 0 && (
+          <div className="rounded-[16px] border border-brand/30 bg-brand-soft/20 p-4">
+            <p className="mb-2 px-0.5 text-[0.8rem] font-semibold text-brand">Specific extra payment</p>
+            <div className="flex items-center gap-1.5 rounded-[14px] border border-brand/30 bg-surface px-3 py-3">
+              <span className="text-brand">₹</span>
+              <input
+                value={specificExtraAmt}
+                onChange={(e) => setSpecificExtraAmt(sanitizeMoneyInput(e.target.value))}
+                inputMode="decimal"
+                placeholder="0"
+                className="w-full bg-transparent font-display text-[0.98rem] font-bold tnum text-brand outline-none placeholder:text-brand/50"
+              />
+            </div>
+            <p className="mt-2 text-[0.76rem] text-text-3">This extra amount is applied in your Debt-free plan.</p>
+            <div className="mt-3 flex justify-end">
+              <Button
+                variant="dangerSoft"
+                size="sm"
+                onClick={() => setSpecificExtraAmt("")}
+              >
+                <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Remove
+              </Button>
+            </div>
+          </div>
         )}
 
         <div className="sticky bottom-0 -mx-5 flex gap-3 border-t border-border bg-surface px-5 pb-1 pt-3">

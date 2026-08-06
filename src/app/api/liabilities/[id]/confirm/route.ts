@@ -1,6 +1,6 @@
 import { verifyUser } from "@/lib/auth-server";
 import { collections } from "@/lib/db";
-import { badRequest, isStr, json, serverError, unauthorized } from "@/lib/api-helpers";
+import { badRequest, isStr, isNum, json, serverError, unauthorized } from "@/lib/api-helpers";
 import { manualDue, markManualPaid, normalizeLiability, pendingEmis } from "@/lib/liabilities";
 import { sendEmiEmail } from "@/lib/emi-email";
 import type { Liability } from "@/lib/types";
@@ -56,6 +56,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       }
 
       const next = markManualPaid(current, now);
+      const extraPayment = isNum(body.extraPayment) ? body.extraPayment as number : 0;
+      if (extraPayment > 0) {
+        next.outstanding = Math.max(0, next.outstanding - extraPayment);
+        next.lastExtraPaidMonth = period;
+      }
       const match = expectedLiability(stored);
       const result = await users.updateOne(
         // Mongo's positional `$` binds to the exact element that still has all
@@ -66,6 +71,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
             "liabilities.$.emisPaid": next.emisPaid,
             "liabilities.$.outstanding": next.outstanding,
             "liabilities.$.lastPaidMonth": next.lastPaidMonth,
+            ...(next.lastExtraPaidMonth ? { "liabilities.$.lastExtraPaidMonth": next.lastExtraPaidMonth } : {}),
           },
           $unset: { "liabilities.$.remainingMonths": "" },
         } as never,

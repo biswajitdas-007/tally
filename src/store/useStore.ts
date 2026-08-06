@@ -1,7 +1,7 @@
 "use client";
 
 import { create } from "zustand";
-import type { Account, Budget, CategoryKey, Emergency, Expense, FinanceEntry, FinanceType, Group, ID, Liability, Person, Recurring, Split } from "@/lib/types";
+import type { Account, Budget, CategoryKey, Emergency, Expense, FinanceEntry, FinanceType, Group, ID, Liability, Person, Recurring, Split, DebtPlanData } from "@/lib/types";
 import type { ServerState } from "@/lib/api";
 import * as api from "@/lib/api";
 import { duePeriods } from "@/lib/recurring";
@@ -34,6 +34,7 @@ interface State {
   accounts: Account[];
   liabilities: Liability[];
   emergency: Emergency | null;
+  debtPlan: DebtPlanData | null;
   recurrings: Recurring[];
   moneyMode: boolean | null;
   removedFriends: string[];
@@ -64,8 +65,9 @@ interface State {
   deleteFinance: (id: ID) => void;
 
   setBudget: (patch: Partial<Budget>) => void;
-  setWealth: (patch: { accounts?: Account[]; liabilities?: Liability[] }) => void;
-  confirmEmi: (id: ID, period: string) => Promise<api.ConfirmEmiResult>;
+  setWealth: (patch: { accounts?: Account[]; liabilities?: Liability[]; emergency?: Emergency | null; debtPlan?: DebtPlanData | null }) => void;
+  confirmEmi: (id: ID, period: string, options?: { extraPayment?: number }) => Promise<api.ConfirmEmiResult>;
+  declineEmi: (id: ID, period: string) => Promise<{ ok: boolean }>;
   setEmergency: (emergency: Emergency | null) => void;
   saveRecurring: (rule: Recurring) => void;
   deleteRecurring: (id: ID) => void;
@@ -83,9 +85,10 @@ const stateHash = (s: {
   liabilities: unknown[];
   removedFriends: unknown[];
   emergency: unknown;
+  debtPlan: unknown;
   recurrings: unknown[];
   moneyMode: unknown;
-}) => JSON.stringify([s.people, s.groups, s.expenses, s.finance, s.budget, s.accounts, s.liabilities, s.removedFriends, s.emergency, s.recurrings, s.moneyMode]);
+}) => JSON.stringify([s.people, s.groups, s.expenses, s.finance, s.budget, s.accounts, s.liabilities, s.removedFriends, s.emergency, s.debtPlan, s.recurrings, s.moneyMode]);
 
 const now = () => new Date().toISOString();
 const reconcile = (res: Response | null, get: () => State) => {
@@ -106,6 +109,7 @@ export const useStore = create<State>()((set, get) => ({
   accounts: [],
   liabilities: [],
   emergency: null,
+  debtPlan: null,
   recurrings: [],
   moneyMode: null,
   removedFriends: [],
@@ -127,6 +131,7 @@ export const useStore = create<State>()((set, get) => ({
       accounts: state.accounts,
       liabilities: state.liabilities,
       emergency: state.emergency ?? null,
+      debtPlan: state.debtPlan ?? null,
       recurrings: state.recurrings ?? [],
       moneyMode: state.moneyMode ?? null,
       removedFriends: state.removedFriends ?? [],
@@ -147,6 +152,7 @@ export const useStore = create<State>()((set, get) => ({
       accounts: [],
       liabilities: [],
       emergency: null,
+      debtPlan: null,
       recurrings: [],
       moneyMode: null,
       removedFriends: [],
@@ -306,10 +312,7 @@ export const useStore = create<State>()((set, get) => ({
 
   setWealth: (patch) => {
     const previousLiabilities = get().liabilities;
-    set((s) => ({
-      accounts: patch.accounts ?? s.accounts,
-      liabilities: patch.liabilities ?? s.liabilities,
-    }));
+    set((s) => ({ ...s, ...patch }));
     const s = get();
     const body: Record<string, unknown> = {};
     if (patch.accounts !== undefined) body.accounts = s.accounts;
@@ -317,11 +320,13 @@ export const useStore = create<State>()((set, get) => ({
       body.liabilities = s.liabilities;
       body.expectedLiabilities = previousLiabilities;
     }
+    if (patch.emergency !== undefined) body.emergency = s.emergency;
+    if (patch.debtPlan !== undefined) body.debtPlan = s.debtPlan;
     api.setWealthApi(body).then((res) => reconcile(res, get));
   },
 
-  confirmEmi: async (id, period) => {
-    const result = await api.confirmEmiApi(id, period);
+  confirmEmi: async (id, period, options) => {
+    const result = await api.confirmEmiApi(id, period, options);
     const liability = result.liability;
     if (result.ok && liability) {
       set((s) => ({
@@ -329,6 +334,10 @@ export const useStore = create<State>()((set, get) => ({
       }));
     }
     return result;
+  },
+
+  declineEmi: async (id, period) => {
+    return await api.declineEmiApi(id, period);
   },
 
   setEmergency: (emergency) => {
