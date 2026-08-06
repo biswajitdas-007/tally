@@ -19,6 +19,7 @@ const sans = Manrope({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000"),
   title: { default: "Tally — Split expenses, settle up over UPI", template: "%s · Tally" },
   description:
     "Split bills with friends, track who owes whom, and settle up instantly over UPI. A warm, fast expense app for India.",
@@ -28,6 +29,17 @@ export const metadata: Metadata = {
   icons: {
     icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
     apple: [{ url: "/apple-icon.png" }],
+  },
+  openGraph: {
+    title: "Tally",
+    description: "Split expenses, track net worth, and settle up.",
+    images: [{ url: "/icon-512.png" }],
+  },
+  twitter: {
+    card: "summary",
+    title: "Tally",
+    description: "Split expenses, track net worth, and settle up.",
+    images: ["/icon-512.png"],
   },
 };
 
