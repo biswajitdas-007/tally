@@ -162,7 +162,19 @@ export function emiNotice(l: Liability, now = new Date()): EmiNotice | null {
     notice = { key: `${l.id}:${period}:due`, period, kind: "due", dueCount: due.length };
   }
 
-  return notice && (l as ReminderAwareLiability).lastEmiReminder !== notice.key ? notice : null;
+  if (!notice) return null;
+  const isSameNotice = (l as ReminderAwareLiability).lastEmiReminder === notice.key;
+  if (!isSameNotice) return notice;
+
+  // Smart backoff for due EMIs (every 3 days)
+  if (notice.kind === "due" && l.lastEmiReminderDate) {
+    const lastDate = new Date(l.lastEmiReminderDate);
+    const diffTime = Math.abs(now.getTime() - lastDate.getTime());
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    if (diffDays >= 3) return notice;
+  }
+
+  return null;
 }
 
 /** Stamp the current month in the India calendar. */

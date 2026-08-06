@@ -1,7 +1,7 @@
 import type { Collection } from "mongodb";
 import { getDb } from "./mongodb";
 import { normalizeLiability } from "./liabilities";
-import type { Account, Budget, Emergency, Expense, FinanceEntry, Group, Liability, Person, Recurring } from "./types";
+import type { Account, Budget, DebtPlanData, Emergency, Expense, FinanceEntry, Group, Liability, Person, Recurring } from "./types";
 import type { PushSubscription } from "web-push";
 
 /* ---------- server document shapes ---------- */
@@ -21,6 +21,7 @@ export interface UserDoc {
   liabilities?: Liability[];
   emergency?: Emergency;
   recurrings?: Recurring[];
+  debtPlan?: DebtPlanData;
   /** Explicit choice of home screen; unset means infer it from their data. */
   moneyMode?: boolean;
   updatedAt?: Date;
@@ -179,6 +180,7 @@ export interface ClientState {
   recurrings: Recurring[];
   moneyMode: boolean | null;
   removedFriends: string[];
+  debtPlan: DebtPlanData | null;
 }
 
 /** The full view for one user: profile, everyone they share with, groups, expenses. */
@@ -242,6 +244,7 @@ export async function buildState(uid: string): Promise<ClientState> {
     recurrings: meDoc.recurrings ?? [],
     moneyMode: meDoc.moneyMode ?? null,
     removedFriends: meDoc.removedFriends ?? [],
+    debtPlan: meDoc.debtPlan ?? null,
   };
 }
 

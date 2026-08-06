@@ -17,6 +17,7 @@ export interface PayoffDebt {
   /** Interest paid on this debt over the plan. */
   interest: number;
   clearedOn: Date;
+  initialPayment: number;
 }
 
 export interface Plan {
@@ -156,6 +157,10 @@ export function buildPlan(liabilities: Liability[], strategy: Strategy, extra = 
 
   // Present them in the order they actually fall, which is what someone wants
   // to work down — ties broken by the strategy's own priority.
+  // Determine the target loan at month 0 for the extra pool
+  const initialLive = [...sims].filter((x) => x.start > 0).sort((a, b) => compare(strategy, a.rate, a.start, b.rate, b.start));
+  const targetId = initialLive[0]?.id;
+
   const order = [...sims]
     .sort((a, b) => a.months - b.months || compare(strategy, a.rate, a.start, b.rate, b.start))
     .map<PayoffDebt>((s) => ({
@@ -168,6 +173,7 @@ export function buildPlan(liabilities: Liability[], strategy: Strategy, extra = 
     months: s.months || month,
     interest: Math.round(s.interest),
     clearedOn: addMonths(now, s.months || month),
+    initialPayment: s.emi + (specificExtra[s.id] || 0) + (s.id === targetId ? extra : 0),
   }));
 
   const principal = sims.reduce((a, s) => a + s.start, 0);

@@ -123,6 +123,7 @@ async function claimEmiNotice(
     {
       $set: {
         "liabilities.$.lastEmiReminder": key,
+        "liabilities.$.lastEmiReminderDate": now.toISOString(),
         ...(anchored ? { "liabilities.$.lastPaidMonth": anchor } : {}),
       },
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

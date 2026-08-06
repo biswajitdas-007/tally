@@ -9,6 +9,7 @@ import { useStore } from "@/store/useStore";
 import { useToast } from "@/components/ui/toast";
 import { manualDue, pendingEmis } from "@/lib/liabilities";
 import { formatINR } from "@/lib/utils";
+import { buildPlan } from "@/lib/payoff";
 
 const PERIOD_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 
@@ -16,6 +17,8 @@ const PERIOD_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 export function EmiConfirm() {
   const liabilities = useStore((s) => s.liabilities);
   const confirmEmi = useStore((s) => s.confirmEmi);
+  const declineEmi = useStore((s) => s.declineEmi);
+  const debtPlan = useStore((s) => s.debtPlan);
   const dataReady = useStore((s) => s.dataReady);
   const { toast } = useToast();
   const router = useRouter();
@@ -62,13 +65,35 @@ export function EmiConfirm() {
 
   if (!due) return null;
   const current = due;
+  
+  // Calculate extra payment if any
+  const specificExtra = debtPlan?.specificExtra?.[current.id] || 0;
+  // Fallback to global extra if this is the target loan
+  const plan = dataReady && debtPlan ? buildPlan(liabilities, debtPlan.strategy, debtPlan.extra, debtPlan.specificExtra) : null;
+  const isTarget = plan?.order?.[0]?.id === current.id;
+  const globalExtra = isTarget ? (debtPlan?.extra || 0) : 0;
+  const plannedExtra = specificExtra > 0 ? specificExtra : globalExtra;
 
-  async function confirm() {
+  async function handleConfirm(opts: { extraPayment?: number; declineBoth?: boolean } = {}) {
     if (busy || count === 0) return;
     setBusy(true);
     setError(null);
     const period = hasTarget ? targetPeriod! : duePeriods[duePeriods.length - 1];
-    const result = await confirmEmi(current.id, period);
+    
+    if (opts.declineBoth) {
+      const result = await declineEmi(current.id, period);
+      setBusy(false);
+      if (!result.ok) {
+        setError("Couldn’t decline this EMI. Please try again.");
+        return;
+      }
+      setDismissed((prev) => new Set(prev).add(current.id));
+      if (hasTarget) clearTarget();
+      toast({ message: "EMI declined. A warning email has been sent." });
+      return;
+    }
+
+    const result = await confirmEmi(current.id, period, { extraPayment: opts.extraPayment });
     setBusy(false);
 
     if (!result.ok) {
@@ -111,20 +136,45 @@ export function EmiConfirm() {
           <p className="mt-1 font-display text-xl font-bold text-text">{due.lender || due.name}?</p>
           {due.emi != null && (
             <p className="mt-1 text-[0.85rem] text-text-3">
-              {formatINR(total)}
+              EMI: {formatINR(total)}
               {count > 1 ? ` total · ${count} × ${formatINR(due.emi)}` : ""}
               {due.termMonths ? ` · ${due.emisPaid ?? 0}/${due.termMonths} paid` : ""}
             </p>
           )}
+          {plannedExtra > 0 && (
+            <div className="mt-3 rounded-[8px] bg-brand-soft/30 p-2 border border-brand-soft">
+              <p className="text-[0.85rem] font-medium text-brand">
+                + Planned extra: {formatINR(plannedExtra)}
+              </p>
+              <p className="text-[0.7rem] text-text-3 mt-1">Total to pay: {formatINR(total + plannedExtra)}</p>
+            </div>
+          )}
           {error && <p className="mt-3 text-[0.82rem] font-medium text-negative">{error}</p>}
         </div>
-        <div className="flex w-full gap-3">
-          <Button variant="secondary" size="lg" fullWidth disabled={busy} onClick={later}>
-            Not yet
-          </Button>
-          <Button variant="primary" size="lg" fullWidth loading={busy} onClick={confirm}>
-            <Check className="h-4.5 w-4.5" /> Yes, paid
-          </Button>
+        <div className="flex w-full flex-col gap-3">
+          {plannedExtra > 0 ? (
+            <>
+              <Button variant="primary" size="lg" fullWidth loading={busy} onClick={() => handleConfirm({ extraPayment: plannedExtra })}>
+                <Check className="h-4.5 w-4.5" /> Confirm Both (EMI + Extra)
+              </Button>
+              <Button variant="secondary" size="lg" fullWidth disabled={busy} onClick={() => handleConfirm()}>
+                Confirm EMI Only
+              </Button>
+            </>
+          ) : (
+            <Button variant="primary" size="lg" fullWidth loading={busy} onClick={() => handleConfirm()}>
+              <Check className="h-4.5 w-4.5" /> Yes, paid
+            </Button>
+          )}
+          
+          <div className="flex gap-3">
+            <Button variant="secondary" className="bg-surface-2 opacity-80" size="lg" fullWidth disabled={busy} onClick={later}>
+              Remind later
+            </Button>
+            <Button variant="dangerSoft" size="lg" fullWidth disabled={busy} onClick={() => handleConfirm({ declineBoth: true })}>
+              I didn't pay
+            </Button>
+          </div>
         </div>
       </div>
     </Sheet>
