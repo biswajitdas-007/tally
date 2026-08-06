@@ -34,7 +34,7 @@ function escapeRegex(s: string): string {
 }
 
 /** The branded invitation email (mirrors Tally's receipt emails). */
-function inviteEmailHtml(o: {
+export function inviteEmailHtml(o: {
   initial: string;
   inviter: string; // already HTML-escaped
   groupName: string; // already HTML-escaped ("" when none)
@@ -129,6 +129,17 @@ export async function POST(req: Request) {
           if (sharedGroup || sharedExpense || inContacts) {
             return json({ ok: true, alreadyFriend: true, name: existing.name });
           }
+        }
+
+        // Prevent multiple pending invites to the same email by the same user for the same context
+        const existingPending = await db.collection<InviteDoc>("invites").findOne({
+          email: { $regex: `^${escapeRegex(email)}$`, $options: "i" },
+          status: "pending",
+          groupId,
+          inviterUid: user.uid,
+        });
+        if (existingPending) {
+          return json({ ok: true, duplicate: true, existingId: existingPending._id });
         }
       }
 

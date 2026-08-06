@@ -30,6 +30,7 @@ export default function GroupDetailPage() {
   const groups = useStore((s) => s.groups);
   const people = useStore((s) => s.people);
   const expenses = useStore((s) => s.expenses);
+  const pendingInvites = useStore((s) => s.pendingInvites);
   const deleteGroup = useStore((s) => s.deleteGroup);
   const openAdd = useUI((s) => s.openAdd);
   const openInvite = useUI((s) => s.openInvite);
@@ -50,6 +51,28 @@ export default function GroupDetailPage() {
   const myNet = useMemo(() => memberNet(groupExpenses).get(myId) ?? 0, [groupExpenses, myId]);
   const myBalances = useMemo(() => mySettleRows(groupExpenses, myId), [groupExpenses, myId]);
   const transfers = useMemo(() => simplifiedPlan(groupExpenses), [groupExpenses]);
+
+  const groupPending = useMemo(
+    () => pendingInvites.filter((i) => i.groupId === id).sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+    [pendingInvites, id],
+  );
+
+  const [resendingId, setResendingId] = useState<string | null>(null);
+
+  async function resendInvite(inviteId: string) {
+    setResendingId(inviteId);
+    try {
+      const res = await fetch(`/api/invite/${inviteId}/resend`, { method: "POST" });
+      if (res.ok) {
+        toast({ message: "Invitation resent!", tone: "success" });
+      } else {
+        toast({ message: "Failed to resend invitation", tone: "error" });
+      }
+    } catch {
+      toast({ message: "Something went wrong", tone: "error" });
+    }
+    setResendingId(null);
+  }
 
   if (!group) {
     return (
@@ -232,7 +255,11 @@ export default function GroupDetailPage() {
               </Card>
             ) : (
               <Card>
-                <EmptyState icon={ArrowLeftRight} title="All settled" description="Everyone in this group is square." />
+                <EmptyState
+                  icon={ArrowLeftRight}
+                  title="All settled up"
+                  description="No one owes anything in this group."
+                />
               </Card>
             )}
           </div>
@@ -262,6 +289,40 @@ export default function GroupDetailPage() {
               </div>
             </Card>
           </div>
+
+          {/* Pending Invites */}
+          {groupPending.length > 0 && (
+            <div>
+              <p className="mb-2 px-1 text-[0.7rem] font-semibold uppercase tracking-[0.08em] text-text-3">
+                Pending Invites
+              </p>
+              <Card className="overflow-hidden">
+                <div className="divide-y divide-border">
+                  {groupPending.map((inv) => (
+                    <div key={inv.id} className="flex items-center gap-3 px-4 py-3 text-left">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-2 text-text-3">
+                        <UserPlus className="h-4 w-4 opacity-50" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-medium text-text">{inv.email}</p>
+                        <p className="truncate text-[0.78rem] text-text-3">
+                          Sent on {new Date(inv.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        loading={resendingId === inv.id}
+                        onClick={() => resendInvite(inv.id)}
+                      >
+                        Resend
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            </div>
+          )}
         </div>
       )}
     </div>

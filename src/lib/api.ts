@@ -1,6 +1,6 @@
 import { firebaseAuth } from "@/lib/firebase";
 import { socketId } from "@/lib/pusher-client";
-import type { Account, Budget, Emergency, Expense, FinanceEntry, Group, Liability, Person, Recurring, DebtPlanData } from "@/lib/types";
+import type { Account, Budget, Emergency, Expense, FinanceEntry, Group, Liability, Person, Recurring, DebtPlanData, PendingInvite } from "@/lib/types";
 
 export interface ServerState {
   me: Person | null;
@@ -16,6 +16,7 @@ export interface ServerState {
   moneyMode: boolean | null;
   removedFriends: string[];
   debtPlan: DebtPlanData | null;
+  pendingInvites: PendingInvite[];
 }
 
 async function token(): Promise<string | null> {
@@ -138,6 +139,8 @@ export async function sendInvite(input: {
   alreadyFriend?: boolean;
   self?: boolean;
   name?: string;
+  duplicate?: boolean;
+  existingId?: string;
 } | null> {
   const res = await req("POST", "/api/invite", input);
   return res?.ok ? await res.json() : null;

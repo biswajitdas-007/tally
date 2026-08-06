@@ -207,3 +207,11 @@ export interface DebtPlanData {
   extra: number;
   specificExtra: Record<ID, number>;
 }
+
+export interface PendingInvite {
+  id: string;
+  email: string;
+  groupId: ID | null;
+  groupName: string | null;
+  createdAt: string;
+}
