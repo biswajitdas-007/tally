@@ -1,27 +1,20 @@
-import nodemailer, { type Transporter } from "nodemailer";
+import { Resend } from "resend";
 
-const user = process.env.GMAIL_USER;
-const pass = process.env.GMAIL_APP_PASSWORD;
+const resendApiKey = process.env.RESEND_API_KEY;
+const fromEmail = process.env.RESEND_FROM_EMAIL || "Tally <onboarding@resend.dev>";
 
-/** Emails send only when a Gmail account + app password are configured. */
-export const isEmailConfigured = Boolean(user && pass);
+/** Emails send only when a Resend API key is configured. */
+export const isEmailConfigured = Boolean(resendApiKey);
 
-let transporter: Transporter | null = null;
-function getTransport(): Transporter | null {
+let resendClient: Resend | null = null;
+function getResend(): Resend | null {
   if (!isEmailConfigured) return null;
-  transporter ??= nodemailer.createTransport({
-    service: "gmail",
-    auth: { user, pass },
-  });
-  return transporter;
+  resendClient ??= new Resend(resendApiKey);
+  return resendClient;
 }
 
 /**
- * Best-effort transactional email via Gmail SMTP. Returns whether it sent.
- *
- * Every caller passes an explicit `text` so we ship a multipart/alternative
- * (HTML + hand-written plain text) plus the standard transactional headers
- * (Reply-To, List-Unsubscribe) — that combination improves inbox placement.
+ * Best-effort transactional email via Resend. Returns whether it sent.
  */
 export async function sendEmail(opts: {
   to: string;
@@ -29,23 +22,26 @@ export async function sendEmail(opts: {
   html: string;
   text?: string;
 }): Promise<boolean> {
-  const t = getTransport();
-  if (!t || !opts.to) return false;
+  const client = getResend();
+  if (!client || !opts.to) return false;
+  
   try {
-    await t.sendMail({
-      from: `Tally <${user}>`,
+    const { error } = await client.emails.send({
+      from: fromEmail,
       to: opts.to,
-      replyTo: user,
       subject: opts.subject,
       html: opts.html,
-      text: opts.text,
-      headers: {
-        "List-Unsubscribe": `<mailto:${user}?subject=unsubscribe>`,
-        "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
-      },
+      text: opts.text || "",
     });
+    
+    if (error) {
+      console.error("Resend API error:", error);
+      return false;
+    }
+    
     return true;
-  } catch {
+  } catch (err) {
+    console.error("Failed to send email via Resend:", err);
     return false;
   }
 }

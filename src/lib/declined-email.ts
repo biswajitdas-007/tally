@@ -30,6 +30,8 @@ The Tally Team`;
       <p>We will continue to gently remind you about this overdue payment to help you stay on track.</p>
       
       <p style="margin-bottom:0;">The Tally Team</p>
+      
+      <p style="text-align:center;font-size:12px;color:#8b958c;margin-top:32px;border-top:1px solid #eaeaea;padding-top:16px;">This is a system generated email, please do not reply.</p>
     </div>
   `;
 
