@@ -62,6 +62,11 @@ export function InviteDialog() {
       close();
       return;
     }
+    if (result?.duplicate) {
+      toast({ message: "You already invited them. You can resend from the pending list.", tone: "info" });
+      close();
+      return;
+    }
 
     const origin = typeof window !== "undefined" ? window.location.origin : "";
     setSentLink(result?.link ?? `${origin}/join/${inviteId}`);

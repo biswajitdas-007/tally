@@ -1,7 +1,7 @@
 "use client";
 
 import { create } from "zustand";
-import type { Account, Budget, CategoryKey, Emergency, Expense, FinanceEntry, FinanceType, Group, ID, Liability, Person, Recurring, Split, DebtPlanData } from "@/lib/types";
+import type { Account, Budget, CategoryKey, Emergency, Expense, FinanceEntry, FinanceType, Group, ID, Liability, Person, Recurring, Split, DebtPlanData, PendingInvite } from "@/lib/types";
 import type { ServerState } from "@/lib/api";
 import * as api from "@/lib/api";
 import { duePeriods } from "@/lib/recurring";
@@ -38,6 +38,7 @@ interface State {
   recurrings: Recurring[];
   moneyMode: boolean | null;
   removedFriends: string[];
+  pendingInvites: PendingInvite[];
   lastDeleted: Expense | null;
 
   setAuthReady: () => void;
@@ -88,7 +89,8 @@ const stateHash = (s: {
   debtPlan: unknown;
   recurrings: unknown[];
   moneyMode: unknown;
-}) => JSON.stringify([s.people, s.groups, s.expenses, s.finance, s.budget, s.accounts, s.liabilities, s.removedFriends, s.emergency, s.debtPlan, s.recurrings, s.moneyMode]);
+  pendingInvites: unknown[];
+}) => JSON.stringify([s.people, s.groups, s.expenses, s.finance, s.budget, s.accounts, s.liabilities, s.removedFriends, s.emergency, s.debtPlan, s.recurrings, s.moneyMode, s.pendingInvites]);
 
 const now = () => new Date().toISOString();
 const reconcile = (res: Response | null, get: () => State) => {
@@ -113,6 +115,7 @@ export const useStore = create<State>()((set, get) => ({
   recurrings: [],
   moneyMode: null,
   removedFriends: [],
+  pendingInvites: [],
   lastDeleted: null,
 
   setAuthReady: () => set({ authReady: true }),
@@ -138,6 +141,7 @@ export const useStore = create<State>()((set, get) => ({
       recurrings: state.recurrings ?? [],
       moneyMode: state.moneyMode ?? null,
       removedFriends: state.removedFriends ?? [],
+      pendingInvites: state.pendingInvites ?? [],
       dataReady: true,
       loadError: false,
     });
@@ -160,6 +164,7 @@ export const useStore = create<State>()((set, get) => ({
       recurrings: [],
       moneyMode: null,
       removedFriends: [],
+      pendingInvites: [],
       lastDeleted: null,
       dataReady: false,
       loadError: false,
