@@ -50,7 +50,8 @@ export async function sendEmail(opts: {
  * Sends a welcome email to a newly signed up user.
  */
 export async function sendWelcomeEmail(to: string, name: string): Promise<boolean> {
-  const firstName = name.split(" ")[0] || "there";
+  const rawFirstName = (name ?? "").trim().split(/\s+/)[0] || "there";
+  const firstName = rawFirstName.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
   
   const html = `
 <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 40px 20px; background-color: #f7f9fc;">
