@@ -42,12 +42,9 @@ export function LoginScreen() {
       setLoading(true);
       await loginWithGoogle();
       // The auth listener switches the app in once the session resolves.
-    } catch (e) {
+    } catch {
       setLoading(false);
-      const code = (e as { code?: string })?.code;
-      if (code !== "auth/popup-closed-by-user" && code !== "auth/cancelled-popup-request") {
-        toast({ message: "Couldn't sign in with Google. Please try again.", tone: "error" });
-      }
+      toast({ message: "Couldn't sign in with Google. Please try again.", tone: "error" });
     }
   }
 

@@ -1,10 +1,12 @@
 import type { NextConfig } from "next";
 
+const isDev = process.env.NODE_ENV !== "production";
+
 const csp = [
   "default-src 'self'",
   // 'unsafe-inline' is required for the pre-hydration theme script and Next's
   // streaming inline scripts; there are no user-controlled script sinks.
-  "script-src 'self' 'unsafe-inline' https://apis.google.com",
+  `script-src 'self' 'unsafe-inline' https://apis.google.com${isDev ? " 'unsafe-eval'" : ""}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https://*.googleusercontent.com https://*.google.com",
   "font-src 'self'",
@@ -27,7 +29,6 @@ const securityHeaders = [
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
   { key: "X-DNS-Prefetch-Control", value: "off" },
-  { key: "Cross-Origin-Opener-Policy", value: "unsafe-none" },
 ];
 
 const nextConfig: NextConfig = {
