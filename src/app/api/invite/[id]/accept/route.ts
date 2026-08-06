@@ -4,6 +4,8 @@ import { addContact, collections, upsertUser } from "@/lib/db";
 import { notifyChange } from "@/lib/notify";
 import { sendWelcomeEmail } from "@/lib/email";
 import type { Person } from "@/lib/types";
+import type { Collection } from "mongodb";
+import type { UserDoc, GroupDoc, ExpenseDoc } from "@/lib/db";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -35,9 +37,27 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     sendWelcomeEmail(user.email, user.name || "there").catch(console.error);
   }
 
-  // Make the two people friends on both sides, so a joined invitee shows up in
-  // the inviter's friends list (and vice-versa) even for non-group invites.
-  const inviterDoc = await users.findOne({ _id: inv.inviterUid });
+  await handleDirectFriendship(users, inv.inviterUid, user.uid, meDoc);
+
+  const groupId = await handleGroupJoin(groups, expenses, users, inv, user);
+
+  if (!inv.isGeneric) {
+    await invites.updateOne(
+      { _id: id },
+      { $set: { status: "accepted", acceptedByUid: user.uid, acceptedAt: new Date() } },
+    );
+  }
+
+  return NextResponse.json({ ok: true, groupId });
+}
+
+async function handleDirectFriendship(
+  users: Collection<UserDoc>,
+  inviterUid: string,
+  userUid: string,
+  meDoc: UserDoc
+) {
+  const inviterDoc = await users.findOne({ _id: inviterUid });
   if (inviterDoc) {
     const mePerson: Person = {
       id: meDoc._id,
@@ -55,63 +75,60 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       upiId: inviterDoc.upiId,
       avatarColor: inviterDoc.avatarColor ?? "#1c6b52",
     };
-    await addContact(users, inv.inviterUid, mePerson);
-    await addContact(users, user.uid, inviterPerson);
+    await addContact(users, inviterUid, mePerson);
+    await addContact(users, userUid, inviterPerson);
   }
+}
 
-  let groupId: string | null = null;
-  if (inv.groupId) {
-    const g = await groups.findOne({ _id: inv.groupId });
-    if (g) {
-      groupId = g._id;
-      if (!g.memberUids.includes(user.uid)) {
-        const me: Person = {
-          id: user.uid,
-          name: user.name || inv.email || "Someone",
-          email: user.email,
-          photoURL: user.picture,
-          avatarColor: "#1c6b52",
-          pending: false,
-        };
-        // Drop any pending placeholder for this email (if present), add the real member.
-        const members = [
-          ...g.members.filter((m) => {
-            if (m.id === user.uid) return false;
-            if (inv.email && m.email?.toLowerCase() === inv.email.toLowerCase()) return false;
-            return true;
-          }),
-          me,
-        ];
-        await groups.updateOne(
-          { _id: g._id },
-          { $set: { members }, $addToSet: { memberUids: user.uid } },
-        );
-        // Backfill visibility of the group's existing expenses.
-        await expenses.updateMany({ groupId: g._id }, { $addToSet: { memberUids: user.uid } });
+async function handleGroupJoin(
+  groups: Collection<GroupDoc>,
+  expenses: Collection<ExpenseDoc>,
+  users: Collection<UserDoc>,
+  inv: InviteDoc,
+  user: { uid: string; name?: string; email?: string; picture?: string }
+): Promise<string | null> {
+  if (!inv.groupId) return null;
+  
+  const g = await groups.findOne({ _id: inv.groupId });
+  if (!g) return null;
 
-        await notifyChange([...g.memberUids, user.uid], user.uid, {
-          title: g.name,
-          body: `${user.name || "Someone"} joined "${g.name}"`,
-          url: `/groups/${g._id}`,
-        });
+  if (!g.memberUids.includes(user.uid)) {
+    const me: Person = {
+      id: user.uid,
+      name: user.name || inv.email || "Someone",
+      email: user.email,
+      photoURL: user.picture,
+      avatarColor: "#1c6b52",
+      pending: false,
+    };
+    
+    const members = [
+      ...g.members.filter((m) => {
+        if (m.id === user.uid) return false;
+        if (inv.email && m.email?.toLowerCase() === inv.email.toLowerCase()) return false;
+        return true;
+      }),
+      me,
+    ];
+    
+    await groups.updateOne(
+      { _id: g._id },
+      { $set: { members }, $addToSet: { memberUids: user.uid } },
+    );
+    await expenses.updateMany({ groupId: g._id }, { $addToSet: { memberUids: user.uid } });
 
-        // Transitive friendships: mutually add the new user and all existing real members
-        // to each other's contacts so the group friend graph is fully connected.
-        const existingRealMembers = g.members.filter((m) => !m.pending && m.id !== user.uid);
-        for (const m of existingRealMembers) {
-          await addContact(users, m.id, me);
-          await addContact(users, user.uid, m);
-        }
-      }
+    await notifyChange([...g.memberUids, user.uid], user.uid, {
+      title: g.name,
+      body: `${user.name || "Someone"} joined "${g.name}"`,
+      url: `/groups/${g._id}`,
+    });
+
+    const existingRealMembers = g.members.filter((m) => !m.pending && m.id !== user.uid);
+    for (const m of existingRealMembers) {
+      await addContact(users, m.id, me);
+      await addContact(users, user.uid, m);
     }
   }
 
-  if (!inv.isGeneric) {
-    await invites.updateOne(
-      { _id: id },
-      { $set: { status: "accepted", acceptedByUid: user.uid, acceptedAt: new Date() } },
-    );
-  }
-
-  return NextResponse.json({ ok: true, groupId });
+  return g._id;
 }
