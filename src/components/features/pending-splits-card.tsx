@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { ArrowDownLeft, ArrowUpRight, ChevronRight, Hourglass } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { formatINR } from "@/lib/utils";
+import { useUI } from "@/store/useUI";
 import type { Pending } from "@/lib/balances";
 
 /**
@@ -55,12 +55,12 @@ export function PendingSplitsCard({ pending }: { pending: Pending }) {
         )}
       </p>
 
-      <Link
-        href="/"
+      <button
+        onClick={() => useUI.getState().openWhoOwesWhom()}
         className="mt-3 flex items-center gap-1 text-[0.78rem] font-semibold text-brand"
       >
         See who owes whom <ChevronRight className="h-3.5 w-3.5" />
-      </Link>
+      </button>
     </Card>
   );
 }

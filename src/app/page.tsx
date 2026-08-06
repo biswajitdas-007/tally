@@ -10,7 +10,6 @@ import {
 import { BalanceHero } from "@/components/features/balance-hero";
 import { GroupCard } from "@/components/features/group-card";
 import { ExpenseRow } from "@/components/features/expense-row";
-import { PersonDebtRow } from "@/components/features/person-debt-row";
 import { SplitOverviewCard } from "@/components/features/split-overview-card";
 import { PendingSplitsCard } from "@/components/features/pending-splits-card";
 import { MoneyRow } from "@/components/features/money-row";
@@ -178,26 +177,25 @@ export default function HomePage() {
     else openEmergency();
   }
 
-  const debtList = (
+  const debtButton = (
     <section>
-      <SectionHeader title="Who owes whom" />
-      {debts.length > 0 ? (
-        <Card className="overflow-hidden">
-          <div className="divide-y divide-border">
-            {debts.slice(0, 5).map((d) => (
-              <PersonDebtRow key={d.personId} debt={d} />
-            ))}
+      <button 
+        onClick={() => useUI.getState().openWhoOwesWhom()}
+        className="flex w-full items-center justify-between rounded-[16px] border border-border bg-surface p-4 shadow-[var(--shadow-xs)] transition-all hover:-translate-y-0.5 hover:border-border-strong hover:shadow-[var(--shadow-md)]"
+      >
+        <div className="flex items-center gap-3.5">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand">
+            <ArrowLeftRight className="h-5 w-5" />
+          </span>
+          <div className="min-w-0 flex-1 text-left">
+            <p className="text-[0.9rem] font-semibold text-text">Who owes whom</p>
+            <p className="text-[0.76rem] leading-snug text-text-3">
+              See all your outstanding balances.
+            </p>
           </div>
-        </Card>
-      ) : (
-        <Card>
-          <EmptyState
-            icon={ArrowLeftRight}
-            title="All settled up"
-            description="No outstanding balances. Add an expense to start splitting."
-          />
-        </Card>
-      )}
+        </div>
+        <ChevronRight className="h-5 w-5 shrink-0 text-text-3" />
+      </button>
     </section>
   );
 
@@ -288,7 +286,7 @@ export default function HomePage() {
 
           {money && pending.any && <PendingSplitsCard pending={pending} />}
 
-          {money && debtList}
+          {money && debtButton}
 
           {money && (
             <Link
@@ -310,7 +308,7 @@ export default function HomePage() {
         </PageCol>
 
         <PageCol>
-          {!money && debtList}
+          {!money && debtButton}
 
           {/* Groups */}
           <section>

@@ -86,6 +86,10 @@ interface UIState {
   recurSeed: FinanceType | null;
   openRecur: (editId?: ID | null, type?: FinanceType) => void;
   closeRecur: () => void;
+
+  whoOwesWhomOpen: boolean;
+  openWhoOwesWhom: () => void;
+  closeWhoOwesWhom: () => void;
 }
 
 export const useUI = create<UIState>((set) => ({
@@ -163,4 +167,8 @@ export const useUI = create<UIState>((set) => ({
   recurSeed: null,
   openRecur: (editId = null, type = "expense") => set({ recurOpen: true, recurEditId: editId, recurSeed: type }),
   closeRecur: () => set({ recurOpen: false, recurEditId: null, recurSeed: null }),
+
+  whoOwesWhomOpen: false,
+  openWhoOwesWhom: () => set({ whoOwesWhomOpen: true }),
+  closeWhoOwesWhom: () => set({ whoOwesWhomOpen: false }),
 }));
