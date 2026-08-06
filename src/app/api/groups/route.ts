@@ -1,5 +1,5 @@
 import { verifyUser } from "@/lib/auth-server";
-import { collections, knownUids, realUids, type GroupDoc } from "@/lib/db";
+import { addContact, collections, knownUids, realUids, type GroupDoc } from "@/lib/db";
 import { notifyChange } from "@/lib/notify";
 import type { Person } from "@/lib/types";
 import { badRequest, isStr, json, serverError, unauthorized } from "@/lib/api-helpers";
@@ -20,7 +20,7 @@ export async function POST(req: Request) {
       (m): m is Person => !!m && typeof m === "object" && isStr((m as Person).id),
     );
 
-    const { groups } = await collections();
+    const { groups, users } = await collections();
 
     // Make sure the creator is a member.
     const members: Person[] = rawMembers.some((m) => m.id === user.uid)
@@ -51,6 +51,17 @@ export async function POST(req: Request) {
       { title: doc.name, body: `${user.name || "Someone"} added you to "${doc.name}"`, url: `/groups/${doc._id}` },
       isStr(b.socketId) ? (b.socketId as string) : undefined,
     );
+
+    // Transitive friendships: mutually add all real members to each other's contacts
+    // so the group friend graph is fully connected right from creation.
+    const existingRealMembers = members.filter((m) => !m.pending && m.id !== "unknown_id_or_something");
+    for (const m1 of existingRealMembers) {
+      for (const m2 of existingRealMembers) {
+        if (m1.id !== m2.id) {
+          await addContact(users, m1.id, m2);
+        }
+      }
+    }
 
     return json({ ok: true });
   } catch {

@@ -92,8 +92,8 @@ export async function upsertUser(
   users: Collection<UserDoc>,
   uid: string,
   profile: { name?: string; email?: string; photoURL?: string },
-): Promise<UserDoc> {
-  await users.updateOne(
+): Promise<{ doc: UserDoc; isNew: boolean }> {
+  const result = await users.updateOne(
     { _id: uid },
     {
       $set: {
@@ -106,7 +106,8 @@ export async function upsertUser(
     },
     { upsert: true },
   );
-  return (await users.findOne({ _id: uid }))!;
+  const doc = (await users.findOne({ _id: uid }))!;
+  return { doc, isNew: result.upsertedCount > 0 };
 }
 
 function toPerson(u: UserDoc, isYou: boolean): Person {

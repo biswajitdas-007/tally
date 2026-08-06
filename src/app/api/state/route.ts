@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { verifyUser } from "@/lib/auth-server";
 import { buildState, collections, upsertUser } from "@/lib/db";
 import { isDbConfigured } from "@/lib/mongodb";
+import { sendWelcomeEmail } from "@/lib/email";
 import { anchorLastPaidMonth, initialLastPaidMonth } from "@/lib/liabilities";
 
 export const runtime = "nodejs";
@@ -13,7 +14,11 @@ export async function GET(req: Request) {
   if (!isDbConfigured) return NextResponse.json({ me: null, people: [], groups: [], expenses: [] });
 
   const { users } = await collections();
-  await upsertUser(users, user.uid, { name: user.name, email: user.email, photoURL: user.picture });
+  const { isNew } = await upsertUser(users, user.uid, { name: user.name, email: user.email, photoURL: user.picture });
+
+  if (isNew && user.email) {
+    sendWelcomeEmail(user.email, user.name || "there").catch(console.error);
+  }
 
   // Silent migration: anchor any existing legacy loans that missed the lastPaidMonth creation
   const doc = await users.findOne({ _id: user.uid }, { projection: { liabilities: 1 } });

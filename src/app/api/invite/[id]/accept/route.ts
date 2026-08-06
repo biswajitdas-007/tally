@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { verifyUser } from "@/lib/auth-server";
 import { addContact, collections, upsertUser } from "@/lib/db";
 import { notifyChange } from "@/lib/notify";
+import { sendWelcomeEmail } from "@/lib/email";
 import type { Person } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -28,7 +29,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   if (inv.inviterUid === user.uid) return NextResponse.json({ ok: true, self: true });
 
-  const meDoc = await upsertUser(users, user.uid, { name: user.name, email: user.email, photoURL: user.picture });
+  const { doc: meDoc, isNew } = await upsertUser(users, user.uid, { name: user.name, email: user.email, photoURL: user.picture });
+
+  if (isNew && user.email) {
+    sendWelcomeEmail(user.email, user.name || "there").catch(console.error);
+  }
 
   // Make the two people friends on both sides, so a joined invitee shows up in
   // the inviter's friends list (and vice-versa) even for non-group invites.
@@ -89,6 +94,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
           body: `${user.name || "Someone"} joined "${g.name}"`,
           url: `/groups/${g._id}`,
         });
+
+        // Transitive friendships: mutually add the new user and all existing real members
+        // to each other's contacts so the group friend graph is fully connected.
+        const existingRealMembers = g.members.filter((m) => !m.pending && m.id !== user.uid);
+        for (const m of existingRealMembers) {
+          await addContact(users, m.id, me);
+          await addContact(users, user.uid, m);
+        }
       }
     }
   }
