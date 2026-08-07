@@ -23,6 +23,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     if (isStr(patch.name)) set.name = (patch.name as string).slice(0, 80);
     if (isStr(patch.icon)) set.icon = (patch.icon as string).slice(0, 16);
     if (isStr(patch.color)) set.color = (patch.color as string).slice(0, 40);
+    if (Array.isArray(patch.offlineIds)) set.offlineIds = patch.offlineIds.filter(isStr);
     if (Object.keys(set).length) await groups.updateOne({ _id: id }, { $set: set });
 
     await notifyChange(g.memberUids, user.uid, undefined, isStr(patch.socketId) ? (patch.socketId as string) : undefined);

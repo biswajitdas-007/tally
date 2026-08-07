@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { ChevronLeft, Plus, UserPlus, MoreVertical, Trash2, ArrowLeftRight, Receipt } from "lucide-react";
+import { ChevronLeft, Plus, UserPlus, MoreVertical, Trash2, ArrowLeftRight, Receipt, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Segmented } from "@/components/ui/segmented";
@@ -35,6 +35,8 @@ export default function GroupDetailPage() {
   const deleteGroup = useStore((s) => s.deleteGroup);
   const openAdd = useUI((s) => s.openAdd);
   const openInvite = useUI((s) => s.openInvite);
+  const openGroupSettings = useUI((s) => s.openGroupSettings);
+  const openDeleteGroup = useUI((s) => s.openDeleteGroup);
   const openSettle = useUI((s) => s.openSettle);
   const { toast } = useToast();
   const myId = useMyId() ?? "";
@@ -100,30 +102,35 @@ export default function GroupDetailPage() {
 
   const members = group.memberIds
     .map((mid) => people.find((p) => p.id === mid))
-    .filter(Boolean) as NonNullable<ReturnType<typeof people.find>>[];
+    .filter((p) => p != null);
   const nameOf = (pid: string) => (pid === myId ? "You" : people.find((p) => p.id === pid)?.name.split(" ")[0] ?? "—");
 
   return (
-    <div className="flex flex-col gap-5">
+    <main className="mx-auto flex w-full max-w-[600px] flex-col gap-5 flex-1 px-4 py-6 md:py-8 lg:max-w-[720px] lg:px-6">
       <Link href="/groups" className="-mb-1 flex w-fit items-center gap-1 text-sm font-medium text-text-2 hover:text-text">
         <ChevronLeft className="h-4 w-4" /> Ledgers
       </Link>
 
       {/* Group header */}
       <div className="flex items-center gap-3.5">
-        <div
-          className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[16px] text-3xl"
-          style={{ background: `color-mix(in srgb, ${group.color} 16%, transparent)` }}
+        <button 
+          onClick={() => openGroupSettings(group.id)}
+          className="flex flex-1 min-w-0 items-center gap-3.5 text-left transition-opacity hover:opacity-80"
         >
-          {group.icon}
-        </div>
-        <div className="min-w-0 flex-1">
-          <h1 className="truncate font-display text-2xl font-bold tracking-[-0.02em]">{group.name}</h1>
-          <div className="mt-1 flex items-center gap-2">
-            <AvatarStack people={members} size="xs" max={5} />
-            <span className="text-[0.78rem] text-text-3">{members.length} members</span>
+          <div
+            className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[16px] text-3xl"
+            style={{ background: `color-mix(in srgb, ${group.color} 16%, transparent)` }}
+          >
+            {group.icon}
           </div>
-        </div>
+          <div className="min-w-0 flex-1">
+            <h1 className="truncate font-display text-2xl font-bold tracking-[-0.02em]">{group.name}</h1>
+            <div className="mt-1 flex items-center gap-2">
+              <AvatarStack people={members} size="xs" max={5} />
+              <span className="text-[0.78rem] text-text-3">{members.length} members</span>
+            </div>
+          </div>
+        </button>
         <DropdownMenu>
           <DropdownMenuTrigger
             render={
@@ -133,20 +140,13 @@ export default function GroupDetailPage() {
             }
           />
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => openAdd(group.id)}>
-              <Plus className="h-4 w-4" /> Add expense
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => openInvite(group.id)}>
-              <UserPlus className="h-4 w-4" /> Invite friend
+            <DropdownMenuItem onClick={() => openGroupSettings(group.id)}>
+              <Info className="h-4 w-4" /> Group info
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               variant="destructive"
-              onClick={() => {
-                deleteGroup(group.id);
-                toast({ message: "Group deleted", tone: "info" });
-                router.push("/groups");
-              }}
+              onClick={() => openDeleteGroup(group.id)}
             >
               <Trash2 className="h-4 w-4" /> Delete group
             </DropdownMenuItem>
@@ -274,68 +274,8 @@ export default function GroupDetailPage() {
               </Card>
             )}
           </div>
-
-          {/* Members */}
-          <div>
-            <p className="mb-2 px-1 text-[0.7rem] font-semibold uppercase tracking-[0.08em] text-text-3">Members</p>
-            <Card className="p-2">
-              <div className="flex flex-col">
-                {members.map((m) => (
-                  <div key={m.id} className="flex items-center gap-3 rounded-[12px] px-2 py-2">
-                    <Avatar person={m} size="sm" />
-                    <span className="flex-1 text-[0.9rem] font-medium text-text">
-                      {m.id === myId ? "You" : m.name}
-                    </span>
-                  </div>
-                ))}
-                <button
-                  onClick={() => openInvite(group.id)}
-                  className="flex items-center gap-3 rounded-[12px] px-2 py-2 text-brand transition-colors hover:bg-surface-inset"
-                >
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-dashed border-brand/40">
-                    <UserPlus className="h-4 w-4" />
-                  </span>
-                  <span className="text-[0.9rem] font-semibold">Invite a friend</span>
-                </button>
-              </div>
-            </Card>
-          </div>
-
-          {/* Pending Invites */}
-          {groupPending.length > 0 && (
-            <div>
-              <p className="mb-2 px-1 text-[0.7rem] font-semibold uppercase tracking-[0.08em] text-text-3">
-                Pending Invites
-              </p>
-              <Card className="overflow-hidden">
-                <div className="divide-y divide-border">
-                  {groupPending.map((inv) => (
-                    <div key={inv.id} className="flex items-center gap-3 px-4 py-3 text-left">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-2 text-text-3">
-                        <UserPlus className="h-4 w-4 opacity-50" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-medium text-text">{inv.email}</p>
-                        <p className="truncate text-[0.78rem] text-text-3">
-                          Sent on {new Date(inv.createdAt).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        loading={resendingId === inv.id}
-                        onClick={() => resendInvite(inv.id)}
-                      >
-                        Resend
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </Card>
-            </div>
-          )}
         </div>
       )}
-    </div>
+    </main>
   );
 }

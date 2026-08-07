@@ -91,7 +91,18 @@ export function AddExpenseSheet() {
       setCatTouched(false);
       setGroupId(groupCtx);
       setPaidBy(myId);
-      setParticipants(groupCtx ? groups.find((g) => g.id === groupCtx)?.memberIds ?? [myId] : [myId]);
+      
+      let initialParticipants = [myId];
+      if (groupCtx) {
+        const g = groups.find((g) => g.id === groupCtx);
+        if (g) {
+          const offline = g.offlineIds ?? [];
+          const active = g.memberIds.filter((id) => id === myId || !offline.includes(id));
+          initialParticipants = active.length > 0 ? active : g.memberIds;
+        }
+      }
+      setParticipants(initialParticipants);
+      
       setDate(new Date());
       setNotes("");
       setShowNotes(false);

@@ -11,6 +11,8 @@ import { AddExpenseSheet } from "@/components/features/add-expense-sheet";
 import { AddMoneySheet } from "@/components/features/add-money-sheet";
 import { ExpenseDetailSheet } from "@/components/features/expense-detail-sheet";
 import { BudgetSheet } from "@/components/features/budget-sheet";
+import { GroupSettingsSheet } from "@/components/features/group-settings-sheet";
+import { DeleteGroupDialog } from "@/components/features/delete-group-dialog";
 import { WealthSheet } from "@/components/features/wealth-sheet";
 import { AccountDetailSheet } from "@/components/features/account-detail-sheet";
 import { ParkSheet } from "@/components/features/park-sheet";
@@ -65,6 +67,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Global surfaces */}
       <AddExpenseSheet />
       <AddMoneySheet />
+      <GroupSettingsSheet />
+      <DeleteGroupDialog />
       <ExpenseDetailSheet />
       <BudgetSheet />
       <WealthSheet />

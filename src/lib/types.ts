@@ -55,6 +55,7 @@ export interface Group {
   icon: string;
   color: string;
   memberIds: ID[];
+  offlineIds?: ID[];
   createdAt: string;
   archived?: boolean;
 }
