@@ -54,7 +54,7 @@ interface State {
   undoDelete: () => void;
 
   addGroup: (input: { name: string; icon: string; color: string; memberIds: ID[] }) => Group;
-  updateGroup: (id: ID, patch: Partial<Pick<Group, "name" | "icon" | "color">>) => void;
+  updateGroup: (id: ID, patch: Partial<Pick<Group, "name" | "icon" | "color" | "offlineIds">>) => void;
   deleteGroup: (id: ID) => void;
 
   settleUp: (input: { from: ID; to: ID; amount: number; groupId?: ID | null; note?: string; accountId?: ID }) => void;
