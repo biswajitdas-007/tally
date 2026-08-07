@@ -36,7 +36,12 @@ export async function POST(req: Request) {
       transfer: b.transfer === true ? true : undefined,
       recurringId: isStr(b.recurringId) ? (b.recurringId as string).slice(0, 40) : undefined,
     };
-    await finance.insertOne(doc);
+    
+    await finance.updateOne(
+      { _id: doc._id },
+      { $setOnInsert: doc },
+      { upsert: true }
+    );
 
     return json({ ok: true });
   } catch {

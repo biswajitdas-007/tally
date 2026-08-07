@@ -43,7 +43,12 @@ export async function POST(req: Request) {
       createdBy: user.uid,
       createdAt: new Date().toISOString(),
     };
-    await groups.insertOne(doc);
+    
+    await groups.updateOne(
+      { _id: doc._id },
+      { $setOnInsert: doc },
+      { upsert: true }
+    );
 
     await notifyChange(
       memberUids,

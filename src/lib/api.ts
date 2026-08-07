@@ -1,6 +1,7 @@
 import { firebaseAuth } from "@/lib/firebase";
 import { socketId } from "@/lib/pusher-client";
 import type { Account, Budget, Emergency, Expense, FinanceEntry, Group, Liability, Person, Recurring, DebtPlanData, PendingInvite } from "@/lib/types";
+import { enqueueSyncRequest } from "./sync-queue";
 
 export interface ServerState {
   me: Person | null;
@@ -19,7 +20,7 @@ export interface ServerState {
   pendingInvites: PendingInvite[];
 }
 
-async function token(): Promise<string | null> {
+export async function token(): Promise<string | null> {
   const user = firebaseAuth()?.currentUser;
   if (!user) return null;
   try {
@@ -33,13 +34,25 @@ async function req(method: string, path: string, body?: Record<string, unknown>)
   const t = await token();
   if (!t) return null;
   try {
-    return await fetch(path, {
+    const res = await fetch(path, {
       method,
       cache: "no-store",
       headers: { authorization: `Bearer ${t}`, ...(body ? { "content-type": "application/json" } : {}) },
       body: body ? JSON.stringify({ ...body, socketId: socketId() }) : undefined,
     });
+    // If we get a 5xx error, it might be a server outage, but not an offline scenario.
+    // For now, we only queue actual network failures (caught below).
+    return res;
   } catch {
+    // Network failure (offline). Queue the mutation if it's a write operation.
+    if (method !== "GET") {
+      await enqueueSyncRequest({ method, path, body });
+      // Return a simulated success response so the store keeps its optimistic update
+      return new Response(JSON.stringify({ ok: true, queued: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
     return null;
   }
 }
