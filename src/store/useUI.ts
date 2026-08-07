@@ -36,6 +36,14 @@ interface UIState {
   openCreateGroup: () => void;
   closeCreateGroup: () => void;
 
+  groupSettingsId: ID | null;
+  openGroupSettings: (id: ID) => void;
+  closeGroupSettings: () => void;
+
+  deleteGroupId: ID | null;
+  openDeleteGroup: (id: ID) => void;
+  closeDeleteGroup: () => void;
+
   menuOpen: boolean;
   openMenu: () => void;
   closeMenu: () => void;
@@ -116,6 +124,14 @@ export const useUI = create<UIState>((set) => ({
   groupOpen: false,
   openCreateGroup: () => set({ groupOpen: true }),
   closeCreateGroup: () => set({ groupOpen: false }),
+
+  groupSettingsId: null,
+  openGroupSettings: (id) => set({ groupSettingsId: id }),
+  closeGroupSettings: () => set({ groupSettingsId: null }),
+
+  deleteGroupId: null,
+  openDeleteGroup: (id) => set({ deleteGroupId: id }),
+  closeDeleteGroup: () => set({ deleteGroupId: null }),
 
   menuOpen: false,
   openMenu: () => set({ menuOpen: true }),

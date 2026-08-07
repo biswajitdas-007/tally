@@ -34,6 +34,7 @@ export interface GroupDoc {
   color: string;
   members: Person[]; // member.id === uid for real users; pending members are placeholders
   memberUids: string[]; // real (non-pending) member uids — for queries + notifications
+  offlineIds?: string[];
   createdBy: string;
   createdAt: string;
 }
@@ -142,6 +143,7 @@ function toClientGroup(g: GroupDoc): Group {
     icon: g.icon,
     color: g.color,
     memberIds: g.members.map((m) => m.id),
+    offlineIds: g.offlineIds ?? [],
     createdAt: g.createdAt,
   };
 }
