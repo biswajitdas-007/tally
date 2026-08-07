@@ -66,7 +66,12 @@ export async function POST(req: Request) {
       createdAt: new Date().toISOString(),
       accountId: isStr(b.accountId) ? (b.accountId as string).slice(0, 40) : undefined,
     };
-    await expenses.insertOne(doc);
+    
+    await expenses.updateOne(
+      { _id: doc._id },
+      { $setOnInsert: doc },
+      { upsert: true }
+    );
 
     await notifyChange(
       memberUids,

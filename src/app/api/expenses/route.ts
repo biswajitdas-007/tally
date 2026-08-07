@@ -75,7 +75,12 @@ export async function POST(req: Request) {
       // Only the payer's own account is attached (it's their private cash source).
       accountId: isStr(b.accountId) && b.paidBy === user.uid ? (b.accountId as string).slice(0, 40) : undefined,
     };
-    await expenses.insertOne(doc);
+    
+    await expenses.updateOne(
+      { _id: doc._id },
+      { $setOnInsert: doc },
+      { upsert: true }
+    );
 
     await notifyChange(
       memberUids,
