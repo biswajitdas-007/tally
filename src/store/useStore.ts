@@ -1,6 +1,8 @@
 "use client";
 
 import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
+import { idbStorage } from "@/lib/idb-storage";
 import type { Account, Budget, CategoryKey, Emergency, Expense, FinanceEntry, FinanceType, Group, ID, Liability, Person, Recurring, Split, DebtPlanData, PendingInvite } from "@/lib/types";
 import type { ServerState } from "@/lib/api";
 import * as api from "@/lib/api";
@@ -97,7 +99,9 @@ const reconcile = (res: Response | null, get: () => State) => {
   if (!res || !res.ok) get().refetch();
 };
 
-export const useStore = create<State>()((set, get) => ({
+export const useStore = create<State>()(
+  persist(
+    (set, get) => ({
   authReady: false,
   dataReady: false,
   loadError: false,
@@ -393,8 +397,34 @@ export const useStore = create<State>()((set, get) => ({
     }
     get().saveRecurring({ ...rule, lastRun: due[due.length - 1].key });
   },
-
-}));
+}),
+{
+  name: "tally-storage",
+  storage: createJSONStorage(() => idbStorage),
+  partialize: (state) => ({
+    me: state.me,
+    people: state.people,
+    groups: state.groups,
+    expenses: state.expenses,
+    finance: state.finance,
+    budget: state.budget,
+    accounts: state.accounts,
+    liabilities: state.liabilities,
+    emergency: state.emergency,
+    debtPlan: state.debtPlan,
+    recurrings: state.recurrings,
+    moneyMode: state.moneyMode,
+    removedFriends: state.removedFriends,
+    pendingInvites: state.pendingInvites,
+  } as unknown as State),
+  onRehydrateStorage: () => (state) => {
+    if (state && state.me) {
+      // If we successfully rehydrated and have a user, we are data ready!
+      state.dataReady = true;
+    }
+  },
+}
+));
 
 // Selectors
 export const useMe = () => useStore((s) => s.me);
