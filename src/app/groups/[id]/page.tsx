@@ -106,13 +106,13 @@ export default function GroupDetailPage() {
   const nameOf = (pid: string) => (pid === myId ? "You" : people.find((p) => p.id === pid)?.name.split(" ")[0] ?? "—");
 
   return (
-    <main className="mx-auto flex w-full max-w-[600px] flex-col gap-5 flex-1 px-4 py-6 md:py-8 lg:max-w-[720px] lg:px-6">
-      <Link href="/groups" className="-mb-1 flex w-fit items-center gap-1 text-sm font-medium text-text-2 hover:text-text">
+    <main className="-mx-1 mt-1 flex w-[calc(100%+10px)] max-w-[600px] flex-col gap-5 md:-mt-0 md:mx-auto md:w-full md:gap-5 md:py-4 lg:max-w-[720px]">
+      <Link href="/groups" className="mb-0 px-2 flex w-fit items-center gap-1 text-sm font-medium text-text-2 hover:text-text">
         <ChevronLeft className="h-4 w-4" /> Ledgers
       </Link>
 
       {/* Group header */}
-      <div className="flex items-center gap-3.5">
+      <div className="flex items-center gap-3 px-2 md:px-0">
         <button 
           onClick={() => openGroupSettings(group.id)}
           className="flex flex-1 min-w-0 items-center gap-3.5 text-left transition-opacity hover:opacity-80"
