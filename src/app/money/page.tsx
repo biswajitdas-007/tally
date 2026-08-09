@@ -29,7 +29,7 @@ const NOW_KEY = monthKey(new Date().toISOString());
 function BudgetBar({ label, spent, limit }: { label: string; spent: number; limit: number }) {
   const ratio = limit > 0 ? spent / limit : 0;
   const pct = Math.min(ratio * 100, 100);
-  const color = ratio > 1 ? "var(--negative)" : ratio >= 0.8 ? "var(--warn)" : "var(--brand)";
+  const color = ratio > 1 ? "var(--negative)" : ratio >= 0.8 ? "var(--warning)" : "var(--brand)";
   return (
     <div>
       <div className="flex items-center justify-between text-[0.84rem]">

@@ -126,7 +126,7 @@ export default function WealthPage() {
     dti >= 0.4
       ? { background: "var(--negative-soft)", color: "var(--negative)" }
       : dti >= 0.2
-        ? { background: "color-mix(in srgb, var(--warn) 16%, transparent)", color: "var(--warn)" }
+        ? { background: "color-mix(in srgb, var(--warning) 16%, transparent)", color: "var(--warning)" }
         : { background: "var(--positive-soft)", color: "var(--positive)" };
 
   return (
@@ -192,7 +192,7 @@ export default function WealthPage() {
                 <div className="mt-5 flex flex-col gap-3">
                   {health.pillars.map((p) => {
                     const pct = p.max > 0 ? (p.score / p.max) * 100 : 0;
-                    const color = pct >= 66 ? "var(--positive)" : pct >= 33 ? "var(--warn)" : "var(--negative)";
+                    const color = pct >= 66 ? "var(--positive)" : pct >= 33 ? "var(--warning)" : "var(--negative)";
                     return (
                       <div key={p.key}>
                         <div className="flex items-start justify-between gap-3">
