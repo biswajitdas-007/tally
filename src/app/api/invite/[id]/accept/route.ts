@@ -77,6 +77,13 @@ async function handleDirectFriendship(
     };
     await addContact(users, inviterUid, mePerson);
     await addContact(users, userUid, inviterPerson);
+    
+    // Notify the inviter that their invite was accepted
+    await notifyChange([inviterUid], userUid, {
+      title: "Tally",
+      body: `${mePerson.name || "Someone"} accepted your invite!`,
+      url: "/",
+    });
   }
 }
 
