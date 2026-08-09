@@ -132,7 +132,7 @@ function gradeOf(score: number): string {
 export function gradeColor(g: string): string {
   if (g === "A") return "var(--positive)";
   if (g === "B") return "#4f9e57";
-  if (g === "C") return "var(--warn)";
+  if (g === "C") return "var(--warning)";
   return "var(--negative)";
 }
 
