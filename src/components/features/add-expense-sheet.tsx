@@ -185,7 +185,7 @@ export function AddExpenseSheet() {
     <Sheet open={open} onClose={close} title={editing ? "Edit expense" : "Add expense"}>
       <div className="flex flex-col gap-5 pt-1">
         {/* Amount */}
-        <div className="flex flex-col items-center rounded-[18px] bg-surface-inset py-5">
+        <label className="flex cursor-text flex-col items-center rounded-[18px] bg-surface-inset py-5">
           <span className="text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-text-3">Amount</span>
           <div className="mt-1.5 flex items-baseline justify-center gap-1">
             <span className="font-display text-3xl font-semibold text-text-2">₹</span>
@@ -198,7 +198,7 @@ export function AddExpenseSheet() {
               className="bg-transparent text-left font-display text-[3.25rem] font-bold leading-none tracking-tight text-text tnum outline-none placeholder:text-text-3"
             />
           </div>
-        </div>
+        </label>
 
         {/* Description */}
         <Input

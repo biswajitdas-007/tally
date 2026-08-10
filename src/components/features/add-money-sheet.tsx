@@ -179,7 +179,7 @@ export function AddMoneySheet() {
         />
 
         {/* Amount */}
-        <div className="flex flex-col items-center rounded-[18px] bg-surface-inset py-5">
+        <label className="flex cursor-text flex-col items-center rounded-[18px] bg-surface-inset py-5">
           <span className="text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-text-3">
             {isIncome ? "Money in" : "Money out"}
           </span>
@@ -197,7 +197,7 @@ export function AddMoneySheet() {
               )}
             />
           </div>
-        </div>
+        </label>
 
         {/* Category */}
         <div>

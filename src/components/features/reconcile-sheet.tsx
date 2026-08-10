@@ -158,7 +158,7 @@ export function ReconcileSheet() {
 
         <div>
           <p className="mb-2 px-0.5 text-[0.8rem] font-semibold text-text-2">Your bank says</p>
-          <div className="flex items-center gap-2 rounded-[14px] border border-border bg-surface px-4 py-3">
+          <label className="flex items-center gap-2 rounded-[14px] border border-border bg-surface px-4 py-3 cursor-text">
             <span className="font-display text-lg font-semibold text-text-2">₹</span>
             <input
               value={value}
@@ -167,7 +167,7 @@ export function ReconcileSheet() {
               placeholder={String(Math.round(shown))}
               className="flex-1 bg-transparent font-display text-lg font-bold tnum outline-none placeholder:text-text-3"
             />
-          </div>
+          </label>
         </div>
 
         {hasDrift && (

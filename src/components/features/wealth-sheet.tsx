@@ -264,7 +264,7 @@ if (kind === "card") {
 
         <div>
           <p className="mb-2 px-0.5 text-[0.8rem] font-semibold text-text-2">{isAsset ? "Current balance" : "Amount owed"}</p>
-          <div className="flex items-center gap-2 rounded-[14px] border border-border bg-surface px-4 py-3">
+          <label className="flex items-center gap-2 rounded-[14px] border border-border bg-surface px-4 py-3 cursor-text">
             <span className="font-display text-lg font-semibold text-text-2">₹</span>
             <input
               value={amount}
@@ -273,13 +273,13 @@ if (kind === "card") {
               placeholder="0"
               className="flex-1 bg-transparent font-display text-lg font-bold tnum outline-none placeholder:text-text-3"
             />
-          </div>
+          </label>
         </div>
 
         {!isAsset && kind === "card" && (
           <div className="mt-4">
             <p className="mb-2 px-0.5 text-[0.8rem] font-semibold text-text-2">Credit Limit</p>
-            <div className="flex items-center gap-2 rounded-[14px] border border-border bg-surface px-4 py-3">
+            <label className="flex items-center gap-2 rounded-[14px] border border-border bg-surface px-4 py-3 cursor-text">
               <span className="font-display text-lg font-semibold text-text-2">₹</span>
               <input
                 value={limit}
@@ -288,7 +288,7 @@ if (kind === "card") {
                 placeholder="0"
                 className="flex-1 bg-transparent font-display text-lg font-bold tnum outline-none placeholder:text-text-3"
               />
-            </div>
+            </label>
           </div>
         )}
 
@@ -296,16 +296,16 @@ if (kind === "card") {
           <div className="flex gap-3">
             <div className="flex-1">
               <p className="mb-2 px-0.5 text-[0.8rem] font-semibold text-text-2">Monthly EMI</p>
-              <div className="flex items-center gap-1.5 rounded-[14px] border border-border bg-surface px-3 py-3">
-                <span className="text-text-2">₹</span>
+              <label className="flex items-center gap-2 rounded-[14px] border border-border bg-surface px-4 py-3 cursor-text">
+                <span className="font-display text-lg font-semibold text-text-2">₹</span>
                 <input
                   value={emi}
                   onChange={(e) => setEmi(sanitizeMoneyInput(e.target.value))}
                   inputMode="decimal"
                   placeholder="0"
-                  className="w-full bg-transparent font-display text-[0.98rem] font-bold tnum outline-none placeholder:text-text-3"
+                  className="flex-1 bg-transparent font-display text-lg font-bold tnum outline-none placeholder:text-text-3"
                 />
-              </div>
+              </label>
             </div>
             <div className="flex-1">
               <p className="mb-2 px-0.5 text-[0.8rem] font-semibold text-text-2">Interest %</p>

@@ -50,7 +50,7 @@ export function BudgetSheet() {
         {/* Total monthly budget */}
         <div>
           <p className="mb-2 px-0.5 text-[0.8rem] font-semibold text-text-2">Monthly budget</p>
-          <div className="flex items-center gap-2 rounded-[14px] border border-border bg-surface px-4 py-3">
+          <label className="flex items-center gap-2 rounded-[14px] border border-border bg-surface px-4 py-3 cursor-text">
             <span className="font-display text-lg font-semibold text-text-2">₹</span>
             <input
               value={monthly}
@@ -59,7 +59,7 @@ export function BudgetSheet() {
               placeholder="40000"
               className="flex-1 bg-transparent font-display text-lg font-bold tnum outline-none placeholder:text-text-3"
             />
-          </div>
+          </label>
           <p className="mt-2 px-0.5 text-[0.74rem] text-text-3">
             What you want to stay under each month, across all spending. We&apos;ll warn you as you get close.
           </p>

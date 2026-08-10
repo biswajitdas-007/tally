@@ -127,7 +127,7 @@ export function RecurringSheet() {
         )}
 
         {/* Amount */}
-        <div className="flex flex-col items-center rounded-[18px] bg-surface-inset py-5">
+        <label className="flex cursor-text flex-col items-center rounded-[18px] bg-surface-inset py-5">
           <span className="text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-text-3">
             {isIncome ? "Comes in" : "Goes out"}
           </span>
@@ -145,7 +145,7 @@ export function RecurringSheet() {
               )}
             />
           </div>
-        </div>
+        </label>
 
         {/* Category */}
         <div>
@@ -187,7 +187,7 @@ export function RecurringSheet() {
           />
 
           {freq === "monthly" ? (
-            <div className="mt-3 flex items-center gap-2 rounded-[14px] border border-border bg-surface px-4 py-3">
+            <label className="mt-3 flex items-center gap-2 rounded-[14px] border border-border bg-surface px-4 py-3 cursor-text">
               <input
                 value={day}
                 onChange={(e) => setDay(e.target.value.replace(/[^0-9]/g, ""))}
@@ -196,7 +196,7 @@ export function RecurringSheet() {
                 className="w-10 bg-transparent text-center font-display text-[1rem] font-bold tnum outline-none placeholder:text-text-3"
               />
               <span className="text-[0.82rem] text-text-3">of every month · the 29th–31st aren&apos;t available</span>
-            </div>
+            </label>
           ) : (
             <div className="no-scrollbar -mx-5 mt-3 flex gap-2 overflow-x-auto px-5 pb-1">
               {WEEKDAYS.map((w, i) => (
