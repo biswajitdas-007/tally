@@ -142,7 +142,7 @@ export function InvestmentSheet() {
         {/* Current value */}
         <div>
           <p className="mb-2 px-0.5 text-[0.8rem] font-semibold text-text-2">Current value</p>
-          <div className="flex items-center gap-2 rounded-[14px] border border-border bg-surface px-4 py-3">
+          <label className="flex items-center gap-2 rounded-[14px] border border-border bg-surface px-4 py-3 cursor-text">
             <span className="font-display text-lg font-semibold text-text-2">₹</span>
             <input
               value={value}
@@ -151,13 +151,13 @@ export function InvestmentSheet() {
               placeholder="0"
               className="flex-1 bg-transparent font-display text-lg font-bold tnum outline-none placeholder:text-text-3"
             />
-          </div>
+          </label>
         </div>
 
         {/* Amount invested (optional) */}
         <div>
           <p className="mb-2 px-0.5 text-[0.8rem] font-semibold text-text-2">Amount invested (optional)</p>
-          <div className="flex items-center gap-2 rounded-[14px] border border-border bg-surface px-4 py-3">
+          <label className="flex items-center gap-2 rounded-[14px] border border-border bg-surface px-4 py-3 cursor-text">
             <span className="font-display text-lg font-semibold text-text-2">₹</span>
             <input
               value={invested}
@@ -166,7 +166,7 @@ export function InvestmentSheet() {
               placeholder="What you put in"
               className="flex-1 bg-transparent font-display text-lg font-bold tnum outline-none placeholder:text-text-3"
             />
-          </div>
+          </label>
           {gain != null && (
             <p
               className={cn(

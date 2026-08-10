@@ -83,6 +83,7 @@ export function usePush() {
           if (active) setEnabled(false);
           return;
         }
+        if (sub && active) setEnabled(true);
         const registered = sub ? await registerOnServer(sub) : false;
         if (active) setEnabled(registered);
       })

@@ -59,7 +59,7 @@ export function ParkSheet() {
 
         <div>
           <p className="mb-2 px-0.5 text-[0.8rem] font-semibold text-text-2">Amount to park</p>
-          <div className="flex items-center gap-2 rounded-[14px] border border-border bg-surface px-4 py-3">
+          <label className="flex items-center gap-2 rounded-[14px] border border-border bg-surface px-4 py-3 cursor-text">
             <span className="font-display text-lg font-semibold text-text-2">₹</span>
             <input
               value={amount}
@@ -68,7 +68,7 @@ export function ParkSheet() {
               placeholder="0"
               className="flex-1 bg-transparent font-display text-lg font-bold tnum outline-none placeholder:text-text-3"
             />
-          </div>
+          </label>
         </div>
 
         <AccountPicker value={accountId} onChange={setAccountId} label="Into which account?" />
