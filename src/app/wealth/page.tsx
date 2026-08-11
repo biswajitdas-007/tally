@@ -64,6 +64,7 @@ export default function WealthPage() {
   const liabilities = useStore((s) => s.liabilities);
   const emergency = useStore((s) => s.emergency);
   const openWealth = useUI((s) => s.openWealth);
+  const openCardDashboard = useUI((s) => s.openCardDashboard);
   const openPark = useUI((s) => s.openPark);
   const openAccountDetail = useUI((s) => s.openAccountDetail);
   const openEmergency = useUI((s) => s.openEmergency);
@@ -78,6 +79,12 @@ export default function WealthPage() {
     else if (key === "spending") openMoney("expense");
     else if (key === "accounts") openWealth("asset");
     else openEmergency();
+  }
+
+  function handleLiabilityClick(id: string) {
+    const l = liabilities.find((x) => x.id === id);
+    if (l?.kind === "card") openCardDashboard(id);
+    else openWealth("liability", id);
   }
 
   const liveAccounts = useMemo(
@@ -654,12 +661,20 @@ export default function WealthPage() {
                   {liabilities.filter((l) => l.kind === "card").map((l) => {
                     const Icon = LIABILITY_KIND_META[l.kind as LiabilityKind].icon;
                     const liveOut = liveLiabilityOutstanding(l, finance, expenses, myId);
-                    const paidThisCycle = l.lastPaidMonth === stampNow();
+                    
+                    const now = new Date();
+                    const thisMonthPayments = finance.filter(f => {
+                      if (f.accountId !== l.id || f.type !== "income" || !f.transfer) return false;
+                      const d = new Date(f.date);
+                      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+                    });
+                    const amountPaid = thisMonthPayments.reduce((acc, curr) => acc + curr.amount, 0);
+                    const paidThisCycle = amountPaid > 0;
                     
                     const metaParts = [];
+                    if (l.limit) metaParts.push(`Available: ${formatINR(Math.max(0, l.limit - l.outstanding))}`);
                     if (l.statementDay) metaParts.push(`Stmt: ${l.statementDay}th`);
                     if (l.dueDay) metaParts.push(`Due: ${l.dueDay}th`);
-                    if (paidThisCycle) metaParts.push("Paid");
                     return (
                       <div
                         key={l.id}
@@ -667,7 +682,7 @@ export default function WealthPage() {
                       >
                         <div className="flex items-center gap-3">
                           <button
-                            onClick={() => openWealth("liability", l.id)}
+                            onClick={() => handleLiabilityClick(l.id)}
                             className="flex flex-1 items-center gap-3 text-left"
                           >
                             <BankBadge name={l.lender ?? l.name} fallback={Icon} tone="negative" className="h-9 w-9" />
@@ -697,7 +712,11 @@ export default function WealthPage() {
                             <span className={cn("tnum text-[0.92rem] font-semibold text-text", paidThisCycle && "text-text-3 line-through")}>
                               {formatINR(liveOut)}
                             </span>
-                            {paidThisCycle && <span className="text-[0.68rem] text-text-3">Paid</span>}
+                            {paidThisCycle && (
+                              <span className="text-[0.72rem] font-bold text-brand">
+                                {formatINR(amountPaid)} Paid
+                              </span>
+                            )}
                           </div>
                         </div>
                         <div className="flex justify-end">
@@ -769,7 +788,7 @@ export default function WealthPage() {
                     return (
                       <button
                         key={l.id}
-                        onClick={() => openWealth("liability", l.id)}
+                        onClick={() => handleLiabilityClick(l.id)}
                         className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-2 active:bg-surface-inset"
                       >
                         <BankBadge name={l.lender ?? l.name} fallback={Icon} tone="negative" className="h-9 w-9" />

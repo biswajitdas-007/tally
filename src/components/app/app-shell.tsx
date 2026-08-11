@@ -14,6 +14,7 @@ import { BudgetSheet } from "@/components/features/budget-sheet";
 import { GroupSettingsSheet } from "@/components/features/group-settings-sheet";
 import { DeleteGroupDialog } from "@/components/features/delete-group-dialog";
 import { WealthSheet } from "@/components/features/wealth-sheet";
+import { CardDashboardSheet } from "@/components/features/card-dashboard-sheet";
 import { AccountDetailSheet } from "@/components/features/account-detail-sheet";
 import { ParkSheet } from "@/components/features/park-sheet";
 import { EmiConfirm } from "@/components/features/emi-confirm";
@@ -73,6 +74,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <ExpenseDetailSheet />
       <BudgetSheet />
       <WealthSheet />
+      <CardDashboardSheet />
       <AccountDetailSheet />
       <ParkSheet />
       <Suspense fallback={null}>

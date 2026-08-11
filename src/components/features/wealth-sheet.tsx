@@ -13,7 +13,7 @@ import { linkedDelta } from "@/lib/accounts";
 import { useStore, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { useToast } from "@/components/ui/toast";
-import { cn, parseMoneyInput, formatMoneyInput, uid as newId , sanitizeMoneyInput} from "@/lib/utils";
+import { cn, parseMoneyInput, formatMoneyInput, uid as newId , sanitizeMoneyInput, formatINR} from "@/lib/utils";
 import type { Account, AccountKind, Liability, LiabilityKind } from "@/lib/types";
 
 type Mode = "asset" | "liability";
@@ -52,6 +52,7 @@ export function WealthSheet() {
   const [dueDay, setDueDay] = useState(DEFAULT_DUE_DAY.toString());
   const [foreclosed, setForeclosed] = useState(false);
   const [limit, setLimit] = useState("");
+  const [availableLimit, setAvailableLimit] = useState("");
   const [specificExtraAmt, setSpecificExtraAmt] = useState("");
 
   const initialSpecificExtra = editingLiability && debtPlan?.specificExtra ? debtPlan.specificExtra[editingLiability.id] || 0 : 0;
@@ -70,6 +71,7 @@ export function WealthSheet() {
       setDueDay(DEFAULT_DUE_DAY.toString());
       setForeclosed(false);
       setLimit("");
+      setAvailableLimit("");
       if (editingAccount) {
         setMode("asset");
         setName(editingAccount.name);
@@ -91,6 +93,12 @@ export function WealthSheet() {
         setDueDay(el.dueDay ? String(el.dueDay) : "");
         setForeclosed(el.foreclosed ?? false);
         setLimit(el.limit ? formatMoneyInput(el.limit) : "");
+        if (el.kind === "card") {
+          const l = el.limit ?? 0;
+          setAvailableLimit(l > 0 ? formatMoneyInput(l - el.outstanding) : "");
+        } else {
+          setAvailableLimit("");
+        }
         const specific = useStore.getState().debtPlan?.specificExtra?.[el.id] ?? 0;
         setSpecificExtraAmt(specific > 0 ? formatMoneyInput(specific) : "");
       } else {
@@ -99,6 +107,7 @@ export function WealthSheet() {
         setKind((initialKind as AccountKind) ?? (initialMode === "asset" ? "bank" : "loan"));
         setAmount("");
         setLimit("");
+        setAvailableLimit("");
       }
     } else if (!open && wasOpen) {
       setWasOpen(false);
@@ -108,7 +117,12 @@ export function WealthSheet() {
   const isAsset = mode === "asset";
   const kinds: string[] = isAsset ? LIQUID_ACCOUNT_KINDS : LIABILITY_KINDS;
   const meta = (isAsset ? ACCOUNT_KIND_META : LIABILITY_KIND_META) as Record<string, { label: string; icon: LucideIcon }>;
-  const total = parseMoneyInput(amount);
+  
+  const parsedLimit = parseMoneyInput(limit);
+  const parsedAvailable = parseMoneyInput(availableLimit);
+  const isCard = !isAsset && kind === "card";
+  
+  const total = isCard ? Math.max(0, parsedLimit - parsedAvailable) : parseMoneyInput(amount);
   const emiValue = parseMoneyInput(emi);
   const termValue = parseInt(term, 10);
   const paidValue = paid !== "" ? parseInt(paid, 10) : 0;
@@ -122,7 +136,7 @@ export function WealthSheet() {
     paidValue < termValue;
   const valid =
     name.trim().length > 0 &&
-    amount !== "" &&
+    (isCard ? (limit !== "" && availableLimit !== "") : amount !== "") &&
     total >= 0 &&
     (isAsset || kind === "card" || !autoDebit || scheduleReady);
 
@@ -143,8 +157,7 @@ export function WealthSheet() {
       const patch: Parameters<typeof setWealth>[0] = {};
       const liab: Liability = { id, name: name.trim(), kind: kind as LiabilityKind, outstanding: total };
 if (kind === "card") {
-  const limitN = parseMoneyInput(limit);
-  if (limitN > 0) liab.limit = limitN;
+  if (parsedLimit > 0) liab.limit = parsedLimit;
   const statementN = parseInt(statementDay, 10);
   if (!Number.isNaN(statementN)) liab.statementDay = Math.min(Math.max(statementN, 1), 28);
   const dueN = parseInt(dueDay, 10);
@@ -271,34 +284,51 @@ if (kind === "card") {
           </div>
         </div>
 
-        <div>
-          <p className="mb-2 px-0.5 text-[0.8rem] font-semibold text-text-2">{isAsset ? "Current balance" : "Amount owed"}</p>
-          <label className="flex items-center gap-2 rounded-[14px] border border-border bg-surface px-4 py-3 cursor-text">
-            <span className="font-display text-lg font-semibold text-text-2">₹</span>
-            <input
-              value={amount}
-              onChange={(e) => setAmount(sanitizeMoneyInput(e.target.value))}
-              inputMode="decimal"
-              placeholder="0"
-              className="flex-1 bg-transparent font-display text-lg font-bold tnum outline-none placeholder:text-text-3"
-            />
-          </label>
-        </div>
+        {!(mode === "liability" && kind === "card") && (
+          <div>
+            <p className="mb-2 px-0.5 text-[0.8rem] font-semibold text-text-2">{isAsset ? "Current balance" : "Amount owed"}</p>
+            <label className="flex items-center gap-2 rounded-[14px] border border-border bg-surface px-4 py-3 cursor-text">
+              <span className="font-display text-lg font-semibold text-text-2">₹</span>
+              <input
+                value={amount}
+                onChange={(e) => setAmount(sanitizeMoneyInput(e.target.value))}
+                inputMode="decimal"
+                placeholder="0"
+                className="flex-1 bg-transparent font-display text-lg font-bold tnum outline-none placeholder:text-text-3"
+              />
+            </label>
+          </div>
+        )}
 
         {!isAsset && kind === "card" && (
           <div className="flex flex-col gap-4 mt-4">
-            <div>
-              <p className="mb-2 px-0.5 text-[0.8rem] font-semibold text-text-2">Credit Limit</p>
-              <label className="flex items-center gap-2 rounded-[14px] border border-border bg-surface px-4 py-3 cursor-text">
-                <span className="font-display text-lg font-semibold text-text-2">₹</span>
-                <input
-                  value={limit}
-                  onChange={(e) => setLimit(e.target.value.replace(/[^0-9.]/g, "").replace(/(\..*)\./g, "$1"))}
-                  inputMode="decimal"
-                  placeholder="0"
-                  className="flex-1 bg-transparent font-display text-lg font-bold tnum outline-none placeholder:text-text-3"
-                />
-              </label>
+            <div className="flex gap-3">
+              <div className="flex-1">
+                <p className="mb-2 px-0.5 text-[0.8rem] font-semibold text-text-2">Credit Limit</p>
+                <label className="flex items-center gap-2 rounded-[14px] border border-border bg-surface px-3 py-3 cursor-text">
+                  <span className="font-display text-[0.98rem] font-semibold text-text-2">₹</span>
+                  <input
+                    value={limit}
+                    onChange={(e) => setLimit(sanitizeMoneyInput(e.target.value))}
+                    inputMode="decimal"
+                    placeholder="0"
+                    className="flex-1 w-full bg-transparent font-display text-[0.98rem] font-bold tnum outline-none placeholder:text-text-3"
+                  />
+                </label>
+              </div>
+              <div className="flex-1">
+                <p className="mb-2 px-0.5 text-[0.8rem] font-semibold text-text-2">Available Limit</p>
+                <label className="flex items-center gap-2 rounded-[14px] border border-border bg-surface px-3 py-3 cursor-text">
+                  <span className="font-display text-[0.98rem] font-semibold text-text-2">₹</span>
+                  <input
+                    value={availableLimit}
+                    onChange={(e) => setAvailableLimit(sanitizeMoneyInput(e.target.value))}
+                    inputMode="decimal"
+                    placeholder="0"
+                    className="flex-1 w-full bg-transparent font-display text-[0.98rem] font-bold tnum outline-none placeholder:text-text-3"
+                  />
+                </label>
+              </div>
             </div>
             
             <div className="flex gap-3">

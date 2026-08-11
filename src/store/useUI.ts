@@ -104,6 +104,10 @@ interface UIState {
   transferToId: ID | null;
   openTransfer: (toId?: ID | null) => void;
   closeTransfer: () => void;
+
+  cardDashboardId: ID | null;
+  openCardDashboard: (id: ID) => void;
+  closeCardDashboard: () => void;
 }
 
 export const useUI = create<UIState>((set) => ({
@@ -199,4 +203,8 @@ export const useUI = create<UIState>((set) => ({
   transferToId: null,
   openTransfer: (toId = null) => set({ transferOpen: true, transferToId: toId }),
   closeTransfer: () => set({ transferOpen: false, transferToId: null }),
+
+  cardDashboardId: null,
+  openCardDashboard: (id) => set({ cardDashboardId: id }),
+  closeCardDashboard: () => set({ cardDashboardId: null }),
 }));
