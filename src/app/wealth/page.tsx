@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { ChevronLeft, Plus, Check, Flag, ScanLine, Wallet, Scale, TrendingUp, TrendingDown, CalendarClock, AlertTriangle, Lightbulb, Sparkles, PiggyBank, ChevronRight, Info, ShieldCheck, ShieldAlert, Pencil, LineChart, type LucideIcon } from "lucide-react";
 import { PageGrid, PageCol } from "@/components/app/page-grid";
 import { Card, SectionHeader } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useStore, useMyId } from "@/store/useStore";
@@ -20,6 +21,7 @@ import { pendingFromSplits } from "@/lib/balances";
 import { debtSuggestions, monthlyLiability, type DebtSuggestion } from "@/lib/debt";
 import { creditCardSuggestions } from "@/lib/cards";
 import { withLiveBalances, unparkedAmount } from "@/lib/accounts";
+import { liveLiabilityOutstanding, stampNow } from "@/lib/liabilities";
 import { formatINR, cn } from "@/lib/utils";
 import type { AccountKind, InvestmentType, LiabilityKind } from "@/lib/types";
 
@@ -68,6 +70,7 @@ export default function WealthPage() {
   const openInvest = useUI((s) => s.openInvest);
   const openMoney = useUI((s) => s.openMoney);
   const openReconcile = useUI((s) => s.openReconcile);
+  const openTransfer = useUI((s) => s.openTransfer);
   const myId = useMyId() ?? "";
 
   function runSetup(key: SetupKey) {
@@ -635,6 +638,93 @@ export default function WealthPage() {
             )}
           </section>
 
+          {/* Credit Cards */}
+          <section className="mb-8">
+            <SectionHeader
+              title="Credit cards"
+              action={
+                <button onClick={() => openWealth("liability", null, "card")} className="flex items-center gap-0.5 text-[0.78rem] font-semibold text-brand">
+                  <Plus className="h-3.5 w-3.5" /> Add
+                </button>
+              }
+            />
+            {liabilities.filter((l) => l.kind === "card").length > 0 ? (
+              <Card className="overflow-hidden">
+                <div className="divide-y divide-border">
+                  {liabilities.filter((l) => l.kind === "card").map((l) => {
+                    const Icon = LIABILITY_KIND_META[l.kind as LiabilityKind].icon;
+                    const liveOut = liveLiabilityOutstanding(l, finance, expenses, myId);
+                    const paidThisCycle = l.lastPaidMonth === stampNow();
+                    
+                    const metaParts = [];
+                    if (l.statementDay) metaParts.push(`Stmt: ${l.statementDay}th`);
+                    if (l.dueDay) metaParts.push(`Due: ${l.dueDay}th`);
+                    if (paidThisCycle) metaParts.push("Paid");
+                    return (
+                      <div
+                        key={l.id}
+                        className="flex flex-col gap-2 p-4 transition-colors hover:bg-surface-2"
+                      >
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={() => openWealth("liability", l.id)}
+                            className="flex flex-1 items-center gap-3 text-left"
+                          >
+                            <BankBadge name={l.lender ?? l.name} fallback={Icon} tone="negative" className="h-9 w-9" />
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-1.5">
+                                <p className="truncate text-[0.9rem] font-medium text-text">{l.name}</p>
+                                {l.autoDebit && (
+                                  <span className="shrink-0 rounded-full bg-brand-soft px-1.5 py-0.5 text-[0.58rem] font-bold uppercase tracking-wide text-brand">
+                                    Auto
+                                  </span>
+                                )}
+                              </div>
+                              <div className="mt-1 flex flex-wrap gap-1.5">
+                                {metaParts.length > 0 ? (
+                                  metaParts.map((part, i) => (
+                                    <span key={i} className="inline-flex items-center rounded bg-surface-inset px-1.5 py-0.5 text-[0.65rem] font-medium text-text-3">
+                                      {part}
+                                    </span>
+                                  ))
+                                ) : (
+                                  <span className="text-[0.76rem] text-text-3">{LIABILITY_KIND_META[l.kind as LiabilityKind].label}</span>
+                                )}
+                              </div>
+                            </div>
+                          </button>
+                          <div className="flex flex-col items-end">
+                            <span className={cn("tnum text-[0.92rem] font-semibold text-text", paidThisCycle && "text-text-3 line-through")}>
+                              {formatINR(liveOut)}
+                            </span>
+                            {paidThisCycle && <span className="text-[0.68rem] text-text-3">Paid</span>}
+                          </div>
+                        </div>
+                        <div className="flex justify-end">
+                          <Button
+                            variant="soft"
+                            size="sm"
+                            className="h-7 px-3 text-[0.76rem]"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openTransfer(l.id);
+                            }}
+                          >
+                            Pay Bill
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
+            ) : (
+              <Card>
+                <EmptyState icon={Scale} title="No cards" description="Add credit cards to track their outstanding balances." />
+              </Card>
+            )}
+          </section>
+
           {/* Liabilities */}
           <section>
             <SectionHeader
@@ -664,18 +754,18 @@ export default function WealthPage() {
                 <ChevronRight className="h-5 w-5 shrink-0 text-text-3" />
               </Link>
             )}
-            {liabilities.length > 0 ? (
+            {liabilities.filter((l) => l.kind !== "card").length > 0 ? (
               <Card className="overflow-hidden">
                 <div className="divide-y divide-border">
-                  {liabilities.map((l) => {
+                  {liabilities.filter((l) => l.kind !== "card").map((l) => {
                     const Icon = LIABILITY_KIND_META[l.kind as LiabilityKind].icon;
-                    const meta = [
-                      l.lender,
-                      l.termMonths ? `${l.emisPaid ?? 0}/${l.termMonths} EMIs paid` : null,
-                      l.emi ? `${formatINR(l.emi)}/mo` : null,
-                    ]
-                      .filter(Boolean)
-                      .join(" · ");
+                    const liveOut = liveLiabilityOutstanding(l, finance, expenses, myId);
+                    
+                    const metaParts = [];
+                    if (l.lender) metaParts.push(l.lender);
+                    if (l.termMonths) metaParts.push(`${l.emisPaid ?? 0}/${l.termMonths} EMIs paid`);
+                    if (l.emi) metaParts.push(`${formatINR(l.emi)}/mo`);
+                    if (l.dueDay) metaParts.push(`Due on ${l.dueDay}`);
                     return (
                       <button
                         key={l.id}
@@ -692,9 +782,23 @@ export default function WealthPage() {
                               </span>
                             )}
                           </div>
-                          <p className="truncate text-[0.76rem] text-text-3">{meta || LIABILITY_KIND_META[l.kind as LiabilityKind].label}</p>
+                          <div className="mt-1 flex flex-wrap gap-1.5">
+                            {metaParts.length > 0 ? (
+                              metaParts.map((part, i) => (
+                                <span key={i} className="inline-flex items-center rounded bg-surface-inset px-1.5 py-0.5 text-[0.65rem] font-medium text-text-3">
+                                  {part}
+                                </span>
+                              ))
+                            ) : (
+                              <span className="text-[0.76rem] text-text-3">{LIABILITY_KIND_META[l.kind as LiabilityKind].label}</span>
+                            )}
+                          </div>
                         </div>
-                        <span className="tnum text-[0.92rem] font-semibold text-text">{formatINR(l.outstanding)}</span>
+                        <div className="flex flex-col items-end">
+                          <span className="tnum text-[0.92rem] font-semibold text-text">
+                            {formatINR(liveOut)}
+                          </span>
+                        </div>
                       </button>
                     );
                   })}

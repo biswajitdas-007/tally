@@ -67,6 +67,7 @@ export default function MoneyPage() {
   const openBudget = useUI((s) => s.openBudget);
   const openEmergency = useUI((s) => s.openEmergency);
   const openRecur = useUI((s) => s.openRecur);
+  const openTransfer = useUI((s) => s.openTransfer);
   const recurrings = useStore((s) => s.recurrings);
   const runRecurring = useStore((s) => s.runRecurring);
   const myId = useMyId() ?? "";
@@ -242,7 +243,7 @@ export default function MoneyPage() {
           {pending.any && <PendingSplitsCard pending={pending} />}
 
           {/* Add actions */}
-          <div className="flex gap-2.5">
+          <div className="grid grid-cols-2 gap-2.5">
             <button
               onClick={() => openMoney("expense")}
               className="flex flex-1 items-center justify-center gap-2 rounded-[15px] border border-border bg-surface py-3 text-[0.9rem] font-semibold text-text transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-sm)]"
@@ -256,6 +257,13 @@ export default function MoneyPage() {
             >
               <span className="flex h-6 w-6 items-center justify-center rounded-full bg-positive-soft text-positive"><Plus className="h-4 w-4" /></span>
               Add income
+            </button>
+            <button
+              onClick={() => openTransfer(null)}
+              className="col-span-2 flex items-center justify-center gap-2 rounded-[15px] border border-border bg-surface py-3 text-[0.9rem] font-semibold text-text transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-sm)]"
+            >
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-soft text-brand"><Repeat className="h-4 w-4" /></span>
+              Transfer
             </button>
           </div>
 

@@ -3,6 +3,7 @@ import {
   Home,
   Plane,
   ShoppingBag,
+  ShoppingBasket,
   ReceiptText,
   PartyPopper,
   HeartPulse,
@@ -26,6 +27,7 @@ import {
   ScrollText,
   Gem,
   Bitcoin,
+  Wine,
   type LucideIcon,
 } from "lucide-react";
 import type { AccountKind, CategoryKey, IncomeCategory, InvestmentType, LiabilityKind } from "./types";
@@ -39,6 +41,8 @@ export interface CategoryMeta {
 
 export const CATEGORIES: Record<CategoryKey, CategoryMeta> = {
   food: { key: "food", label: "Food & Drink", icon: UtensilsCrossed, color: "var(--cat-food)" },
+  grocery: { key: "grocery", label: "Grocery", icon: ShoppingBasket, color: "var(--cat-grocery)" },
+  alcohol: { key: "alcohol", label: "Alcohol & Tobacco", icon: Wine, color: "var(--cat-alcohol)" },
   rent: { key: "rent", label: "Rent & Home", icon: Home, color: "var(--cat-rent)" },
   travel: { key: "travel", label: "Travel", icon: Plane, color: "var(--cat-travel)" },
   shopping: { key: "shopping", label: "Shopping", icon: ShoppingBag, color: "var(--cat-shopping)" },

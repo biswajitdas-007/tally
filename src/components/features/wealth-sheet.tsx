@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Check, Trash2, Info, type LucideIcon } from "lucide-react";
+import { Check, Trash2, Info, Banknote, type LucideIcon } from "lucide-react";
 import { Sheet } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,8 +21,10 @@ type Mode = "asset" | "liability";
 export function WealthSheet() {
   const open = useUI((s) => s.wealthOpen);
   const initialMode = useUI((s) => s.wealthMode);
+  const initialKind = useUI((s) => s.wealthInitialKind);
   const editId = useUI((s) => s.wealthEditId);
   const close = useUI((s) => s.closeWealth);
+  const openTransfer = useUI((s) => s.openTransfer);
   const accounts = useStore((s) => s.accounts);
   const liabilities = useStore((s) => s.liabilities);
   const finance = useStore((s) => s.finance);
@@ -46,6 +48,7 @@ export function WealthSheet() {
   const [term, setTerm] = useState("");
   const [paid, setPaid] = useState("");
   const [autoDebit, setAutoDebit] = useState(true);
+  const [statementDay, setStatementDay] = useState("");
   const [dueDay, setDueDay] = useState(DEFAULT_DUE_DAY.toString());
   const [foreclosed, setForeclosed] = useState(false);
   const [limit, setLimit] = useState("");
@@ -63,6 +66,7 @@ export function WealthSheet() {
       setTerm("");
       setPaid("");
       setAutoDebit(true);
+      setStatementDay("");
       setDueDay(DEFAULT_DUE_DAY.toString());
       setForeclosed(false);
       setLimit("");
@@ -83,6 +87,7 @@ export function WealthSheet() {
         setTerm(el.termMonths ? String(el.termMonths) : "");
         setPaid(el.emisPaid != null ? String(el.emisPaid) : "");
         setAutoDebit(Boolean(el.autoDebit));
+        setStatementDay(el.statementDay ? String(el.statementDay) : "");
         setDueDay(el.dueDay ? String(el.dueDay) : "");
         setForeclosed(el.foreclosed ?? false);
         setLimit(el.limit ? formatMoneyInput(el.limit) : "");
@@ -91,14 +96,14 @@ export function WealthSheet() {
       } else {
         setMode(initialMode);
         setName("");
-        setKind(initialMode === "asset" ? "bank" : "loan");
+        setKind((initialKind as AccountKind) ?? (initialMode === "asset" ? "bank" : "loan"));
         setAmount("");
         setLimit("");
       }
     } else if (!open && wasOpen) {
       setWasOpen(false);
     }
-  }, [open, wasOpen, editingAccount, editingLiability, initialMode, finance, expenses, myId]);
+  }, [open, wasOpen, editingAccount, editingLiability, initialMode, initialKind, finance, expenses, myId]);
 
   const isAsset = mode === "asset";
   const kinds: string[] = isAsset ? LIQUID_ACCOUNT_KINDS : LIABILITY_KINDS;
@@ -140,6 +145,10 @@ export function WealthSheet() {
 if (kind === "card") {
   const limitN = parseMoneyInput(limit);
   if (limitN > 0) liab.limit = limitN;
+  const statementN = parseInt(statementDay, 10);
+  if (!Number.isNaN(statementN)) liab.statementDay = Math.min(Math.max(statementN, 1), 28);
+  const dueN = parseInt(dueDay, 10);
+  if (!Number.isNaN(dueN)) liab.dueDay = Math.min(Math.max(dueN, 1), 28);
 }
       const emiN = emiValue;
       if (emiN > 0) liab.emi = emiN;
@@ -277,20 +286,50 @@ if (kind === "card") {
         </div>
 
         {!isAsset && kind === "card" && (
-          <div className="mt-4">
-            <p className="mb-2 px-0.5 text-[0.8rem] font-semibold text-text-2">Credit Limit</p>
-            <label className="flex items-center gap-2 rounded-[14px] border border-border bg-surface px-4 py-3 cursor-text">
-              <span className="font-display text-lg font-semibold text-text-2">₹</span>
-              <input
-                value={limit}
-                onChange={(e) => setLimit(e.target.value.replace(/[^0-9.]/g, "").replace(/(\..*)\./g, "$1"))}
-                inputMode="decimal"
-                placeholder="0"
-                className="flex-1 bg-transparent font-display text-lg font-bold tnum outline-none placeholder:text-text-3"
-              />
-            </label>
+          <div className="flex flex-col gap-4 mt-4">
+            <div>
+              <p className="mb-2 px-0.5 text-[0.8rem] font-semibold text-text-2">Credit Limit</p>
+              <label className="flex items-center gap-2 rounded-[14px] border border-border bg-surface px-4 py-3 cursor-text">
+                <span className="font-display text-lg font-semibold text-text-2">₹</span>
+                <input
+                  value={limit}
+                  onChange={(e) => setLimit(e.target.value.replace(/[^0-9.]/g, "").replace(/(\..*)\./g, "$1"))}
+                  inputMode="decimal"
+                  placeholder="0"
+                  className="flex-1 bg-transparent font-display text-lg font-bold tnum outline-none placeholder:text-text-3"
+                />
+              </label>
+            </div>
+            
+            <div className="flex gap-3">
+              <div className="flex-1">
+                <p className="mb-2 px-0.5 text-[0.8rem] font-semibold text-text-2">Statement Day</p>
+                <div className="flex items-center rounded-[14px] border border-border bg-surface px-3 py-3">
+                  <input
+                    value={statementDay}
+                    onChange={(e) => setStatementDay(e.target.value.replace(/[^0-9]/g, ""))}
+                    inputMode="numeric"
+                    placeholder="15"
+                    className="w-full bg-transparent font-display text-[0.98rem] font-bold tnum outline-none placeholder:text-text-3"
+                  />
+                </div>
+              </div>
+              <div className="flex-1">
+                <p className="mb-2 px-0.5 text-[0.8rem] font-semibold text-text-2">Due Day</p>
+                <div className="flex items-center rounded-[14px] border border-border bg-surface px-3 py-3">
+                  <input
+                    value={dueDay}
+                    onChange={(e) => setDueDay(e.target.value.replace(/[^0-9]/g, ""))}
+                    inputMode="numeric"
+                    placeholder="5"
+                    className="w-full bg-transparent font-display text-[0.98rem] font-bold tnum outline-none placeholder:text-text-3"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         )}
+
 
         {!isAsset && kind !== "card" && (
           <div className="flex gap-3">
@@ -401,7 +440,7 @@ if (kind === "card") {
                 />
                 <div className="flex flex-col">
                   <span className="text-[0.8rem] font-medium text-text">Mark as foreclosed</span>
-                  <span className="text-[0.7rem] leading-[1.3] text-text-3">This loan has been paid off manually. It won't show up in your active debt plan.</span>
+                  <span className="text-[0.7rem] leading-[1.3] text-text-3">This loan has been paid off manually. It won&apos;t show up in your active debt plan.</span>
                 </div>
               </label>
             )}
@@ -434,15 +473,18 @@ if (kind === "card") {
           </div>
         )}
 
-        <div className="sticky bottom-0 -mx-5 flex gap-3 border-t border-border bg-surface px-5 pb-1 pt-3">
-          {editing && (
-            <Button variant="dangerSoft" size="lg" onClick={remove} aria-label="Remove">
-              <Trash2 className="h-4 w-4" />
+        <div className="sticky bottom-0 -mx-5 flex flex-col gap-3 border-t border-border bg-surface px-5 pb-1 pt-3">
+
+          <div className="flex gap-3">
+            {editing && (
+              <Button variant="dangerSoft" size="lg" onClick={remove} aria-label="Remove">
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
+            <Button variant="primary" size="lg" fullWidth disabled={!valid} onClick={save}>
+              <Check className="h-4.5 w-4.5" /> {editing ? "Save changes" : "Add"}
             </Button>
-          )}
-          <Button variant="primary" size="lg" fullWidth disabled={!valid} onClick={save}>
-            <Check className="h-4.5 w-4.5" /> {editing ? "Save changes" : "Add"}
-          </Button>
+          </div>
         </div>
       </div>
     </Sheet>

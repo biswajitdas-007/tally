@@ -38,10 +38,29 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (choice !== "system") return;
+
+    let isPrinting = false;
+    const onBeforePrint = () => { isPrinting = true; };
+    const onAfterPrint = () => {
+      isPrinting = false;
+      setResolved(apply("system"));
+    };
+
+    window.addEventListener("beforeprint", onBeforePrint);
+    window.addEventListener("afterprint", onAfterPrint);
+
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    const onChange = () => setResolved(apply("system"));
+    const onChange = () => {
+      if (isPrinting) return;
+      setResolved(apply("system"));
+    };
     mq.addEventListener("change", onChange);
-    return () => mq.removeEventListener("change", onChange);
+
+    return () => {
+      mq.removeEventListener("change", onChange);
+      window.removeEventListener("beforeprint", onBeforePrint);
+      window.removeEventListener("afterprint", onAfterPrint);
+    };
   }, [choice]);
 
   const setChoice = useCallback((c: ThemeChoice) => {

@@ -1,4 +1,5 @@
-import type { Liability } from "./types";
+import type { Expense, FinanceEntry, ID, Liability } from "./types";
+import { linkedDelta } from "./accounts";
 import { roundMoney } from "./utils";
 
 export const DEFAULT_DUE_DAY = 3;
@@ -76,7 +77,10 @@ function addCalendarDays(date: CalendarDate, days: number): CalendarDate {
 }
 
 export const remainingOf = (l: Liability): number => Math.max(0, (l.termMonths ?? 0) - (l.emisPaid ?? 0));
-const eligible = (l: Liability): boolean => (l.emi ?? 0) > 0 && (l.termMonths ?? 0) > 0 && remainingOf(l) > 0 && l.outstanding > 0;
+const eligible = (l: Liability): boolean => {
+  if (l.kind === "card") return l.dueDay != null;
+  return (l.emi ?? 0) > 0 && (l.termMonths ?? 0) > 0 && remainingOf(l) > 0 && l.outstanding > 0;
+};
 
 function initialCursor(today: CalendarDate, dueDay: number): number {
   const current = periodIndex(today);
@@ -116,7 +120,8 @@ function duePeriods(l: Liability, today: CalendarDate, limit: number): string[] 
 
 export function pendingEmis(l: Liability, now = new Date()): string[] {
   if (!eligible(l)) return [];
-  return duePeriods(l, calendarDate(now), remainingOf(l));
+  const limit = l.kind === "card" ? 1 : remainingOf(l);
+  return duePeriods(l, calendarDate(now), limit);
 }
 
 function apply(l: Liability, months: string[]): Liability {
@@ -179,3 +184,8 @@ export function emiNotice(l: Liability, now = new Date()): EmiNotice | null {
 
 /** Stamp the current month in the India calendar. */
 export const stampNow = (now = new Date()): string => periodOf(calendarDate(now));
+
+export function liveLiabilityOutstanding(l: Liability, finance: FinanceEntry[], expenses: Expense[], meId: ID): number {
+  if (l.kind !== "card") return l.outstanding;
+  return Math.max(0, l.outstanding - linkedDelta(l.id, finance, expenses, meId));
+}

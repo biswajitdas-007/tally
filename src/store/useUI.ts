@@ -61,7 +61,8 @@ interface UIState {
   wealthOpen: boolean;
   wealthMode: "asset" | "liability";
   wealthEditId: ID | null;
-  openWealth: (mode?: "asset" | "liability", editId?: ID | null) => void;
+  wealthInitialKind: string | null;
+  openWealth: (mode?: "asset" | "liability", editId?: ID | null, initialKind?: string | null) => void;
   closeWealth: () => void;
 
   parkOpen: boolean;
@@ -98,6 +99,11 @@ interface UIState {
   whoOwesWhomOpen: boolean;
   openWhoOwesWhom: () => void;
   closeWhoOwesWhom: () => void;
+
+  transferOpen: boolean;
+  transferToId: ID | null;
+  openTransfer: (toId?: ID | null) => void;
+  closeTransfer: () => void;
 }
 
 export const useUI = create<UIState>((set) => ({
@@ -150,7 +156,8 @@ export const useUI = create<UIState>((set) => ({
   wealthOpen: false,
   wealthMode: "asset",
   wealthEditId: null,
-  openWealth: (mode = "asset", editId = null) => set({ wealthOpen: true, wealthMode: mode, wealthEditId: editId }),
+  wealthInitialKind: null,
+  openWealth: (mode = "asset", editId = null, initialKind = null) => set({ wealthOpen: true, wealthMode: mode, wealthEditId: editId, wealthInitialKind: initialKind }),
   closeWealth: () => set({ wealthOpen: false, wealthEditId: null }),
 
   parkOpen: false,
@@ -187,4 +194,9 @@ export const useUI = create<UIState>((set) => ({
   whoOwesWhomOpen: false,
   openWhoOwesWhom: () => set({ whoOwesWhomOpen: true }),
   closeWhoOwesWhom: () => set({ whoOwesWhomOpen: false }),
+
+  transferOpen: false,
+  transferToId: null,
+  openTransfer: (toId = null) => set({ transferOpen: true, transferToId: toId }),
+  closeTransfer: () => set({ transferOpen: false, transferToId: null }),
 }));

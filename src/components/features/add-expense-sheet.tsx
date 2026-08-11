@@ -16,7 +16,7 @@ import { AccountPicker } from "./account-picker";
 import { useStore, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { useToast } from "@/components/ui/toast";
-import { cn, formatINR, formatDate, splitEqually , sanitizeMoneyInput} from "@/lib/utils";
+import { cn, formatINR, formatDate, splitEqually, sanitizeMoneyInput } from "@/lib/utils";
 import type { CategoryKey, ID, Split } from "@/lib/types";
 
 export function AddExpenseSheet() {
@@ -91,7 +91,7 @@ export function AddExpenseSheet() {
       setCatTouched(false);
       setGroupId(groupCtx);
       setPaidBy(myId);
-      
+
       let initialParticipants = [myId];
       if (groupCtx) {
         const g = groups.find((g) => g.id === groupCtx);
@@ -102,7 +102,7 @@ export function AddExpenseSheet() {
         }
       }
       setParticipants(initialParticipants);
-      
+
       setDate(new Date());
       setNotes("");
       setShowNotes(false);
@@ -216,6 +216,7 @@ export function AddExpenseSheet() {
               const active = category === c.key;
               return (
                 <button
+                  type="button"
                   key={c.key}
                   onClick={() => {
                     setCategory(c.key);
@@ -229,7 +230,7 @@ export function AddExpenseSheet() {
                   )}
                 >
                   <CategoryIcon category={c.key} size={22} />
-                  {c.label.split(" ")[0]}
+                  {c.label}
                 </button>
               );
             })}
@@ -301,7 +302,7 @@ export function AddExpenseSheet() {
         </div>
 
         {/* Paid from (your account) */}
-        {paidBy === myId && <AccountPicker value={accountId} onChange={setAccountId} label="Paid from" />}
+        {paidBy === myId && <AccountPicker value={accountId} onChange={setAccountId} label="Paid from" includeCards />}
 
         {/* Participants + split */}
         <div>
@@ -390,7 +391,7 @@ export function AddExpenseSheet() {
           <Popover open={dateOpen} onOpenChange={setDateOpen}>
             <PopoverTrigger
               render={
-                <button className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3.5 py-2 text-[0.82rem] font-medium text-text-2 transition-colors hover:border-border-strong">
+                <button type="button" className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3.5 py-2 text-[0.82rem] font-medium text-text-2 transition-colors hover:border-border-strong">
                   <CalendarDays className="h-4 w-4" />
                   {formatDate(date.toISOString(), true)}
                 </button>
@@ -409,6 +410,7 @@ export function AddExpenseSheet() {
           </Popover>
 
           <button
+            type="button"
             onClick={() => setShowNotes((v) => !v)}
             className={cn(
               "inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-[0.82rem] font-medium transition-colors",
@@ -420,6 +422,7 @@ export function AddExpenseSheet() {
           </button>
 
           <button
+            type="button"
             onClick={() => setRecurring((v) => !v)}
             className={cn(
               "inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-[0.82rem] font-medium transition-colors",
