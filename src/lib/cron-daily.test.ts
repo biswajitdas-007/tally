@@ -169,8 +169,8 @@ describe("daily EMI orchestration", () => {
     const result = await (await runDaily(request())).json();
 
     expect(updates.map((args) => args[1])).toEqual([
-      expect.objectContaining({ $set: { "liabilities.$.lastEmiReminder": "manual-1:2026-08:upcoming" } }),
-      expect.objectContaining({ $set: { "liabilities.$.lastEmiReminder": "auto-1:2026-08:upcoming" } }),
+      expect.objectContaining({ $set: expect.objectContaining({ "liabilities.$.lastEmiReminder": "manual-1:2026-08:upcoming" }) }),
+      expect.objectContaining({ $set: expect.objectContaining({ "liabilities.$.lastEmiReminder": "auto-1:2026-08:upcoming" }) }),
     ]);
     expect(dependencies.sendPush.mock.calls.map((call) => call[1])).toEqual([
       expect.objectContaining({ title: "EMI due tomorrow", tag: "manual-1:2026-08:upcoming", url: "/wealth" }),
