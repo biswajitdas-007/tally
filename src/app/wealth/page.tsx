@@ -663,12 +663,27 @@ export default function WealthPage() {
                     const liveOut = liveLiabilityOutstanding(l, finance, expenses, myId);
                     
                     const now = new Date();
-                    const thisMonthPayments = finance.filter(f => {
+                    let cycleStart = new Date(now.getFullYear(), now.getMonth(), 1);
+                    let cycleEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+                    
+                    if (l.statementDay && l.dueDay) {
+                      cycleStart = new Date(now.getFullYear(), now.getMonth(), l.statementDay);
+                      if (now < cycleStart) cycleStart.setMonth(cycleStart.getMonth() - 1);
+                      cycleEnd = new Date(cycleStart.getFullYear(), cycleStart.getMonth(), l.dueDay, 23, 59, 59, 999);
+                      if (l.dueDay < l.statementDay) cycleEnd.setMonth(cycleEnd.getMonth() + 1);
+                      
+                      if (now > cycleEnd) {
+                        cycleStart.setMonth(cycleStart.getMonth() + 1);
+                        cycleEnd.setMonth(cycleEnd.getMonth() + 1);
+                      }
+                    }
+
+                    const cyclePayments = finance.filter(f => {
                       if (f.accountId !== l.id || f.type !== "income" || !f.transfer) return false;
                       const d = new Date(f.date);
-                      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+                      return d >= cycleStart && d <= cycleEnd;
                     });
-                    const amountPaid = thisMonthPayments.reduce((acc, curr) => acc + curr.amount, 0);
+                    const amountPaid = cyclePayments.reduce((acc, curr) => acc + curr.amount, 0);
                     const paidThisCycle = amountPaid > 0;
                     
                     const metaParts = [];

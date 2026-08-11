@@ -79,11 +79,14 @@ export function TransferSheet() {
       note: "Transfer / Payment",
     });
 
-    // If destination is a credit card, mark it as paid for the month
     const card = liabilities.find((l) => l.id === toId && l.kind === "card");
     if (card) {
       setWealth({
-        liabilities: liabilities.map((l) => (l.id === toId ? { ...l, lastPaidMonth: stampNow(date) } : l)),
+        liabilities: liabilities.map((l) => 
+          l.id === toId 
+            ? { ...l, outstanding: Math.max(0, l.outstanding - value), lastPaidMonth: stampNow(date) } 
+            : l
+        ),
       });
       // Send receipt email in the background
       api.sendReceiptApi(card.id, value, date.toISOString()).catch(console.error);
