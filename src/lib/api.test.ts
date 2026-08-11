@@ -10,6 +10,7 @@ const dependencies = vi.hoisted(() => ({
 
 vi.mock("@/lib/firebase", () => ({ firebaseAuth: dependencies.firebaseAuth }));
 vi.mock("@/lib/pusher-client", () => ({ socketId: dependencies.socketId }));
+vi.mock("idb-keyval", () => ({ get: vi.fn(), set: vi.fn() }));
 
 import { confirmEmiApi } from "./api";
 
@@ -134,7 +135,7 @@ describe("confirmEmiApi", () => {
     await expect(confirmEmiApi("loan-1", "2026-08")).resolves.toEqual({
       ok: false,
       applied: [],
-      error: "network-error",
+      error: "confirm-failed",
     });
   });
 });

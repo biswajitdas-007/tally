@@ -58,6 +58,7 @@ function cleanLiabilities(v: unknown, now = new Date()): Liability[] {
           : Math.round(l.emisPaid as number);
       }
       if (isNum(l.dueDay)) item.dueDay = Math.min(Math.max(Math.round(l.dueDay as number), 1), 28);
+      if (isNum(l.statementDay)) item.statementDay = Math.min(Math.max(Math.round(l.statementDay as number), 1), 28);
       const scheduleReady =
         item.outstanding > 0 &&
         Boolean(item.emi && item.termMonths) &&
