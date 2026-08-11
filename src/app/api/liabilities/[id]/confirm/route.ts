@@ -1,8 +1,9 @@
 import { verifyUser } from "@/lib/auth-server";
 import { collections } from "@/lib/db";
 import { badRequest, isStr, isNum, json, serverError, unauthorized } from "@/lib/api-helpers";
-import { manualDue, markManualPaid, normalizeLiability, pendingEmis } from "@/lib/liabilities";
+import { markManualPaid, normalizeLiability, pendingEmis, manualDue } from "@/lib/liabilities";
 import { sendEmiEmail } from "@/lib/emi-email";
+import { sendCardEmail } from "@/lib/card-email";
 import type { Liability } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -83,7 +84,18 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         if (!updated) return json({ error: "not-found" }, 404);
         const profile = await users.findOne({ _id: user.uid }, { projection: { email: 1, name: 1 } });
         if (profile?.email && !normalizeLiability(updated).autoDebit) {
-          await sendEmiEmail(profile.email, profile.name ?? "", normalizeLiability(updated));
+          const l = normalizeLiability(updated);
+          const [year, month] = period.split("-").map(Number);
+          const dueDay = l.dueDay ?? 3;
+          // Calculate the exact due date for the specified period
+          const dueDate = new Date(year, month - 1, dueDay, 23, 59, 59);
+          const isLate = now > dueDate;
+          
+          if (l.kind === "card") {
+            await sendCardEmail(profile.email, profile.name ?? "", l, (l.emi ?? 0) + extraPayment, isLate, true);
+          } else {
+            await sendEmiEmail(profile.email, profile.name ?? "", l, (l.emi ?? 0) + extraPayment, isLate, true);
+          }
         }
         return json({ ok: true, liability: normalizeLiability(updated), applied });
       }

@@ -108,6 +108,12 @@ export async function confirmEmiApi(id: string, period: string, options?: { extr
   };
 }
 
+export async function sendReceiptApi(id: string, amountPaid: number, date: string): Promise<boolean> {
+  const res = await req("POST", `/api/liabilities/${encodeURIComponent(id)}/receipt`, { amountPaid, date });
+  if (!res) return false;
+  return res.ok;
+}
+
 export async function declineEmiApi(id: string, period: string): Promise<{ ok: boolean }> {
   const res = await req("POST", `/api/liabilities/${encodeURIComponent(id)}/decline`, { period });
   if (!res) return { ok: false };

@@ -60,9 +60,10 @@ function cleanLiabilities(v: unknown, now = new Date()): Liability[] {
       if (isNum(l.dueDay)) item.dueDay = Math.min(Math.max(Math.round(l.dueDay as number), 1), 28);
       if (isNum(l.statementDay)) item.statementDay = Math.min(Math.max(Math.round(l.statementDay as number), 1), 28);
       const scheduleReady =
-        item.outstanding > 0 &&
+        item.kind === "card" ||
+        (item.outstanding > 0 &&
         Boolean(item.emi && item.termMonths) &&
-        (item.emisPaid ?? 0) < (item.termMonths ?? 0);
+        (item.emisPaid ?? 0) < (item.termMonths ?? 0));
       if (scheduleReady) {
         if (l.autoDebit === true) item.autoDebit = true;
         const paidMonth = isStr(l.lastPaidMonth) ? (l.lastPaidMonth as string).slice(0, 7) : "";

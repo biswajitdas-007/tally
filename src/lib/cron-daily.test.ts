@@ -5,12 +5,14 @@ const dependencies = vi.hoisted(() => ({
   collections: vi.fn(),
   sendPush: vi.fn(),
   sendEmiEmail: vi.fn(),
+  sendCardEmail: vi.fn(),
   sendSettleReminderEmail: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({ collections: dependencies.collections }));
 vi.mock("@/lib/webpush", () => ({ sendPush: dependencies.sendPush }));
 vi.mock("@/lib/emi-email", () => ({ sendEmiEmail: dependencies.sendEmiEmail }));
+vi.mock("@/lib/card-email", () => ({ sendCardEmail: dependencies.sendCardEmail }));
 vi.mock("@/lib/reminder-email", () => ({ sendSettleReminderEmail: dependencies.sendSettleReminderEmail }));
 
 import { runDaily } from "./cron-daily";
@@ -70,6 +72,7 @@ describe("daily EMI orchestration", () => {
     dependencies.collections.mockReset();
     dependencies.sendPush.mockReset();
     dependencies.sendEmiEmail.mockReset().mockResolvedValue(false);
+    dependencies.sendCardEmail.mockReset().mockResolvedValue(false);
     dependencies.sendSettleReminderEmail.mockReset().mockResolvedValue(false);
   });
 
@@ -91,6 +94,8 @@ describe("daily EMI orchestration", () => {
 
     expect(events).toEqual(["update", "push", "update"]);
     expect(dependencies.sendPush).toHaveBeenCalledTimes(1);
+    expect(dependencies.sendEmiEmail).not.toHaveBeenCalled();
+    expect(dependencies.sendCardEmail).not.toHaveBeenCalled();
     expect(updates[0][1]).toMatchObject({
       $set: { "liabilities.$.lastEmiReminder": "loan /?:2026-08:due" },
     });

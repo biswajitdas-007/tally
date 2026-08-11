@@ -3,6 +3,7 @@ import { anchorLastPaidMonth, applyAuto, emiNotice, normalizeLiability } from "@
 import { duePeriods, periodKey, lastOccurrence } from "@/lib/recurring";
 import { scopedDebts, scopedTotals } from "@/lib/balances";
 import { sendEmiEmail } from "@/lib/emi-email";
+import { sendCardEmail } from "@/lib/card-email";
 import { sendSettleReminderEmail } from "@/lib/reminder-email";
 import { sendPush, type PushPayload, type PushResult } from "@/lib/webpush";
 import { json } from "@/lib/api-helpers";
@@ -206,7 +207,11 @@ async function runEmis(users: Collection<UserDoc>, now: Date, push: PushMetrics)
             updatedUsers.add(u._id);
             if (u.email) {
               try {
-                if (await sendEmiEmail(u.email, u.name, liability)) emails++;
+                if (liability.kind === "card") {
+                  if (await sendCardEmail(u.email, u.name, liability)) emails++;
+                } else {
+                  if (await sendEmiEmail(u.email, u.name, liability)) emails++;
+                }
               } catch {
                 emailFailures++;
               }
@@ -274,7 +279,10 @@ async function runEmis(users: Collection<UserDoc>, now: Date, push: PushMetrics)
           updatedUsers.add(u._id);
           if (!current.autoDebit && notice.kind === "due" && u.email) {
             try {
-              if (await sendEmiEmail(u.email, u.name, current)) emails++;
+              const emailSent = current.kind === "card"
+                ? await sendCardEmail(u.email, u.name, current)
+                : await sendEmiEmail(u.email, u.name, current);
+              if (emailSent) emails++;
             } catch {
               emailFailures++;
             }
