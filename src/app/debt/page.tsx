@@ -23,9 +23,16 @@ const PRESETS = [1000, 2500, 5000, 10000];
 export default function DebtPage() {
   const liabilities = useStore((s) => s.liabilities);
   const openWealth = useUI((s) => s.openWealth);
+  const openCardDashboard = useUI((s) => s.openCardDashboard);
 
   const debtPlan = useStore((s) => s.debtPlan);
   const setWealth = useStore((s) => s.setWealth);
+
+  function handleOpen(id: string) {
+    const l = liabilities.find((x) => x.id === id);
+    if (l?.kind === "card") openCardDashboard(id);
+    else openWealth("liability", id);
+  }
   
   const [strategy, setStrategy] = useState<Strategy>(debtPlan?.strategy ?? "avalanche");
   const [extra, setExtra] = useState(debtPlan?.extra ?? 0);
@@ -78,7 +85,7 @@ export default function DebtPage() {
             />
           )}
         </Card>
-        {plan.excluded.length > 0 && <ExcludedCard excluded={plan.excluded} onFix={(id) => openWealth("liability", id)} />}
+        {plan.excluded.length > 0 && <ExcludedCard excluded={plan.excluded} onFix={handleOpen} />}
       </div>
     );
   }
@@ -245,7 +252,7 @@ export default function DebtPage() {
         </PageCol>
 
         <PageCol>
-          {plan.excluded.length > 0 && <ExcludedCard excluded={plan.excluded} onFix={(id) => openWealth("liability", id)} />}
+          {plan.excluded.length > 0 && <ExcludedCard excluded={plan.excluded} onFix={handleOpen} />}
 
           {/* The order */}
           <section>
@@ -354,7 +361,7 @@ export default function DebtPage() {
                         </div>
                         <div className="flex items-center justify-end">
                           <button
-                            onClick={() => openWealth("liability", d.id)}
+                            onClick={() => handleOpen(d.id)}
                             className="text-[0.76rem] font-semibold text-text-2 hover:text-text underline decoration-border underline-offset-4"
                           >
                             Edit

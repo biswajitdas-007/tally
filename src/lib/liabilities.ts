@@ -186,6 +186,5 @@ export function emiNotice(l: Liability, now = new Date()): EmiNotice | null {
 export const stampNow = (now = new Date()): string => periodOf(calendarDate(now));
 
 export function liveLiabilityOutstanding(l: Liability, finance: FinanceEntry[], expenses: Expense[], meId: ID): number {
-  if (l.kind !== "card") return l.outstanding;
-  return Math.max(0, l.outstanding - linkedDelta(l.id, finance, expenses, meId));
+  return l.outstanding;
 }
