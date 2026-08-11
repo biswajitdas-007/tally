@@ -7,9 +7,11 @@ export type CategoryKey =
   | "rent"
   | "travel"
   | "shopping"
+  | "grocery"
   | "bills"
   | "fun"
   | "health"
+  | "alcohol"
   | "other";
 
 export interface Person {
@@ -193,6 +195,7 @@ export interface Liability {
   termMonths?: number; // total number of EMIs
   emisPaid?: number; // how many EMIs are paid so far (counts up)
   autoDebit?: boolean; // increment automatically each month on the due date
+  statementDay?: number; // day of month the bill is generated (1-28)
   dueDay?: number; // day of month the EMI is paid (1–28; defaults to 3)
   lastPaidMonth?: string; // "YYYY-MM" already counted — guards against double-counting
   lastEmiReminder?: string; // "<liability-id>:YYYY-MM:<upcoming|due>" — dedupes scheduled push notices

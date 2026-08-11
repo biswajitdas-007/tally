@@ -14,7 +14,7 @@ export function formatINR(
   value: number,
   opts: { decimals?: boolean; compact?: boolean; signed?: boolean } = {},
 ): string {
-  const { decimals = false, compact = false, signed = false } = opts;
+  const { decimals = true, compact = false, signed = false } = opts;
   const abs = Math.abs(roundMoney(value));
   let body: string;
 
@@ -34,7 +34,7 @@ export function formatINR(
 }
 
 /** Just the grouped number, no symbol — for keypad-style displays. */
-export function formatNumber(value: number, decimals = false): string {
+export function formatNumber(value: number, decimals = true): string {
   return new Intl.NumberFormat("en-IN", {
     minimumFractionDigits: decimals ? 2 : 0,
     maximumFractionDigits: 2,

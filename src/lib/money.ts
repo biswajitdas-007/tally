@@ -168,6 +168,7 @@ export const CATEGORY_BUCKET: Record<CategoryKey, "needs" | "wants"> = {
   rent: "needs",
   bills: "needs",
   health: "needs",
+  grocery: "needs",
   food: "needs",
   travel: "needs",
   shopping: "wants",

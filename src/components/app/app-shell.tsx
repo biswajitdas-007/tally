@@ -28,6 +28,7 @@ import { ReconcileSheet } from "@/components/features/reconcile-sheet";
 import { WhoOwesWhomSheet } from "@/components/features/who-owes-whom-sheet";
 import { CommandPalette } from "./command-palette";
 import { InstallPrompt } from "./install-prompt";
+import { TransferSheet } from "@/components/features/transfer-sheet";
 import { PushAutoEnable } from "./push-auto";
 import { NotificationPrompt } from "./notification-prompt";
 
@@ -88,6 +89,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <WhoOwesWhomSheet />
       <CommandPalette />
       <InstallPrompt />
+      <TransferSheet />
       <PushAutoEnable />
       <NotificationPrompt />
     </>

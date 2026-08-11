@@ -65,6 +65,7 @@
   --cat-bills: #d99a1c;
   --cat-fun: #e0518f;
   --cat-health: #2fa15a;
+  --cat-alcohol: #be185d;
   --cat-other: #7b8a80;
 
   /* Elevation */
@@ -160,6 +161,7 @@
   --cat-bills: #ecb63f;
   --cat-fun: #f172a8;
   --cat-health: #4cc47c;
+  --cat-alcohol: #db2777;
   --cat-other: #96a49a;
 
   --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
@@ -566,27 +568,6 @@ input[type="number"]::-webkit-inner-spin-button {
 }
 
 @media print {
-  /*
-   * A report is going onto paper, so it renders light whatever the app theme
-   * is — dark backgrounds waste ink and read badly. Everything is themed
-   * through variables, so overriding them here re-colours the whole page.
-   */
-  :root,
-  :root[data-theme="dark"] {
-    color-scheme: light;
-    --bg: #ffffff;
-    --bg-subtle: #ffffff;
-    --surface: #ffffff;
-    --surface-2: #fafbf9;
-    --surface-inset: #f2f4f0;
-    --border: #dfe3da;
-    --border-strong: #c3c9ba;
-    --text: #10160f;
-    --text-2: #4a5348;
-    --text-3: #78806f;
-    --scrim: transparent;
-  }
-
   @page {
     size: A4;
     margin: 14mm;
@@ -594,10 +575,11 @@ input[type="number"]::-webkit-inner-spin-button {
 
   html,
   body {
-    background: #fff !important;
     /* Let the page grow past the viewport rather than clipping to it. */
     height: auto !important;
     overflow: visible !important;
+    background-color: var(--bg) !important;
+    color: var(--text) !important;
   }
 
   /* App chrome has no business on paper. */

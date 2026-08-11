@@ -13,7 +13,7 @@ import { DEFAULT_RECUR_DAY, WEEKDAYS, nextOccurrence, stampCurrent } from "@/lib
 import { useStore } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { useToast } from "@/components/ui/toast";
-import { cn, formatDate, uid as newId , sanitizeMoneyInput} from "@/lib/utils";
+import { cn, formatDate, uid as newId, sanitizeMoneyInput } from "@/lib/utils";
 import type { FinanceType, RecurFreq, Recurring } from "@/lib/types";
 
 export function RecurringSheet() {
@@ -156,6 +156,7 @@ export function RecurringSheet() {
               const active = category === c.key;
               return (
                 <button
+                  type="button"
                   key={c.key}
                   onClick={() => setCategory(c.key)}
                   className={cn(
@@ -166,7 +167,7 @@ export function RecurringSheet() {
                   )}
                 >
                   <Icon className="h-[18px] w-[18px]" strokeWidth={2} />
-                  {c.label.split(" ")[0]}
+                  {c.label}
                 </button>
               );
             })}
@@ -201,6 +202,7 @@ export function RecurringSheet() {
             <div className="no-scrollbar -mx-5 mt-3 flex gap-2 overflow-x-auto px-5 pb-1">
               {WEEKDAYS.map((w, i) => (
                 <button
+                  type="button"
                   key={w}
                   onClick={() => setDay(String(i))}
                   className={cn(

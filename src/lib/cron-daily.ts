@@ -243,11 +243,11 @@ async function runEmis(users: Collection<UserDoc>, now: Date, push: PushMetrics)
         if (notice.kind === "upcoming") {
           upcomingReminders++;
           payload = {
-            title: "EMI due tomorrow",
+            title: current.kind === "card" ? "Credit card bill due tomorrow" : "EMI due tomorrow",
             body: current.autoDebit
               ? `${label} · ${formatINR(current.emi ?? 0)} will be marked paid automatically.`
               : notice.dueCount > 1
-                ? `${label} · ${formatINR(current.emi ?? 0)} is due tomorrow, with ${notice.dueCount - 1} earlier EMI${notice.dueCount === 2 ? "" : "s"} still unconfirmed.`
+                ? `${label} · ${formatINR(current.emi ?? 0)} is due tomorrow, with ${notice.dueCount - 1} earlier ${current.kind === "card" ? "bill" : "EMI"}${notice.dueCount === 2 ? "" : "s"} still unconfirmed.`
                 : `${label} · ${formatINR(current.emi ?? 0)}. Pay it tomorrow, then confirm it in Tally.`,
             url: "/wealth",
             tag: notice.key,
@@ -257,11 +257,11 @@ async function runEmis(users: Collection<UserDoc>, now: Date, push: PushMetrics)
         } else {
           reminders++;
           payload = {
-            title: notice.dueCount > 1 ? "EMIs need confirmation" : "EMI reminder",
+            title: notice.dueCount > 1 ? (current.kind === "card" ? "Bills need confirmation" : "EMIs need confirmation") : (current.kind === "card" ? "Bill reminder" : "EMI reminder"),
             body:
               notice.dueCount > 1
-                ? `${label} has ${notice.dueCount} EMIs awaiting confirmation. Confirm them in Tally.`
-                : `Did you pay this month's ${label} EMI? Confirm it in Tally.`,
+                ? `${label} has ${notice.dueCount} ${current.kind === "card" ? "bills" : "EMIs"} awaiting confirmation. Confirm them in Tally.`
+                : `Did you pay this month's ${label} ${current.kind === "card" ? "bill" : "EMI"}? Confirm it in Tally.`,
             url: `/wealth?confirmEmi=${encodeURIComponent(current.id)}&period=${encodeURIComponent(notice.period)}`,
             tag: notice.key,
             ttl: 48 * 60 * 60,
