@@ -19,7 +19,7 @@ import { emergencyStatus } from "@/lib/health";
 import { periodKey } from "@/lib/recurring";
 import { guessCategory } from "@/lib/categorise";
 import { withLiveBalances, unparkedAmount } from "@/lib/accounts";
-import { cn, formatDate, formatINR, monthKey, uid as newId , sanitizeMoneyInput} from "@/lib/utils";
+import { cn, formatDate, formatINR, monthKey, uid as newId, sanitizeMoneyInput } from "@/lib/utils";
 import type { CategoryKey, FinanceType, Recurring } from "@/lib/types";
 
 export function AddMoneySheet() {
@@ -208,6 +208,7 @@ export function AddMoneySheet() {
               const active = category === c.key;
               return (
                 <button
+                  type="button"
                   key={c.key}
                   onClick={() => {
                     setCategory(c.key);
@@ -221,7 +222,7 @@ export function AddMoneySheet() {
                   )}
                 >
                   <Icon className="h-[18px] w-[18px]" strokeWidth={2} />
-                  {c.label.split(" ")[0]}
+                  {c.label}
                 </button>
               );
             })}
@@ -229,7 +230,7 @@ export function AddMoneySheet() {
         </div>
 
         {/* Account */}
-        <AccountPicker value={accountId} onChange={setAccountId} label={isIncome ? "Into which account?" : "Paid from"} />
+        <AccountPicker value={accountId} onChange={setAccountId} label={isIncome ? "Into which account?" : "Paid from"} includeCards={!isIncome} />
 
         {/* Date + note */}
         <div>

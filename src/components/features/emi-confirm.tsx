@@ -6,6 +6,7 @@ import { CalendarClock, Check } from "lucide-react";
 import { Sheet } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { useStore } from "@/store/useStore";
+import { useUI } from "@/store/useUI";
 import { useToast } from "@/components/ui/toast";
 import { manualDue, pendingEmis } from "@/lib/liabilities";
 import { formatINR } from "@/lib/utils";
@@ -20,6 +21,7 @@ export function EmiConfirm() {
   const declineEmi = useStore((s) => s.declineEmi);
   const debtPlan = useStore((s) => s.debtPlan);
   const dataReady = useStore((s) => s.dataReady);
+  const openTransfer = useUI((s) => s.openTransfer);
   const { toast } = useToast();
   const router = useRouter();
   const pathname = usePathname();
@@ -123,6 +125,37 @@ export function EmiConfirm() {
     }
   }
 
+  if (due.kind === "card") {
+    return (
+      <Sheet open onClose={later} title="Credit card bill due">
+        <div className="flex flex-col items-center gap-5 pt-1 text-center">
+          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-brand-soft text-brand">
+            <CalendarClock className="h-7 w-7" />
+          </span>
+          <div>
+            <p className="text-[0.95rem] text-text-2">
+              Is your credit card bill paid for
+            </p>
+            <p className="mt-1 font-display text-xl font-bold text-text">{due.lender || due.name}?</p>
+          </div>
+          <div className="flex w-full flex-col gap-3">
+            <Button variant="primary" size="lg" fullWidth onClick={() => { openTransfer(due.id); later(); }}>
+              <Check className="h-4.5 w-4.5" /> Record payment
+            </Button>
+            <Button variant="secondary" size="lg" fullWidth disabled={busy} onClick={() => handleConfirm()}>
+              Already recorded
+            </Button>
+            <div className="flex gap-3">
+              <Button variant="secondary" className="bg-surface-2 opacity-80" size="lg" fullWidth disabled={busy} onClick={later}>
+                Remind later
+              </Button>
+            </div>
+          </div>
+        </div>
+      </Sheet>
+    );
+  }
+
   return (
     <Sheet open onClose={later} title="EMI reminder">
       <div className="flex flex-col items-center gap-5 pt-1 text-center">
@@ -172,7 +205,7 @@ export function EmiConfirm() {
               Remind later
             </Button>
             <Button variant="dangerSoft" size="lg" fullWidth disabled={busy} onClick={() => handleConfirm({ declineBoth: true })}>
-              I didn't pay
+              I didn&apos;t pay
             </Button>
           </div>
         </div>
