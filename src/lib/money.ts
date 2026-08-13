@@ -108,7 +108,7 @@ export function activeMonths(finance: FinanceEntry[], expenses: Expense[], meId:
 /** Personal entries logged for a month, newest first. */
 export function financeForMonth(finance: FinanceEntry[], mKey: string): FinanceEntry[] {
   return finance
-    .filter((f) => !f.transfer && monthKey(f.date) === mKey)
+    .filter((f) => monthKey(f.date) === mKey)
     .sort((a, b) => +new Date(b.date) - +new Date(a.date));
 }
 

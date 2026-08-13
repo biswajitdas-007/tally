@@ -55,6 +55,8 @@ export function TransferSheet() {
     if (!valid || busy) return;
     setBusy(true);
 
+    const cardPaymentNote = cardLiability ? `${cardLiability.name} credit card payment` : "Credit Card payment";
+
     // Source (Bank account or untracked)
     if (fromId !== null || isPayingCard) {
       addFinance({
@@ -64,7 +66,7 @@ export function TransferSheet() {
         date: date.toISOString(),
         accountId: fromId ?? undefined,
         transfer: true,
-        note: "Transfer / Payment",
+        note: isPayingCard ? cardPaymentNote : "Transfer / Payment",
       });
     }
 
@@ -76,7 +78,7 @@ export function TransferSheet() {
       date: date.toISOString(),
       accountId: toId!,
       transfer: true,
-      note: "Transfer / Payment",
+      note: isPayingCard ? cardPaymentNote : "Transfer / Payment",
     });
 
     const card = liabilities.find((l) => l.id === toId && l.kind === "card");
