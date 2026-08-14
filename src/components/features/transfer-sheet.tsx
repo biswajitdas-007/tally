@@ -10,7 +10,7 @@ import { AccountPicker } from "./account-picker";
 import { useStore, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { useToast } from "@/components/ui/toast";
-import { formatINR, sanitizeMoneyInput, formatDate } from "@/lib/utils";
+import { formatINR, sanitizeMoneyInput, formatDate, uid } from "@/lib/utils";
 import { stampNow, liveLiabilityOutstanding } from "@/lib/liabilities";
 import * as api from "@/lib/api";
 
@@ -56,6 +56,7 @@ export function TransferSheet() {
     setBusy(true);
 
     const cardPaymentNote = cardLiability ? `${cardLiability.name} credit card payment` : "Credit Card payment";
+    const linkedId = uid("tr_");
 
     // Source (Bank account or untracked)
     if (fromId !== null || isPayingCard) {
@@ -67,6 +68,7 @@ export function TransferSheet() {
         accountId: fromId ?? undefined,
         transfer: true,
         note: isPayingCard ? cardPaymentNote : "Transfer / Payment",
+        linkedId,
       });
     }
 
@@ -79,6 +81,7 @@ export function TransferSheet() {
       accountId: toId!,
       transfer: true,
       note: isPayingCard ? cardPaymentNote : "Transfer / Payment",
+      linkedId,
     });
 
     const card = liabilities.find((l) => l.id === toId && l.kind === "card");
