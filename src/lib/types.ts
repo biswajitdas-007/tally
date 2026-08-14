@@ -101,6 +101,8 @@ export interface FinanceEntry {
   transfer?: boolean;
   /** Set when a recurring rule put this entry in, so we can badge it. */
   recurringId?: ID;
+  /** Links two entries together, e.g. for transfers/payments so they can be deleted together. */
+  linkedId?: ID;
 }
 
 export type RecurFreq = "monthly" | "weekly";
