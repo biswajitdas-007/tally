@@ -63,7 +63,7 @@ interface State {
   updateProfile: (patch: { name?: string; upiId?: string; moneyMode?: boolean }) => void;
   deleteFriend: (id: ID) => Promise<{ ok: boolean; unsettled?: boolean; amount?: number }>;
 
-  addFinance: (input: { type: FinanceType; amount: number; category: string; date?: string; note?: string; accountId?: ID; transfer?: boolean; recurringId?: ID }) => FinanceEntry;
+  addFinance: (input: { type: FinanceType; amount: number; category: string; date?: string; note?: string; accountId?: ID; transfer?: boolean; recurringId?: ID; linkedId?: ID }) => FinanceEntry;
   updateFinance: (id: ID, patch: Partial<FinanceEntry>) => void;
   deleteFinance: (id: ID) => void;
 
@@ -290,7 +290,7 @@ export const useStore = create<State>()(
     return res;
   },
 
-  addFinance: ({ type, amount, category, date, note, accountId, transfer, recurringId }) => {
+    addFinance: ({ type, amount, category, date, note, accountId, transfer, recurringId, linkedId }) => {
     const e: FinanceEntry = {
       id: uid("f_"),
       type,
@@ -302,6 +302,7 @@ export const useStore = create<State>()(
       accountId,
       transfer,
       recurringId,
+      linkedId,
     };
     set((s) => ({ finance: [e, ...s.finance] }));
     api.addFinanceApi({ ...e }).then((res) => reconcile(res, get));
@@ -314,8 +315,46 @@ export const useStore = create<State>()(
   },
 
   deleteFinance: (id) => {
-    set((s) => ({ finance: s.finance.filter((f) => f.id !== id) }));
-    api.deleteFinanceApi(id).then((res) => reconcile(res, get));
+    const s = get();
+    const entry = s.finance.find((f) => f.id === id);
+    if (!entry) return;
+
+    let toDelete = [id];
+    if (entry.linkedId) {
+      const linked = s.finance.filter(f => f.linkedId === entry.linkedId);
+      toDelete = linked.map(f => f.id);
+    }
+    
+    let liabilitiesPatch: typeof s.liabilities | undefined = undefined;
+    
+    const entriesToDelete = s.finance.filter(f => toDelete.includes(f.id));
+    
+    entriesToDelete.forEach(f => {
+       if (f.type === "income" && f.accountId && f.transfer) {
+          const card = s.liabilities.find(l => l.id === f.accountId && l.kind === "card");
+          if (card) {
+             if (!liabilitiesPatch) liabilitiesPatch = s.liabilities.map(l => ({ ...l }));
+             const target = liabilitiesPatch.find(l => l.id === card.id);
+             if (target) {
+                 target.outstanding += f.amount;
+             }
+          }
+       }
+    });
+
+    set((s) => ({ 
+       finance: s.finance.filter((f) => !toDelete.includes(f.id)),
+       ...(liabilitiesPatch ? { liabilities: liabilitiesPatch } : {})
+    }));
+    
+    toDelete.forEach(did => api.deleteFinanceApi(did));
+    if (liabilitiesPatch) {
+      const body = {
+        liabilities: liabilitiesPatch,
+        expectedLiabilities: s.liabilities
+      };
+      api.setWealthApi(body).then(res => reconcile(res, get));
+    }
   },
 
   setBudget: (patch) => {
