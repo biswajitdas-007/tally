@@ -1,6 +1,6 @@
 import type { Collection } from "mongodb";
 import { getDb } from "./mongodb";
-import { normalizeLiability } from "./liabilities";
+import { normalizeLiability, startOfToday } from "./liabilities";
 import type { Account, Budget, DebtPlanData, Emergency, Expense, FinanceEntry, Group, Liability, Person, Recurring, PendingInvite } from "./types";
 import type { PushSubscription } from "web-push";
 
@@ -22,6 +22,12 @@ export interface UserDoc {
   emergency?: Emergency;
   recurrings?: Recurring[];
   debtPlan?: DebtPlanData;
+  /**
+   * `<liabilityId>:<period>` for every payment receipt already emailed. Kept
+   * outside `liabilities` so stamping one can't collide with the wealth route's
+   * compare-and-set on that array.
+   */
+  receiptKeys?: string[];
   /** Explicit choice of home screen; unset means infer it from their data. */
   moneyMode?: boolean;
   updatedAt?: Date;
@@ -200,12 +206,45 @@ export interface ClientState {
   pendingInvites: PendingInvite[];
 }
 
+/**
+ * Give any card still missing a baseline one, dated to the start of today.
+ *
+ * A card's balance is only derived once it has a baseline to measure from, and
+ * the alternative write paths — saving a card, saving wealth — may never be
+ * touched by someone who only ever adds expenses. Stamping it as state is built
+ * means a card starts tracking on the next load rather than on the next edit.
+ * The stored figure is taken as fact, so nothing already folded into it is
+ * replayed, and today's entries still count.
+ */
+export async function baselinedCards(
+  users: Collection<UserDoc>,
+  uid: string,
+  liabilities: Liability[],
+): Promise<Liability[]> {
+  if (!liabilities.some((l) => l.kind === "card" && !l.baselineAt)) return liabilities;
+
+  const baselineAt = startOfToday();
+  try {
+    await users.updateOne(
+      { _id: uid },
+      { $set: { "liabilities.$[card].baselineAt": baselineAt } },
+      { arrayFilters: [{ "card.kind": "card", "card.baselineAt": { $exists: false } }] },
+    );
+  } catch {
+    // Reading state must not fail over a backfill; the next load retries it.
+    return liabilities;
+  }
+  return liabilities.map((l) => (l.kind === "card" && !l.baselineAt ? { ...l, baselineAt } : l));
+}
+
 /** The full view for one user: profile, everyone they share with, groups, expenses. */
 export async function buildState(uid: string): Promise<ClientState> {
   const { users, groups, expenses, finance, invites } = await collections();
   const meDoc = ((await users.findOne({ _id: uid })) ?? { _id: uid, name: "You" }) as UserDoc;
 
-  const groupDocs = await groups.find({ memberUids: uid }).toArray();
+  // Newest first, matching where the client puts a group the moment it's made —
+  // without this the order reverted to insertion order on the next load.
+  const groupDocs = await groups.find({ memberUids: uid }).sort({ createdAt: -1 }).toArray();
   const expenseDocs = await expenses.find({ memberUids: uid }).sort({ date: -1 }).toArray();
   const financeDocs = await finance.find({ uid }).sort({ date: -1 }).toArray();
 
@@ -272,7 +311,7 @@ export async function buildState(uid: string): Promise<ClientState> {
     finance: financeDocs.map(toClientFinance),
     budget: meDoc.budget ?? { limits: {} },
     accounts: meDoc.accounts ?? [],
-    liabilities: (meDoc.liabilities ?? []).map(normalizeLiability),
+    liabilities: await baselinedCards(users, uid, (meDoc.liabilities ?? []).map(normalizeLiability)),
     emergency: meDoc.emergency ?? null,
     recurrings: meDoc.recurrings ?? [],
     moneyMode: meDoc.moneyMode ?? null,
@@ -298,6 +337,39 @@ export async function addContact(
     { $pull: { contacts: { id: person.id }, removedFriends: person.id } } as any,
   );
   await users.updateOne({ _id: ownerUid }, { $push: { contacts: person } });
+}
+
+/**
+ * A liability payment can be recorded two ways — "Record payment" (a transfer)
+ * and "Already recorded" (a confirmation) — and both send the same receipt.
+ * Claiming the period before sending means whichever runs first wins and the
+ * other stays quiet. Oldest claims fall off once the list is full; by then the
+ * period they cover is long past.
+ */
+const RECEIPT_KEY_LIMIT = 200;
+
+export async function claimReceipt(
+  users: Collection<UserDoc>,
+  uid: string,
+  liabilityId: string,
+  period: string,
+): Promise<boolean> {
+  const key = `${liabilityId}:${period}`;
+  const claimed = await users.updateOne(
+    { _id: uid, receiptKeys: { $ne: key } },
+    { $push: { receiptKeys: { $each: [key], $slice: -RECEIPT_KEY_LIMIT } } },
+  );
+  return claimed.modifiedCount === 1;
+}
+
+/** Hand a claim back when the send failed, so a retry can still deliver it. */
+export async function releaseReceipt(
+  users: Collection<UserDoc>,
+  uid: string,
+  liabilityId: string,
+  period: string,
+): Promise<void> {
+  await users.updateOne({ _id: uid }, { $pull: { receiptKeys: `${liabilityId}:${period}` } });
 }
 
 /** uids to notify about a change (minus the actor). */

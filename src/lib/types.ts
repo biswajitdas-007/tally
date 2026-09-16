@@ -191,6 +191,12 @@ export interface Liability {
   outstanding: number;
   /** For credit cards: the card limit used for utilization. */
   limit?: number;
+  /**
+   * For credit cards: the instant `outstanding` was last stated as fact. Spends
+   * and payments dated on or after it are added to that baseline to get the
+   * live balance, so entries already reflected in it are never counted twice.
+   */
+  baselineAt?: string;
   emi?: number; // monthly payment, for debt-to-income
   rate?: number; // annual interest %
   lender?: string; // who it's from (e.g. "HDFC Bank")

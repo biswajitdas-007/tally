@@ -21,6 +21,7 @@ import { pendingFromSplits } from "@/lib/balances";
 import { PendingSplitsCard } from "@/components/features/pending-splits-card";
 import { isDue, recurLabel, nextOccurrence } from "@/lib/recurring";
 import { withLiveBalances, unparkedAmount } from "@/lib/accounts";
+import { withLiveOutstanding } from "@/lib/liabilities";
 import { formatINR, formatDate, monthKey, cn } from "@/lib/utils";
 import type { CategoryKey, FinanceEntry, IncomeCategory } from "@/lib/types";
 
@@ -61,7 +62,7 @@ export default function MoneyPage() {
   const expenses = useStore((s) => s.expenses);
   const budget = useStore((s) => s.budget);
   const accounts = useStore((s) => s.accounts);
-  const liabilities = useStore((s) => s.liabilities);
+  const storedLiabilities = useStore((s) => s.liabilities);
   const emergency = useStore((s) => s.emergency);
   const openMoney = useUI((s) => s.openMoney);
   const openBudget = useUI((s) => s.openBudget);
@@ -87,6 +88,10 @@ export default function MoneyPage() {
   const liveAccounts = useMemo(
     () => withLiveBalances(accounts, finance, expenses, myId),
     [accounts, finance, expenses, myId],
+  );
+  const liabilities = useMemo(
+    () => withLiveOutstanding(storedLiabilities, finance, expenses, myId),
+    [storedLiabilities, finance, expenses, myId],
   );
   const unparked = useMemo(() => unparkedAmount(finance, expenses, accounts, myId), [finance, expenses, accounts, myId]);
   const health = useMemo(

@@ -129,7 +129,9 @@ function apply(l: Liability, months: string[]): Liability {
   return {
     ...l,
     emisPaid: (l.emisPaid ?? 0) + months.length,
-    outstanding: Math.max(0, roundMoney(l.outstanding - emi * months.length)),
+    // Only a loan amortises here. A card's balance is derived from the entries
+    // against it, so touching its stored baseline would count the bill twice.
+    outstanding: l.kind === "card" ? l.outstanding : Math.max(0, roundMoney(l.outstanding - emi * months.length)),
     lastPaidMonth: months[months.length - 1],
   };
 }
@@ -185,6 +187,78 @@ export function emiNotice(l: Liability, now = new Date()): EmiNotice | null {
 /** Stamp the current month in the India calendar. */
 export const stampNow = (now = new Date()): string => periodOf(calendarDate(now));
 
+/**
+ * What a card actually owes right now: the stated baseline, plus everything
+ * charged to it since, minus everything paid off since.
+ *
+ * `linkedDelta` is cash-signed (spending is negative, money in is positive) and
+ * debt runs the other way, so it is subtracted. A card with no baseline has
+ * never had one stamped, so there is nothing to measure movement against and
+ * the stored figure stands. Loans are repaid on a schedule rather than swiped,
+ * so their stored balance is already the live one.
+ *
+ * The result is deliberately not floored at zero: a card can be over its limit
+ * from interest or fees, and overpaying one leaves a credit balance. Both are
+ * real states the UI needs to see.
+ */
 export function liveLiabilityOutstanding(l: Liability, finance: FinanceEntry[], expenses: Expense[], meId: ID): number {
-  return l.outstanding;
+  if (l.kind !== "card" || !l.baselineAt) return l.outstanding;
+  return roundMoney(l.outstanding - linkedDelta(l.id, finance, expenses, meId, l.baselineAt));
+}
+
+/**
+ * Liabilities with live balances substituted in — for net worth, utilisation,
+ * payoff plans and display. Never feed these back into a save: the stored
+ * figure is a baseline, and writing a derived value over it would fold the
+ * same spending in twice.
+ */
+export function withLiveOutstanding(
+  liabilities: Liability[],
+  finance: FinanceEntry[],
+  expenses: Expense[],
+  meId: ID,
+): Liability[] {
+  return liabilities.map((l) => ({ ...l, outstanding: liveLiabilityOutstanding(l, finance, expenses, meId) }));
+}
+
+const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+
+/**
+ * Midnight tonight-just-gone in the India calendar, as an ISO instant. Used to
+ * backfill a baseline for cards that predate one: today's entries count, and
+ * everything already folded into the stored figure is left alone.
+ */
+export function startOfToday(now = new Date()): string {
+  const { year, month, day } = calendarDate(now);
+  return new Date(Date.UTC(year, month - 1, day) - IST_OFFSET_MS).toISOString();
+}
+
+export interface CardStatus {
+  outstanding: number;
+  limit: number;
+  /** Headroom left to spend, never negative. */
+  available: number;
+  /** Percent of the limit used; can exceed 100. */
+  utilization: number;
+  overLimit: boolean;
+  /** How far past the limit, 0 when within it. */
+  overBy: number;
+  /** Overpaid, so the card owes the user money. */
+  inCredit: boolean;
+}
+
+/** A card's spending position, including the states banks allow past the limit. */
+export function cardStatus(l: Liability, finance: FinanceEntry[], expenses: Expense[], meId: ID): CardStatus {
+  const outstanding = liveLiabilityOutstanding(l, finance, expenses, meId);
+  const limit = l.limit ?? 0;
+  const overBy = limit > 0 ? Math.max(0, roundMoney(outstanding - limit)) : 0;
+  return {
+    outstanding,
+    limit,
+    available: limit > 0 ? Math.max(0, roundMoney(limit - outstanding)) : 0,
+    utilization: limit > 0 ? (outstanding / limit) * 100 : 0,
+    overLimit: overBy > 0,
+    overBy,
+    inCredit: outstanding < -0.5,
+  };
 }

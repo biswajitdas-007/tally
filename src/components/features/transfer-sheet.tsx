@@ -86,13 +86,14 @@ export function TransferSheet() {
 
     const card = liabilities.find((l) => l.id === toId && l.kind === "card");
     if (card) {
-      setWealth({
-        liabilities: liabilities.map((l) => 
-          l.id === toId 
-            ? { ...l, outstanding: Math.max(0, l.outstanding - value), lastPaidMonth: stampNow(date) } 
-            : l
-        ),
-      });
+      // The payment is an income entry against the card, so the live balance
+      // already counts it. Only a payment that clears the bill retires the
+      // reminder — part-paying leaves the rest still owed and still nudged.
+      if (cardOutstanding - value <= 0.5) {
+        setWealth({
+          liabilities: liabilities.map((l) => (l.id === toId ? { ...l, lastPaidMonth: stampNow(date) } : l)),
+        });
+      }
       // Send receipt email in the background
       api.sendReceiptApi(card.id, value, date.toISOString()).catch(console.error);
     }

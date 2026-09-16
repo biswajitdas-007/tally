@@ -7,15 +7,27 @@ import type { Account, Expense, FinanceEntry, ID } from "./types";
  *  - a settlement subtracts when you paid, adds when you received
  * Entries carry the recorder's private account id, so this only ever sums the
  * current user's own transactions.
+ *
+ * `since` (an ISO instant) limits the sum to entries dated on or after it —
+ * used by cards, whose stored balance is a baseline taken at a point in time
+ * rather than an opening balance.
  */
-export function linkedDelta(accountId: ID, finance: FinanceEntry[], expenses: Expense[], meId: ID): number {
+export function linkedDelta(
+  accountId: ID,
+  finance: FinanceEntry[],
+  expenses: Expense[],
+  meId: ID,
+  since?: string,
+): number {
   let d = 0;
   for (const f of finance) {
     if (f.accountId !== accountId) continue;
+    if (since && f.date < since) continue;
     d += f.type === "income" ? f.amount : -f.amount;
   }
   for (const e of expenses) {
     if (e.accountId !== accountId) continue;
+    if (since && e.date < since) continue;
     if (e.isSettlement) {
       d += e.paidBy === meId ? -e.amount : e.amount;
     } else if (e.paidBy === meId) {

@@ -12,6 +12,7 @@ import { monthlyMoney, financeForMonth, spendByCategory, monthLabel, monthFromPa
 import { scopedDebts, scopedTotals, splitOverview, myShare } from "@/lib/balances";
 import { netWorth } from "@/lib/health";
 import { withLiveBalances, unparkedAmount } from "@/lib/accounts";
+import { withLiveOutstanding } from "@/lib/liabilities";
 import { formatINR, formatDate, percentShares, monthKey, cn } from "@/lib/utils";
 import { MonthNav } from "@/components/app/month-nav";
 import type { CategoryKey, Expense, IncomeCategory } from "@/lib/types";
@@ -40,7 +41,7 @@ function Report() {
   const finance = useStore((s) => s.finance);
   const budget = useStore((s) => s.budget);
   const accounts = useStore((s) => s.accounts);
-  const liabilities = useStore((s) => s.liabilities);
+  const storedLiabilities = useStore((s) => s.liabilities);
   const groups = useStore((s) => s.groups);
   const people = useStore((s) => s.people);
 
@@ -58,6 +59,10 @@ function Report() {
   const splits = useMemo(() => splitOverview(expenses, myId), [expenses, myId]);
 
   const live = useMemo(() => withLiveBalances(accounts, finance, expenses, myId), [accounts, finance, expenses, myId]);
+  const liabilities = useMemo(
+    () => withLiveOutstanding(storedLiabilities, finance, expenses, myId),
+    [storedLiabilities, finance, expenses, myId],
+  );
   const unparked = useMemo(() => unparkedAmount(finance, expenses, accounts, myId), [finance, expenses, accounts, myId]);
   const nw = useMemo(() => netWorth(live, liabilities), [live, liabilities]);
 

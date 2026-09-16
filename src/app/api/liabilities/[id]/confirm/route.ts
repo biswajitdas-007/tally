@@ -1,5 +1,5 @@
 import { verifyUser } from "@/lib/auth-server";
-import { collections } from "@/lib/db";
+import { claimReceipt, collections, releaseReceipt } from "@/lib/db";
 import { badRequest, isStr, isNum, json, serverError, unauthorized } from "@/lib/api-helpers";
 import { markManualPaid, normalizeLiability, pendingEmis, manualDue } from "@/lib/liabilities";
 import { sendEmiEmail } from "@/lib/emi-email";
@@ -90,11 +90,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
           // Calculate the exact due date for the specified period
           const dueDate = new Date(year, month - 1, dueDay, 23, 59, 59);
           const isLate = now > dueDate;
-          
-          if (l.kind === "card") {
-            await sendCardEmail(profile.email, profile.name ?? "", l, (l.emi ?? 0) + extraPayment, isLate, true);
-          } else {
-            await sendEmiEmail(profile.email, profile.name ?? "", l, (l.emi ?? 0) + extraPayment, isLate, true);
+
+          // Recording the payment as a transfer may already have receipted this
+          // period; the user paid the bill once, so they hear about it once.
+          if (await claimReceipt(users, user.uid, id, period)) {
+            const sent = l.kind === "card"
+              ? await sendCardEmail(profile.email, profile.name ?? "", l, (l.emi ?? 0) + extraPayment, isLate, true)
+              : await sendEmiEmail(profile.email, profile.name ?? "", l, (l.emi ?? 0) + extraPayment, isLate, true);
+            if (!sent) await releaseReceipt(users, user.uid, id, period);
           }
         }
         return json({ ok: true, liability: normalizeLiability(updated), applied });

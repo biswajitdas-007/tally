@@ -7,7 +7,7 @@ import { BankBadge } from "./bank-badge";
 import { ACCOUNT_KIND_META, LIABILITY_KIND_META } from "@/lib/categories";
 import { useStore, useMyId } from "@/store/useStore";
 import { withLiveBalances } from "@/lib/accounts";
-import { liveLiabilityOutstanding } from "@/lib/liabilities";
+import { cardStatus } from "@/lib/liabilities";
 import { formatINR, cn, uid as newId } from "@/lib/utils";
 import type { AccountKind, ID, Account } from "@/lib/types";
 
@@ -31,7 +31,12 @@ export function AccountPicker({
   const setWealth = useStore((s) => s.setWealth);
   const myId = useMyId() ?? "";
   // Investments live in their own section — you don't pay from an SIP.
-  const live: (Omit<Account, "balance" | "createdAt"> & { balance: number; limit?: number })[] = cardsOnly
+  const live: (Omit<Account, "balance" | "createdAt"> & {
+    balance: number;
+    limit?: number;
+    overLimit?: boolean;
+    overBy?: number;
+  })[] = cardsOnly
     ? []
     : withLiveBalances(accounts, finance, expenses, myId).filter((a) => a.kind !== "investment");
 
@@ -39,9 +44,8 @@ export function AccountPicker({
     const cards = liabilities
       .filter((l) => l.kind === "card")
       .map((l) => {
-        const out = liveLiabilityOutstanding(l, finance, expenses, myId);
-        const limit = l.limit ?? 0;
-        return { id: l.id, name: l.name, kind: "card" as AccountKind, balance: limit - out, limit };
+        const { available, overLimit, overBy } = cardStatus(l, finance, expenses, myId);
+        return { id: l.id, name: l.name, kind: "card" as AccountKind, balance: available, limit: l.limit ?? 0, overLimit, overBy };
       });
     live.push(...cards);
   }
@@ -82,7 +86,11 @@ export function AccountPicker({
                   <span className="truncate text-[0.68rem] text-text-4">Limit: {formatINR(a.limit)}</span>
                 ) : null}
               </div>
-              <span className="tnum text-[0.78rem] text-text-3">Avail: {formatINR(a.balance)}</span>
+              {a.overLimit ? (
+                <span className="tnum text-[0.78rem] font-semibold text-negative">Over by {formatINR(a.overBy ?? 0)}</span>
+              ) : (
+                <span className="tnum text-[0.78rem] text-text-3">Avail: {formatINR(a.balance)}</span>
+              )}
               {on && <Check className="h-4 w-4 shrink-0 text-brand" />}
             </button>
           );

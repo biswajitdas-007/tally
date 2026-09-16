@@ -11,8 +11,9 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Segmented } from "@/components/ui/segmented";
 import { BankBadge } from "@/components/features/bank-badge";
 import { LIABILITY_KIND_META } from "@/lib/categories";
-import { useStore } from "@/store/useStore";
+import { useStore, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
+import { withLiveOutstanding } from "@/lib/liabilities";
 import { buildPlan, comparePayoff, humanMonths, STRATEGY_META, type Strategy } from "@/lib/payoff";
 import { monthlyLiability } from "@/lib/debt";
 import { formatINR, formatDate, cn , sanitizeMoneyInput} from "@/lib/utils";
@@ -21,7 +22,15 @@ import type { LiabilityKind } from "@/lib/types";
 const PRESETS = [1000, 2500, 5000, 10000];
 
 export default function DebtPage() {
-  const liabilities = useStore((s) => s.liabilities);
+  const storedLiabilities = useStore((s) => s.liabilities);
+  const finance = useStore((s) => s.finance);
+  const expenses = useStore((s) => s.expenses);
+  const myId = useMyId() ?? "";
+  // Card balances move with every swipe, so the plan works off live figures.
+  const liabilities = useMemo(
+    () => withLiveOutstanding(storedLiabilities, finance, expenses, myId),
+    [storedLiabilities, finance, expenses, myId],
+  );
   const openWealth = useUI((s) => s.openWealth);
   const openCardDashboard = useUI((s) => s.openCardDashboard);
 

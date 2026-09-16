@@ -23,6 +23,7 @@ import { scopedDebts, splitOverview, pendingFromSplits } from "@/lib/balances";
 import { recentActivity } from "@/lib/activity";
 import { monthlyMoney } from "@/lib/money";
 import { healthScore, type SetupKey } from "@/lib/health";
+import { withLiveOutstanding } from "@/lib/liabilities";
 import { usesMoney } from "@/lib/money-mode";
 import { formatINR, monthKey, cn } from "@/lib/utils";
 
@@ -129,7 +130,7 @@ export default function HomePage() {
   const finance = useStore((s) => s.finance);
   const budget = useStore((s) => s.budget);
   const accounts = useStore((s) => s.accounts);
-  const liabilities = useStore((s) => s.liabilities);
+  const storedLiabilities = useStore((s) => s.liabilities);
   const emergency = useStore((s) => s.emergency);
   const moneyMode = useStore((s) => s.moneyMode);
   const updateProfile = useStore((s) => s.updateProfile);
@@ -142,6 +143,10 @@ export default function HomePage() {
   const openSettle = useUI((s) => s.openSettle);
   const { toast } = useToast();
 
+  const liabilities = useMemo(
+    () => withLiveOutstanding(storedLiabilities, finance, expenses, myId ?? ""),
+    [storedLiabilities, finance, expenses, myId],
+  );
   const money = usesMoney({ pref: moneyMode ?? undefined, finance, accounts, liabilities, budget, emergency });
 
   const debts = useMemo(() => scopedDebts(expenses, myId ?? ""), [expenses, myId]);

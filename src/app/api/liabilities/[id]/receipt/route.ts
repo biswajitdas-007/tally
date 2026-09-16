@@ -1,7 +1,7 @@
 import { verifyUser } from "@/lib/auth-server";
-import { collections } from "@/lib/db";
+import { claimReceipt, collections, releaseReceipt } from "@/lib/db";
 import { badRequest, isNum, isStr, json, serverError, unauthorized } from "@/lib/api-helpers";
-import { normalizeLiability } from "@/lib/liabilities";
+import { normalizeLiability, stampNow } from "@/lib/liabilities";
 import { sendEmiEmail } from "@/lib/emi-email";
 import { sendCardEmail } from "@/lib/card-email";
 
@@ -31,11 +31,16 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
     const l = normalizeLiability(stored);
     const dueDay = l.dueDay ?? 3;
-    
+
     // Check if the payment date was past the due date of the current month
     // We construct the due date for the month the payment was made in
     const dueDate = new Date(paymentDate.getFullYear(), paymentDate.getMonth(), dueDay, 23, 59, 59);
     const isLate = paymentDate > dueDate;
+
+    const period = stampNow(paymentDate);
+    if (!(await claimReceipt(users, user.uid, id, period))) {
+      return json({ ok: true, emailSent: false, alreadySent: true });
+    }
 
     let sent = false;
     if (l.kind === "card") {
@@ -43,7 +48,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     } else {
       sent = await sendEmiEmail(doc.email, doc.name ?? "", l, amountPaid, isLate, true);
     }
-    
+    if (!sent) await releaseReceipt(users, user.uid, id, period);
+
     return json({ ok: true, emailSent: sent });
   } catch {
     return serverError();

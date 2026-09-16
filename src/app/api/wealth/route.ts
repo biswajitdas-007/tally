@@ -1,7 +1,7 @@
 import { verifyUser } from "@/lib/auth-server";
 import { collections } from "@/lib/db";
 import { badRequest, isNum, isStr, json, serverError, unauthorized } from "@/lib/api-helpers";
-import { anchorLastPaidMonth, initialLastPaidMonth, normalizeLiability } from "@/lib/liabilities";
+import { anchorLastPaidMonth, initialLastPaidMonth, normalizeLiability, startOfToday } from "@/lib/liabilities";
 import type { Account, AccountKind, Emergency, InvestmentType, Liability, LiabilityKind, DebtPlanData } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -10,6 +10,7 @@ export const dynamic = "force-dynamic";
 const ACCOUNT_KINDS: AccountKind[] = ["bank", "cash", "wallet", "investment"];
 const INVESTMENT_TYPES: InvestmentType[] = ["sip", "mutualFund", "stocks", "fd", "bonds", "ppf", "gold", "crypto", "other"];
 const LIABILITY_KINDS: LiabilityKind[] = ["loan", "card", "emi"];
+const ISO_INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 
 function cleanAccounts(v: unknown): Account[] {
   if (!Array.isArray(v)) return [];
@@ -52,6 +53,12 @@ function cleanLiabilities(v: unknown, now = new Date()): Liability[] {
       if (isStr(l.lender)) item.lender = (l.lender as string).slice(0, 60);
       if (isNum(l.termMonths) && (l.termMonths as number) > 0) item.termMonths = Math.round(l.termMonths as number);
       if (item.kind === "card" && isNum(l.limit) && (l.limit as number) > 0) item.limit = l.limit as number;
+      if (item.kind === "card") {
+        // A card that predates live tracking is baselined to the start of today:
+        // its stored figure is taken as fact, and entries from today on move it.
+        const baselineAt = isStr(l.baselineAt) ? (l.baselineAt as string) : "";
+        item.baselineAt = ISO_INSTANT.test(baselineAt) ? baselineAt : startOfToday(now);
+      }
       if (isNum(l.emisPaid) && (l.emisPaid as number) >= 0) {
         item.emisPaid = item.termMonths
           ? Math.min(Math.round(l.emisPaid as number), item.termMonths)

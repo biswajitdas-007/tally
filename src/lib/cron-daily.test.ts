@@ -6,6 +6,7 @@ const dependencies = vi.hoisted(() => ({
   sendPush: vi.fn(),
   sendEmiEmail: vi.fn(),
   sendCardEmail: vi.fn(),
+  sendBillDueEmail: vi.fn(),
   sendSettleReminderEmail: vi.fn(),
 }));
 
@@ -13,6 +14,7 @@ vi.mock("@/lib/db", () => ({ collections: dependencies.collections }));
 vi.mock("@/lib/webpush", () => ({ sendPush: dependencies.sendPush }));
 vi.mock("@/lib/emi-email", () => ({ sendEmiEmail: dependencies.sendEmiEmail }));
 vi.mock("@/lib/card-email", () => ({ sendCardEmail: dependencies.sendCardEmail }));
+vi.mock("@/lib/due-email", () => ({ sendBillDueEmail: dependencies.sendBillDueEmail }));
 vi.mock("@/lib/reminder-email", () => ({ sendSettleReminderEmail: dependencies.sendSettleReminderEmail }));
 
 import { runDaily } from "./cron-daily";
@@ -31,7 +33,9 @@ function request() {
 function setup(liabilities: Liability[], modifiedCounts: number[], pushSubs: unknown[] = [sub]) {
   const events: string[] = [];
   const updates: unknown[][] = [];
-  const docs = [{ _id: "user-1", name: "Test", liabilities, pushSubs }];
+  // A real address matters: every paid-receipt bug here hides behind the
+  // `u.email` guard when the fixture has none.
+  const docs = [{ _id: "user-1", name: "Test", email: "test@tally.test", liabilities, pushSubs }];
   const users = {
     find: vi.fn((query: Record<string, unknown>) => ({
       toArray: async () => ("liabilities.0" in query ? docs : []),
@@ -65,6 +69,16 @@ const manual = (patch: Partial<Liability> = {}): Liability => ({
   ...patch,
 });
 
+const card = (patch: Partial<Liability> = {}): Liability => ({
+  id: "card-1",
+  name: "HDFC Millennia",
+  kind: "card",
+  outstanding: 24_500,
+  dueDay: 3,
+  lastPaidMonth: "2026-07",
+  ...patch,
+});
+
 describe("daily EMI orchestration", () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -73,6 +87,7 @@ describe("daily EMI orchestration", () => {
     dependencies.sendPush.mockReset();
     dependencies.sendEmiEmail.mockReset().mockResolvedValue(false);
     dependencies.sendCardEmail.mockReset().mockResolvedValue(false);
+    dependencies.sendBillDueEmail.mockReset().mockResolvedValue(false);
     dependencies.sendSettleReminderEmail.mockReset().mockResolvedValue(false);
   });
 
@@ -96,6 +111,13 @@ describe("daily EMI orchestration", () => {
     expect(dependencies.sendPush).toHaveBeenCalledTimes(1);
     expect(dependencies.sendEmiEmail).not.toHaveBeenCalled();
     expect(dependencies.sendCardEmail).not.toHaveBeenCalled();
+    expect(dependencies.sendBillDueEmail).toHaveBeenCalledTimes(1);
+    expect(dependencies.sendBillDueEmail).toHaveBeenCalledWith(
+      "test@tally.test",
+      "Test",
+      expect.objectContaining({ id: "loan /?" }),
+      { period: "2026-08", dueCount: 1 },
+    );
     expect(updates[0][1]).toMatchObject({
       $set: { "liabilities.$.lastEmiReminder": "loan /?:2026-08:due" },
     });
@@ -224,5 +246,22 @@ describe("daily EMI orchestration", () => {
     expect(dependencies.sendPush.mock.calls[0][1]).toMatchObject({ url: "/wealth", tag: "auto-1:2026-08:paid" });
     expect(dependencies.sendPush.mock.calls[0][1].url).not.toContain("confirmEmi");
     expect(result).toMatchObject({ updated: 1, reminders: 0, push: { sent: 1, failed: 0, dead: 0 } });
+  });
+
+  it("reminds about a due card bill without claiming it was paid", async () => {
+    vi.setSystemTime(new Date("2026-08-03T04:00:00.000Z"));
+    setup([card()], [1]);
+
+    const result = await (await runDaily(request())).json();
+
+    expect(dependencies.sendCardEmail).not.toHaveBeenCalled();
+    expect(dependencies.sendBillDueEmail).toHaveBeenCalledWith(
+      "test@tally.test",
+      "Test",
+      expect.objectContaining({ id: "card-1", kind: "card" }),
+      { period: "2026-08", dueCount: 1 },
+    );
+    expect(dependencies.sendPush.mock.calls[0][1]).toMatchObject({ title: "Bill reminder" });
+    expect(result).toMatchObject({ reminders: 1 });
   });
 });

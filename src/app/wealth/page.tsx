@@ -21,7 +21,7 @@ import { pendingFromSplits } from "@/lib/balances";
 import { debtSuggestions, monthlyLiability, type DebtSuggestion } from "@/lib/debt";
 import { creditCardSuggestions } from "@/lib/cards";
 import { withLiveBalances, unparkedAmount } from "@/lib/accounts";
-import { liveLiabilityOutstanding, stampNow } from "@/lib/liabilities";
+import { cardStatus, liveLiabilityOutstanding, stampNow, withLiveOutstanding } from "@/lib/liabilities";
 import { formatINR, cn } from "@/lib/utils";
 import type { AccountKind, InvestmentType, LiabilityKind } from "@/lib/types";
 
@@ -91,11 +91,17 @@ export default function WealthPage() {
     () => withLiveBalances(accounts, finance, expenses, myId),
     [accounts, finance, expenses, myId],
   );
+  // Totals and advice run on live card balances; the rows below keep the raw
+  // records, since each derives its own figure and editing writes them back.
+  const liveLiabilities = useMemo(
+    () => withLiveOutstanding(liabilities, finance, expenses, myId),
+    [liabilities, finance, expenses, myId],
+  );
   const unparked = useMemo(() => unparkedAmount(finance, expenses, accounts, myId), [finance, expenses, accounts, myId]);
 
   const health = useMemo(
-    () => healthScore({ finance, expenses, meId: myId, budget, accounts: liveAccounts, liabilities, emergency, unparked }),
-    [finance, expenses, myId, budget, liveAccounts, liabilities, emergency, unparked],
+    () => healthScore({ finance, expenses, meId: myId, budget, accounts: liveAccounts, liabilities: liveLiabilities, emergency, unparked }),
+    [finance, expenses, myId, budget, liveAccounts, liveLiabilities, emergency, unparked],
   );
   const ef = useMemo(() => emergencyStatus(emergency, liveAccounts, unparked), [emergency, liveAccounts, unparked]);
   const cashAccounts = useMemo(() => liveAccounts.filter((a) => a.kind !== "investment"), [liveAccounts]);
@@ -103,34 +109,34 @@ export default function WealthPage() {
   const pending = useMemo(() => pendingFromSplits(expenses, myId), [expenses, myId]);
   const investList = useMemo(() => liveAccounts.filter((a) => a.kind === "investment"), [liveAccounts]);
   const invTotals = useMemo(() => investmentTotals(liveAccounts), [liveAccounts]);
-  const nwBase = useMemo(() => netWorth(liveAccounts, liabilities), [liveAccounts, liabilities]);
+  const nwBase = useMemo(() => netWorth(liveAccounts, liveLiabilities), [liveAccounts, liveLiabilities]);
   const assets = nwBase.assets + unparked;
   const netTotal = assets - nwBase.debts;
 
   const avg = useMemo(() => avgMonthly(finance, expenses, myId), [finance, expenses, myId]);
   const income = avg.income;
   const runway = useMemo(
-    () => wealthRunway({ finance, expenses, meId: myId, accounts: liveAccounts, liabilities, unparked }),
-    [finance, expenses, myId, liveAccounts, liabilities, unparked],
+    () => wealthRunway({ finance, expenses, meId: myId, accounts: liveAccounts, liabilities: liveLiabilities, unparked }),
+    [finance, expenses, myId, liveAccounts, liveLiabilities, unparked],
   );
-  const emiTotal = useMemo(() => monthlyLiability(liabilities), [liabilities]);
-  const payoff = useMemo(() => buildPlan(liabilities, "avalanche"), [liabilities]);
+  const emiTotal = useMemo(() => monthlyLiability(liveLiabilities), [liveLiabilities]);
+  const payoff = useMemo(() => buildPlan(liveLiabilities, "avalanche"), [liveLiabilities]);
   const liquid = liveAccounts.filter((a) => a.kind !== "investment").reduce((s, a) => s + a.balance, 0) + unparked;
   const dti = income > 0 ? emiTotal / income : 0;
   const suggestions = useMemo(
-    () => debtSuggestions({ liabilities, income, spend: avg.spend, liquid }),
-    [liabilities, income, avg.spend, liquid],
+    () => debtSuggestions({ liabilities: liveLiabilities, income, spend: avg.spend, liquid }),
+    [liveLiabilities, income, avg.spend, liquid],
   );
   const cardSuggestions = useMemo(
     () =>
-      creditCardSuggestions(liabilities).map((s) => ({
+      creditCardSuggestions(liveLiabilities).map((s) => ({
         key: s.key,
         tone: s.tone,
         title: s.title,
         detail: s.detail,
         priority: 99,
       })),
-    [liabilities],
+    [liveLiabilities],
   );
   const dtiStyle =
     dti >= 0.4
@@ -680,8 +686,15 @@ export default function WealthPage() {
                     const amountPaid = cyclePayments.reduce((acc, curr) => acc + curr.amount, 0);
                     const paidThisCycle = amountPaid > 0;
                     
+                    const status = cardStatus(l, finance, expenses, myId);
                     const metaParts = [];
-                    if (l.limit) metaParts.push(`Available: ${formatINR(Math.max(0, l.limit - l.outstanding))}`);
+                    if (l.limit) {
+                      metaParts.push(
+                        status.overLimit
+                          ? `Over limit by ${formatINR(status.overBy)}`
+                          : `Available: ${formatINR(status.available)}`,
+                      );
+                    }
                     if (l.statementDay) metaParts.push(`Stmt: ${l.statementDay}th`);
                     if (l.dueDay) metaParts.push(`Due: ${l.dueDay}th`);
                     return (

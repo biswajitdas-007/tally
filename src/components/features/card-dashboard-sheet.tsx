@@ -2,10 +2,10 @@ import { useStore, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { Sheet } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { formatINR } from "@/lib/utils";
-import { liveLiabilityOutstanding } from "@/lib/liabilities";
+import { cn, formatINR } from "@/lib/utils";
+import { cardStatus } from "@/lib/liabilities";
 import { LIABILITY_KIND_META } from "@/lib/categories";
-import { CreditCard, Settings, Plus } from "lucide-react";
+import { AlertTriangle, CreditCard, Settings, Plus } from "lucide-react";
 import type { LiabilityKind } from "@/lib/types";
 
 export function CardDashboardSheet() {
@@ -27,10 +27,12 @@ export function CardDashboardSheet() {
     return <Sheet open={open} onClose={close} title=""><></></Sheet>;
   }
 
-  const outstanding = card.outstanding;
-  const limit = card.limit ?? 0;
-  const available = limit > 0 ? Math.max(0, limit - outstanding) : 0;
-  const utilization = limit > 0 ? (outstanding / limit) * 100 : 0;
+  const { outstanding, limit, available, utilization, overLimit, overBy, inCredit } = cardStatus(
+    card,
+    finance,
+    expenses,
+    myId,
+  );
   
   const Icon = LIABILITY_KIND_META[card.kind as LiabilityKind]?.icon ?? CreditCard;
   
@@ -60,8 +62,8 @@ export function CardDashboardSheet() {
           </div>
           
           <div className="relative mt-8 flex flex-col text-white">
-            <span className="text-[0.8rem] font-medium text-white/80">Amount Owed</span>
-            <span className="font-display text-4xl font-bold tracking-tight">{formatINR(outstanding)}</span>
+            <span className="text-[0.8rem] font-medium text-white/80">{inCredit ? "In credit" : "Amount Owed"}</span>
+            <span className="font-display text-4xl font-bold tracking-tight">{formatINR(Math.abs(outstanding))}</span>
           </div>
         </div>
         
@@ -91,17 +93,34 @@ export function CardDashboardSheet() {
           </Button>
         </div>
 
+        {overLimit && (
+          <div className="flex items-start gap-3 rounded-[16px] border border-negative/30 bg-negative-soft p-4">
+            <AlertTriangle className="mt-0.5 h-4.5 w-4.5 shrink-0 text-negative" />
+            <div className="min-w-0">
+              <p className="text-[0.85rem] font-semibold text-negative">
+                Over the limit by {formatINR(overBy)}
+              </p>
+              <p className="mt-0.5 text-[0.76rem] leading-snug text-text-2">
+                Interest and fees can push a bill past its limit. Most banks charge an over-limit fee and
+                decline further spending until it&apos;s back under {formatINR(limit)}.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Progress */}
         {limit > 0 && (
           <div className="flex flex-col gap-2 rounded-[16px] border border-border bg-surface-2 p-5">
             <div className="flex items-center justify-between">
               <p className="text-[0.85rem] font-semibold text-text">Credit Utilization</p>
-              <span className="text-[0.75rem] font-bold text-text-3">{utilization.toFixed(0)}%</span>
+              <span className={cn("text-[0.75rem] font-bold", overLimit ? "text-negative" : "text-text-3")}>
+                {Math.max(0, utilization).toFixed(0)}%
+              </span>
             </div>
             <div className="h-2 w-full overflow-hidden rounded-full bg-border/50">
-              <div 
-                className="h-full bg-brand transition-all duration-500 ease-out" 
-                style={{ width: `${Math.min(utilization, 100)}%` }} 
+              <div
+                className={cn("h-full transition-all duration-500 ease-out", overLimit ? "bg-negative" : "bg-brand")}
+                style={{ width: `${Math.min(Math.max(0, utilization), 100)}%` }}
               />
             </div>
             <div className="mt-1 flex items-center justify-between text-[0.75rem]">

@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Segmented } from "@/components/ui/segmented";
 import { Switch } from "@/components/ui/switch";
 import { ACCOUNT_KIND_META, LIQUID_ACCOUNT_KINDS, LIABILITY_KIND_META, LIABILITY_KINDS } from "@/lib/categories";
-import { DEFAULT_DUE_DAY, editedPaidCountLastPaidMonth, initialLastPaidMonth } from "@/lib/liabilities";
+import { DEFAULT_DUE_DAY, editedPaidCountLastPaidMonth, initialLastPaidMonth, liveLiabilityOutstanding } from "@/lib/liabilities";
 import { linkedDelta } from "@/lib/accounts";
 import { useStore, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
@@ -95,7 +95,11 @@ export function WealthSheet() {
         setLimit(el.limit ? formatMoneyInput(el.limit) : "");
         if (el.kind === "card") {
           const l = el.limit ?? 0;
-          setAvailableLimit(l > 0 ? formatMoneyInput(l - el.outstanding) : "");
+          // Show what is actually left to spend. Saving restates this as the
+          // new baseline, so prefilling the stale figure would drop every
+          // charge made since the last one.
+          const liveOut = liveLiabilityOutstanding(el, finance, expenses, myId);
+          setAvailableLimit(l > 0 ? formatMoneyInput(l - liveOut) : "");
         } else {
           setAvailableLimit("");
         }
@@ -158,6 +162,9 @@ export function WealthSheet() {
       const liab: Liability = { id, name: name.trim(), kind: kind as LiabilityKind, outstanding: total };
 if (kind === "card") {
   if (parsedLimit > 0) liab.limit = parsedLimit;
+  // The available limit just entered is true as of now, so this becomes the
+  // point future spends and payments are measured from.
+  liab.baselineAt = new Date().toISOString();
   const statementN = parseInt(statementDay, 10);
   if (!Number.isNaN(statementN)) liab.statementDay = Math.min(Math.max(statementN, 1), 28);
   const dueN = parseInt(dueDay, 10);

@@ -4,6 +4,7 @@ import { duePeriods, periodKey, lastOccurrence } from "@/lib/recurring";
 import { scopedDebts, scopedTotals } from "@/lib/balances";
 import { sendEmiEmail } from "@/lib/emi-email";
 import { sendCardEmail } from "@/lib/card-email";
+import { sendBillDueEmail } from "@/lib/due-email";
 import { sendSettleReminderEmail } from "@/lib/reminder-email";
 import { sendPush, type PushPayload, type PushResult } from "@/lib/webpush";
 import { json } from "@/lib/api-helpers";
@@ -279,9 +280,12 @@ async function runEmis(users: Collection<UserDoc>, now: Date, push: PushMetrics)
           updatedUsers.add(u._id);
           if (!current.autoDebit && notice.kind === "due" && u.email) {
             try {
-              const emailSent = current.kind === "card"
-                ? await sendCardEmail(u.email, u.name, current)
-                : await sendEmiEmail(u.email, u.name, current);
+              // A reminder, never a receipt — the payment hasn't been confirmed
+              // yet, so the paid templates would be claiming something untrue.
+              const emailSent = await sendBillDueEmail(u.email, u.name, current, {
+                period: notice.period,
+                dueCount: notice.dueCount,
+              });
               if (emailSent) emails++;
             } catch {
               emailFailures++;

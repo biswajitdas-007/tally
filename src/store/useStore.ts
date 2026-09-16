@@ -325,36 +325,11 @@ export const useStore = create<State>()(
       toDelete = linked.map(f => f.id);
     }
     
-    let liabilitiesPatch: typeof s.liabilities | undefined = undefined;
-    
-    const entriesToDelete = s.finance.filter(f => toDelete.includes(f.id));
-    
-    entriesToDelete.forEach(f => {
-       if (f.type === "income" && f.accountId && f.transfer) {
-          const card = s.liabilities.find(l => l.id === f.accountId && l.kind === "card");
-          if (card) {
-             if (!liabilitiesPatch) liabilitiesPatch = s.liabilities.map(l => ({ ...l }));
-             const target = liabilitiesPatch.find(l => l.id === card.id);
-             if (target) {
-                 target.outstanding += f.amount;
-             }
-          }
-       }
-    });
+    // A card's balance is derived from the entries against it, so removing a
+    // payment restores what it had cleared with no adjustment of our own.
+    set((s) => ({ finance: s.finance.filter((f) => !toDelete.includes(f.id)) }));
 
-    set((s) => ({ 
-       finance: s.finance.filter((f) => !toDelete.includes(f.id)),
-       ...(liabilitiesPatch ? { liabilities: liabilitiesPatch } : {})
-    }));
-    
     toDelete.forEach(did => api.deleteFinanceApi(did));
-    if (liabilitiesPatch) {
-      const body = {
-        liabilities: liabilitiesPatch,
-        expectedLiabilities: s.liabilities
-      };
-      api.setWealthApi(body).then(res => reconcile(res, get));
-    }
   },
 
   setBudget: (patch) => {
