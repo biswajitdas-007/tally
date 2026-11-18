@@ -37,7 +37,6 @@ interface State {
   emergency: Emergency | null;
   debtPlan: DebtPlanData | null;
   recurrings: Recurring[];
-  moneyMode: boolean | null;
   removedFriends: string[];
   pendingInvites: PendingInvite[];
   lastDeleted: Expense | null;
@@ -59,7 +58,7 @@ interface State {
   deleteGroup: (id: ID) => void;
 
   settleUp: (input: { from: ID; to: ID; amount: number; groupId?: ID | null; note?: string }) => void;
-  updateProfile: (patch: { name?: string; upiId?: string; moneyMode?: boolean }) => void;
+  updateProfile: (patch: { name?: string; upiId?: string }) => void;
   deleteFriend: (id: ID) => Promise<{ ok: boolean; unsettled?: boolean; amount?: number }>;
 
   addFinance: (input: { type: FinanceType; amount: number; category: string; date?: string; note?: string; accountId?: ID; transfer?: boolean; recurringId?: ID; linkedId?: ID }) => FinanceEntry;
@@ -89,9 +88,8 @@ const stateHash = (s: {
   emergency: unknown;
   debtPlan: unknown;
   recurrings: unknown[];
-  moneyMode: unknown;
   pendingInvites: unknown[];
-}) => JSON.stringify([s.people, s.groups, s.expenses, s.finance, s.budget, s.accounts, s.liabilities, s.removedFriends, s.emergency, s.debtPlan, s.recurrings, s.moneyMode, s.pendingInvites]);
+}) => JSON.stringify([s.people, s.groups, s.expenses, s.finance, s.budget, s.accounts, s.liabilities, s.removedFriends, s.emergency, s.debtPlan, s.recurrings, s.pendingInvites]);
 
 const now = () => new Date().toISOString();
 const reconcile = (res: Response | null, get: () => State) => {
@@ -116,7 +114,6 @@ export const useStore = create<State>()(
   emergency: null,
   debtPlan: null,
   recurrings: [],
-  moneyMode: null,
   removedFriends: [],
   pendingInvites: [],
   lastDeleted: null,
@@ -142,7 +139,6 @@ export const useStore = create<State>()(
       emergency: state.emergency ?? null,
       debtPlan: state.debtPlan ?? null,
       recurrings: state.recurrings ?? [],
-      moneyMode: state.moneyMode ?? null,
       removedFriends: state.removedFriends ?? [],
       pendingInvites: state.pendingInvites ?? [],
       dataReady: true,
@@ -165,7 +161,6 @@ export const useStore = create<State>()(
       emergency: null,
       debtPlan: null,
       recurrings: [],
-      moneyMode: null,
       removedFriends: [],
       pendingInvites: [],
       lastDeleted: null,
@@ -268,11 +263,9 @@ export const useStore = create<State>()(
 
   updateProfile: (patch) => {
     const meId = get().currentUserId ?? "";
-    const { moneyMode, ...person } = patch;
     set((s) => ({
-      me: s.me ? { ...s.me, ...person } : s.me,
-      people: s.people.map((p) => (p.id === meId ? { ...p, ...person } : p)),
-      moneyMode: moneyMode === undefined ? s.moneyMode : moneyMode,
+      me: s.me ? { ...s.me, ...patch } : s.me,
+      people: s.people.map((p) => (p.id === meId ? { ...p, ...patch } : p)),
     }));
     api.updateProfileApi({ ...patch }).then((res) => reconcile(res, get));
   },
@@ -424,7 +417,6 @@ export const useStore = create<State>()(
     emergency: state.emergency,
     debtPlan: state.debtPlan,
     recurrings: state.recurrings,
-    moneyMode: state.moneyMode,
     removedFriends: state.removedFriends,
     pendingInvites: state.pendingInvites,
   } as unknown as State),

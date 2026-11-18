@@ -11,7 +11,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CATEGORIES, CATEGORY_LIST, INCOME_LIST } from "@/lib/categories";
 import { AccountPicker } from "./account-picker";
-import { useStore, useMyId } from "@/store/useStore";
+import { useStore } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { useToast } from "@/components/ui/toast";
 import { crossingWarning, monthlyMoney, spendByCategory } from "@/lib/money";
@@ -28,7 +28,6 @@ export function AddMoneySheet() {
   const editId = useUI((s) => s.moneyEditId);
   const close = useUI((s) => s.closeMoney);
   const finance = useStore((s) => s.finance);
-  const expenses = useStore((s) => s.expenses);
   const budget = useStore((s) => s.budget);
   const accounts = useStore((s) => s.accounts);
   const emergency = useStore((s) => s.emergency);
@@ -36,7 +35,6 @@ export function AddMoneySheet() {
   const updateFinance = useStore((s) => s.updateFinance);
   const deleteFinance = useStore((s) => s.deleteFinance);
   const saveRecurring = useStore((s) => s.saveRecurring);
-  const myId = useMyId() ?? "";
   const { toast } = useToast();
 
   const editing = editId ? finance.find((f) => f.id === editId) ?? null : null;
@@ -106,11 +104,11 @@ export function AddMoneySheet() {
     if (isIncome) return null;
     const mKey = monthKey(date.toISOString());
     if (mKey !== monthKey(new Date().toISOString())) return null;
-    const mm = monthlyMoney(finance, expenses, myId, mKey);
+    const mm = monthlyMoney(finance, mKey);
 
     const cap = budget.limits[category as CategoryKey];
     if (cap) {
-      const catBefore = spendByCategory(finance, expenses, myId, mKey).find((c) => c.category === category)?.amount ?? 0;
+      const catBefore = spendByCategory(finance, mKey).find((c) => c.category === category)?.amount ?? 0;
       const w = crossingWarning(catBefore, catBefore + total, cap, CATEGORIES[category as CategoryKey]?.label ?? "category");
       if (w) return w;
     }

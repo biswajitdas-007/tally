@@ -12,13 +12,11 @@ import { PageGrid, PageCol } from "@/components/app/page-grid";
 import { Card, SectionHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { useStore, useMyId } from "@/store/useStore";
+import { useStore } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { CATEGORIES, INCOME_CATEGORIES } from "@/lib/categories";
 import { monthlyMoney, financeForMonth, spendByCategory, monthLabel, budgetView, moneyStatus, missingIncome, suggestedBudget } from "@/lib/money";
 import { healthScore, netWorth, gradeColor, wealthRunway, emergencyStatus } from "@/lib/health";
-import { pendingFromSplits } from "@/lib/balances";
-import { PendingSplitsCard } from "@/components/features/pending-splits-card";
 import { isDue, recurLabel, nextOccurrence } from "@/lib/recurring";
 import { withLiveBalances } from "@/lib/accounts";
 import { withLiveOutstanding } from "@/lib/liabilities";
@@ -59,7 +57,6 @@ function entryMeta(e: FinanceEntry) {
 
 export default function MoneyPage() {
   const finance = useStore((s) => s.finance);
-  const expenses = useStore((s) => s.expenses);
   const budget = useStore((s) => s.budget);
   const accounts = useStore((s) => s.accounts);
   const storedLiabilities = useStore((s) => s.liabilities);
@@ -71,7 +68,6 @@ export default function MoneyPage() {
   const openTransfer = useUI((s) => s.openTransfer);
   const recurrings = useStore((s) => s.recurrings);
   const runRecurring = useStore((s) => s.runRecurring);
-  const myId = useMyId() ?? "";
 
   const [mDate, setMDate] = useState(() => {
     const d = new Date();
@@ -81,9 +77,9 @@ export default function MoneyPage() {
   const atCurrent = mKey >= NOW_KEY;
   const shift = (n: number) => setMDate((d) => new Date(d.getFullYear(), d.getMonth() + n, 1));
 
-  const m = useMemo(() => monthlyMoney(finance, expenses, myId, mKey), [finance, expenses, myId, mKey]);
+  const m = useMemo(() => monthlyMoney(finance, mKey), [finance, mKey]);
   const entries = useMemo(() => financeForMonth(finance, mKey), [finance, mKey]);
-  const byCat = useMemo(() => spendByCategory(finance, expenses, myId, mKey), [finance, expenses, myId, mKey]);
+  const byCat = useMemo(() => spendByCategory(finance, mKey), [finance, mKey]);
   const bv = useMemo(() => budgetView(budget, byCat, m.spend), [budget, byCat, m.spend]);
   const liveAccounts = useMemo(
     () => withLiveBalances(accounts, finance),
@@ -94,19 +90,18 @@ export default function MoneyPage() {
     [storedLiabilities, finance],
   );
   const health = useMemo(
-    () => healthScore({ finance, expenses, meId: myId, budget, accounts: liveAccounts, liabilities, emergency }),
-    [finance, expenses, myId, budget, liveAccounts, liabilities, emergency],
+    () => healthScore({ finance, budget, accounts: liveAccounts, liabilities, emergency }),
+    [finance, budget, liveAccounts, liabilities, emergency],
   );
   const ef = useMemo(() => emergencyStatus(emergency, liveAccounts), [emergency, liveAccounts]);
   const nw = useMemo(() => ({ net: netWorth(liveAccounts, liabilities).net }), [liveAccounts, liabilities]);
   const runway = useMemo(
-    () => wealthRunway({ finance, expenses, meId: myId, accounts: liveAccounts, liabilities }),
-    [finance, expenses, myId, liveAccounts, liabilities],
+    () => wealthRunway({ finance, accounts: liveAccounts, liabilities }),
+    [finance, liveAccounts, liabilities],
   );
 
-  const pending = useMemo(() => pendingFromSplits(expenses, myId), [expenses, myId]);
-  const needsIncome = useMemo(() => missingIncome(finance, expenses, myId), [finance, expenses, myId]);
-  const suggested = useMemo(() => suggestedBudget(finance, expenses, myId), [finance, expenses, myId]);
+  const needsIncome = useMemo(() => missingIncome(finance), [finance]);
+  const suggested = useMemo(() => suggestedBudget(finance), [finance]);
   // A limit that's beaten every month has stopped being a limit.
   const budgetUnrealistic = bv.hasBudget && bv.monthly > 0 && suggested > bv.monthly * 1.2;
   const dueRules = useMemo(() => recurrings.filter((r) => isDue(r)), [recurrings]);
@@ -192,11 +187,6 @@ export default function MoneyPage() {
                 </div>
               </div>
 
-              {m.splitSpend > 0.5 && (
-                <p className="mt-3 text-[0.74rem] text-white/70">
-                  Includes {formatINR(m.splitSpend)} from your splits, pulled in automatically.
-                </p>
-              )}
             </div>
           </motion.div>
 
@@ -241,7 +231,6 @@ export default function MoneyPage() {
             </button>
           )}
 
-          {pending.any && <PendingSplitsCard pending={pending} />}
 
           {/* Add actions */}
           <div className="grid grid-cols-2 gap-2.5">
@@ -552,11 +541,6 @@ export default function MoneyPage() {
             )}
           </section>
 
-          {m.splitSpend > 0.5 && entries.length === 0 && (
-            <p className="-mt-2 flex items-center justify-center gap-1.5 text-center text-[0.78rem] text-text-3">
-              <Wallet className="h-3.5 w-3.5" /> Your {formatINR(m.splitSpend)} of splits is already counted above.
-            </p>
-          )}
         </PageCol>
       </PageGrid>
     </div>

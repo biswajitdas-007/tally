@@ -1,4 +1,4 @@
-import type { Account, Budget, Emergency, Expense, FinanceEntry, ID, Liability } from "./types";
+import type { Account, Budget, Emergency, FinanceEntry, Liability } from "./types";
 import { monthlyMoney, monthlyEmi } from "./money";
 import { formatINR } from "./utils";
 
@@ -60,12 +60,12 @@ function recentMonthKeys(count = 3): string[] {
 }
 
 /** Average monthly income & spend over the last 3 months, to smooth noise. */
-export function avgMonthly(finance: FinanceEntry[], expenses: Expense[], meId: ID) {
+export function avgMonthly(finance: FinanceEntry[]) {
   const keys = recentMonthKeys(3);
   let income = 0;
   let spend = 0;
   for (const k of keys) {
-    const m = monthlyMoney(finance, expenses, meId, k);
+    const m = monthlyMoney(finance, k);
     income += m.income;
     spend += m.spend;
   }
@@ -146,18 +146,16 @@ const NUDGES: Record<PillarKey, string> = {
 
 export function healthScore(opts: {
   finance: FinanceEntry[];
-  expenses: Expense[];
-  meId: ID;
   budget: Budget;
   accounts: Account[];
   liabilities: Liability[];
   emergency?: Emergency | null;
 }): Health {
-  const { finance, expenses, meId, accounts, liabilities } = opts;
-  const avg = avgMonthly(finance, expenses, meId);
+  const { finance, accounts, liabilities } = opts;
+  const avg = avgMonthly(finance);
   const income = avg.income;
   const emiOut = monthlyEmi(liabilities);
-  // Everything that leaves you each month: logged spend + your split share + EMIs.
+  // Everything that leaves you each month: logged spend + EMIs.
   const outflow = avg.spend + emiOut;
   const hasOutflow = outflow > 0;
   const nw = netWorth(accounts, liabilities);
@@ -298,17 +296,15 @@ export interface Runway {
 
 /**
  * How long your net worth lasts if the last 3 months' pattern continues.
- * Outflow counts everything leaving you: logged spend + split share + EMIs.
+ * Outflow counts everything leaving you: logged spend + EMIs.
  */
 export function wealthRunway(opts: {
   finance: FinanceEntry[];
-  expenses: Expense[];
-  meId: ID;
   accounts: Account[];
   liabilities: Liability[];
 }): Runway {
-  const { finance, expenses, meId, accounts, liabilities } = opts;
-  const avg = avgMonthly(finance, expenses, meId);
+  const { finance, accounts, liabilities } = opts;
+  const avg = avgMonthly(finance);
   const outflow = avg.spend + monthlyEmi(liabilities);
   const income = avg.income;
   const burn = outflow - income;

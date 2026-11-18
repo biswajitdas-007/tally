@@ -1,6 +1,5 @@
-import type { Budget, CategoryKey, Expense, FinanceEntry, ID } from "./types";
+import type { Budget, CategoryKey, FinanceEntry } from "./types";
 import { monthKey, formatINR, formatShare } from "./utils";
-import { myShare } from "./balances";
 import { monthlyMoney, spendByCategory } from "./money";
 import { CATEGORIES } from "./categories";
 
@@ -18,16 +17,11 @@ interface SpendEvent {
   category: CategoryKey;
 }
 
-/** Everything you spent in a month — solo entries + your share of splits. */
-function spendEvents(finance: FinanceEntry[], expenses: Expense[], meId: ID, mKey: string): SpendEvent[] {
+/** Everything you spent in a month. */
+function spendEvents(finance: FinanceEntry[], mKey: string): SpendEvent[] {
   const out: SpendEvent[] = [];
   for (const f of finance) {
     if (f.type === "expense" && monthKey(f.date) === mKey) out.push({ date: f.date, amount: f.amount, category: f.category as CategoryKey });
-  }
-  for (const e of expenses) {
-    if (e.isSettlement || monthKey(e.date) !== mKey) continue;
-    const share = myShare(e, meId);
-    if (share > 0) out.push({ date: e.date, amount: share, category: e.category });
   }
   return out;
 }
@@ -40,15 +34,15 @@ const prevMonthKey = (mKey: string) => {
 };
 
 /** Plain-language insights & nudges for the current month. */
-export function insights(finance: FinanceEntry[], expenses: Expense[], budget: Budget, meId: ID): Insight[] {
+export function insights(finance: FinanceEntry[], budget: Budget): Insight[] {
   const nowKey = monthKey(new Date().toISOString());
   const lastKey = prevMonthKey(nowKey);
   const out: Insight[] = [];
 
-  const evThis = spendEvents(finance, expenses, meId, nowKey);
-  const byThis = spendByCategory(finance, expenses, meId, nowKey);
-  const byLast = spendByCategory(finance, expenses, meId, lastKey);
-  const mmThis = monthlyMoney(finance, expenses, meId, nowKey);
+  const evThis = spendEvents(finance, nowKey);
+  const byThis = spendByCategory(finance, nowKey);
+  const byLast = spendByCategory(finance, lastKey);
+  const mmThis = monthlyMoney(finance, nowKey);
   const total = byThis.reduce((a, c) => a + c.amount, 0);
   const lastAmt = (c: CategoryKey) => byLast.find((x) => x.category === c)?.amount ?? 0;
 
@@ -85,7 +79,7 @@ export function insights(finance: FinanceEntry[], expenses: Expense[], budget: B
   // 3. Pace vs the same point last month
   const day = new Date().getDate();
   const soFar = (mKey: string) =>
-    spendEvents(finance, expenses, meId, mKey)
+    spendEvents(finance, mKey)
       .filter((e) => new Date(e.date).getDate() <= day)
       .reduce((a, e) => a + e.amount, 0);
   const thisSoFar = soFar(nowKey);

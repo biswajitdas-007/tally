@@ -2,18 +2,13 @@ import { collections } from "./db";
 import { sendPush } from "./webpush";
 import { monthKey } from "./utils";
 
-/** A user's total spend for a month: personal expenses + their share of splits. */
+/** A user's total spend for a month, from the entries they logged. Transfers aren't spending. */
 async function userMonthSpend(uid: string, mKey: string): Promise<number> {
-  const { finance, expenses } = await collections();
-  const fins = await finance.find({ uid, type: "expense" }).toArray();
-  const exps = await expenses.find({ memberUids: uid, isSettlement: { $ne: true } }).toArray();
+  const { finance } = await collections();
+  const fins = await finance.find({ uid, type: "expense", transfer: { $ne: true } }).toArray();
 
   let total = 0;
   for (const f of fins) if (monthKey(f.date) === mKey) total += f.amount;
-  for (const e of exps) {
-    if (monthKey(e.date) !== mKey) continue;
-    for (const s of e.splits) if (s.personId === uid) total += s.amount;
-  }
   return total;
 }
 

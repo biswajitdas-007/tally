@@ -1,6 +1,5 @@
-import type { Budget, CategoryKey, Expense, FinanceEntry, ID, Liability } from "./types";
+import type { Budget, CategoryKey, FinanceEntry, Liability } from "./types";
 import { monthKey, formatINR } from "./utils";
-import { monthlySpend, myShare } from "./balances";
 
 /** Sum of monthly EMIs still being paid — money that leaves you every month. */
 export function monthlyEmi(liabilities: Liability[]): number {
@@ -15,31 +14,24 @@ export function monthlyEmi(liabilities: Liability[]): number {
 }
 
 /**
- * Tally Money combines two sources for your monthly picture:
- *  - personal entries you log here (income + solo expenses), and
- *  - your *share* of split expenses, pulled straight from the ledgers.
- * Settlements are excluded — they settle debt for spending already counted.
+ * Your monthly picture, from the entries you log yourself. Transfers between
+ * your own accounts move money without earning or spending it, so they're left out.
  */
-
 export interface MonthlyMoney {
   income: number;
-  personalSpend: number; // solo expenses you logged in Money
-  splitSpend: number; // your share of split expenses that month
-  spend: number; // personalSpend + splitSpend
+  spend: number;
   net: number; // income − spend
 }
 
-export function monthlyMoney(finance: FinanceEntry[], expenses: Expense[], meId: ID, mKey: string): MonthlyMoney {
+export function monthlyMoney(finance: FinanceEntry[], mKey: string): MonthlyMoney {
   let income = 0;
-  let personalSpend = 0;
+  let spend = 0;
   for (const f of finance) {
     if (f.transfer || monthKey(f.date) !== mKey) continue;
     if (f.type === "income") income += f.amount;
-    else personalSpend += f.amount;
+    else spend += f.amount;
   }
-  const splitSpend = monthlySpend(expenses, meId, mKey);
-  const spend = personalSpend + splitSpend;
-  return { income, personalSpend, splitSpend, spend, net: income - spend };
+  return { income, spend, net: income - spend };
 }
 
 export interface MoneyStatus {
@@ -97,11 +89,10 @@ export function moneyStatus(income: number, spend: number): MoneyStatus {
 }
 
 /** Months (newest → oldest) with any activity — always including the current one. */
-export function activeMonths(finance: FinanceEntry[], expenses: Expense[], meId: ID): string[] {
+export function activeMonths(finance: FinanceEntry[]): string[] {
   const set = new Set<string>();
   set.add(monthKey(new Date().toISOString()));
   for (const f of finance) set.add(monthKey(f.date));
-  for (const e of expenses) if (!e.isSettlement && myShare(e, meId) > 0) set.add(monthKey(e.date));
   return [...set].sort((a, b) => (a < b ? 1 : -1));
 }
 
@@ -112,21 +103,11 @@ export function financeForMonth(finance: FinanceEntry[], mKey: string): FinanceE
     .sort((a, b) => +new Date(b.date) - +new Date(a.date));
 }
 
-/** Spending by category for a month — personal solo expenses + your split shares. */
-export function spendByCategory(
-  finance: FinanceEntry[],
-  expenses: Expense[],
-  meId: ID,
-  mKey: string,
-): { category: CategoryKey; amount: number }[] {
+/** Spending by category for a month. */
+export function spendByCategory(finance: FinanceEntry[], mKey: string): { category: CategoryKey; amount: number }[] {
   const totals = new Map<CategoryKey, number>();
   const add = (c: CategoryKey, v: number) => totals.set(c, (totals.get(c) ?? 0) + v);
 
-  for (const e of expenses) {
-    if (e.isSettlement || monthKey(e.date) !== mKey) continue;
-    const share = myShare(e, meId);
-    if (share > 0) add(e.category, share);
-  }
   for (const f of finance) {
     if (f.type !== "expense" || f.transfer || monthKey(f.date) !== mKey) continue;
     add(f.category as CategoryKey, f.amount);
@@ -228,12 +209,12 @@ export function crossingWarning(before: number, after: number, limit: number, la
  * recent average and rounds it up to a clean figure, so the number is a
  * stretch rather than a fantasy.
  */
-export function suggestedBudget(finance: FinanceEntry[], expenses: Expense[], meId: ID, now = new Date()): number {
+export function suggestedBudget(finance: FinanceEntry[], now = new Date()): number {
   const months: number[] = [];
   for (let i = 1; i <= 3; i++) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-    const spent = monthlyMoney(finance, expenses, meId, key).spend;
+    const spent = monthlyMoney(finance, key).spend;
     if (spent > 0) months.push(spent);
   }
   if (!months.length) return 0;
@@ -248,9 +229,9 @@ export function suggestedBudget(finance: FinanceEntry[], expenses: Expense[], me
  * and health score can't say anything until that's fixed, and a recurring
  * salary fixes it once rather than every month.
  */
-export function missingIncome(finance: FinanceEntry[], expenses: Expense[], meId: ID, now = new Date()): boolean {
+export function missingIncome(finance: FinanceEntry[], now = new Date()): boolean {
   const key = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  const m = monthlyMoney(finance, expenses, meId, key);
+  const m = monthlyMoney(finance, key);
   if (m.income > 0 || m.spend <= 0) return false;
   // Only once there's a real habit of logging — not on day one.
   return finance.filter((f) => !f.transfer && f.type === "expense").length >= 3;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { emergencyStatus, healthScore, liquidSavings, suggestedEmergency } from "./health";
-import type { Account, Expense, FinanceEntry } from "./types";
+import type { Account, FinanceEntry } from "./types";
 
 const iso = (dayAgo: number) => new Date(Date.now() - dayAgo * 86400000).toISOString();
 const income: FinanceEntry = { id: "1", type: "income", amount: 100000, category: "salary", date: iso(2), createdAt: iso(2) };
@@ -9,7 +9,7 @@ const acct: Account = { id: "a", name: "HDFC", kind: "bank", balance: 50000 };
 
 const H = (o: Partial<{ finance: FinanceEntry[]; accounts: Account[]; emergency: { target: number } | null }>) =>
   healthScore({
-    finance: o.finance ?? [], expenses: [] as Expense[], meId: "me",
+    finance: o.finance ?? [],
     budget: { limits: {} }, accounts: o.accounts ?? [], liabilities: [],
     emergency: (o.emergency ?? null) as never,
   });

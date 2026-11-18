@@ -29,6 +29,7 @@ export interface UserDoc {
    */
   receiptKeys?: string[];
   /** Explicit choice of home screen; unset means infer it from their data. */
+  /** @deprecated Old home-screen switch. No longer read or written; removed in the post-split cleanup. */
   moneyMode?: boolean;
   updatedAt?: Date;
 }
@@ -203,7 +204,6 @@ export interface ClientState {
   liabilities: Liability[];
   emergency: Emergency | null;
   recurrings: Recurring[];
-  moneyMode: boolean | null;
   removedFriends: string[];
   debtPlan: DebtPlanData | null;
   pendingInvites: PendingInvite[];
@@ -317,7 +317,6 @@ export async function buildState(uid: string): Promise<ClientState> {
     liabilities: await baselinedCards(users, uid, (meDoc.liabilities ?? []).map(normalizeLiability)),
     emergency: meDoc.emergency ?? null,
     recurrings: meDoc.recurrings ?? [],
-    moneyMode: meDoc.moneyMode ?? null,
     removedFriends: meDoc.removedFriends ?? [],
     debtPlan: meDoc.debtPlan ?? null,
     pendingInvites,
