@@ -8,9 +8,9 @@ export function netWorth(accounts: Account[], liabilities: Liability[]) {
   return { assets, debts, net: assets - debts };
 }
 
-/** Liquid cash: everything except investments, plus any unparked money. */
-export function liquidSavings(accounts: Account[], unparked = 0): number {
-  return accounts.filter((a) => a.kind !== "investment").reduce((a, x) => a + x.balance, 0) + unparked;
+/** Liquid cash: everything except investments. */
+export function liquidSavings(accounts: Account[]): number {
+  return accounts.filter((a) => a.kind !== "investment").reduce((a, x) => a + x.balance, 0);
 }
 
 export interface EmergencyStatus {
@@ -24,8 +24,8 @@ export interface EmergencyStatus {
 }
 
 /** Where the user's emergency fund stands. Never inferred — only from what they set. */
-export function emergencyStatus(emergency: Emergency | null, accounts: Account[], unparked = 0): EmergencyStatus {
-  const liquid = liquidSavings(accounts, unparked);
+export function emergencyStatus(emergency: Emergency | null, accounts: Account[]): EmergencyStatus {
+  const liquid = liquidSavings(accounts);
   if (!emergency || emergency.target <= 0) {
     return { set: false, target: 0, coverage: liquid, funded: false, short: 0, dipped: false, pct: 0 };
   }
@@ -152,20 +152,17 @@ export function healthScore(opts: {
   accounts: Account[];
   liabilities: Liability[];
   emergency?: Emergency | null;
-  unparked?: number;
 }): Health {
   const { finance, expenses, meId, accounts, liabilities } = opts;
-  const unparked = opts.unparked ?? 0;
   const avg = avgMonthly(finance, expenses, meId);
   const income = avg.income;
   const emiOut = monthlyEmi(liabilities);
   // Everything that leaves you each month: logged spend + your split share + EMIs.
   const outflow = avg.spend + emiOut;
   const hasOutflow = outflow > 0;
-  const base = netWorth(accounts, liabilities);
-  const nw = { ...base, net: base.net + unparked };
+  const nw = netWorth(accounts, liabilities);
   const totalEmi = liabilities.reduce((a, x) => a + (x.emi ?? 0), 0);
-  const hasHoldings = accounts.length > 0 || liabilities.length > 0 || unparked > 0;
+  const hasHoldings = accounts.length > 0 || liabilities.length > 0;
   const enough = income > 0 || hasHoldings;
   // We can only gauge cashflow health with both income and some outflow logged.
   const confident = income > 0 && hasOutflow;
@@ -198,7 +195,7 @@ export function healthScore(opts: {
 
   // 3. Emergency fund (20) — measured against the user's own target, not raw
   // savings. Zero when they haven't set one up (nudges them to).
-  const ef = emergencyStatus(opts.emergency ?? null, accounts, unparked);
+  const ef = emergencyStatus(opts.emergency ?? null, accounts);
   pillars.push({
     key: "emergency",
     label: "Emergency fund",
@@ -296,7 +293,7 @@ export interface Runway {
   burn: number; // monthly net loss = outflow − income
   outflow: number; // avg monthly spend + EMIs
   income: number; // avg monthly income
-  net: number; // current net worth (incl. unparked)
+  net: number; // current net worth
 }
 
 /**
@@ -309,14 +306,13 @@ export function wealthRunway(opts: {
   meId: ID;
   accounts: Account[];
   liabilities: Liability[];
-  unparked?: number;
 }): Runway {
   const { finance, expenses, meId, accounts, liabilities } = opts;
   const avg = avgMonthly(finance, expenses, meId);
   const outflow = avg.spend + monthlyEmi(liabilities);
   const income = avg.income;
   const burn = outflow - income;
-  const net = netWorth(accounts, liabilities).net + (opts.unparked ?? 0);
+  const net = netWorth(accounts, liabilities).net;
   const confident = income > 0 || outflow > 0;
   const applicable = income > 0 && burn > 0 && net > 0;
   return { applicable, confident, months: applicable ? net / burn : 0, burn, outflow, income, net };

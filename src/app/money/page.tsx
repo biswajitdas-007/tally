@@ -20,7 +20,7 @@ import { healthScore, netWorth, gradeColor, wealthRunway, emergencyStatus } from
 import { pendingFromSplits } from "@/lib/balances";
 import { PendingSplitsCard } from "@/components/features/pending-splits-card";
 import { isDue, recurLabel, nextOccurrence } from "@/lib/recurring";
-import { withLiveBalances, unparkedAmount } from "@/lib/accounts";
+import { withLiveBalances } from "@/lib/accounts";
 import { withLiveOutstanding } from "@/lib/liabilities";
 import { formatINR, formatDate, monthKey, cn } from "@/lib/utils";
 import type { CategoryKey, FinanceEntry, IncomeCategory } from "@/lib/types";
@@ -86,26 +86,22 @@ export default function MoneyPage() {
   const byCat = useMemo(() => spendByCategory(finance, expenses, myId, mKey), [finance, expenses, myId, mKey]);
   const bv = useMemo(() => budgetView(budget, byCat, m.spend), [budget, byCat, m.spend]);
   const liveAccounts = useMemo(
-    () => withLiveBalances(accounts, finance, expenses, myId),
-    [accounts, finance, expenses, myId],
+    () => withLiveBalances(accounts, finance),
+    [accounts, finance],
   );
   const liabilities = useMemo(
-    () => withLiveOutstanding(storedLiabilities, finance, expenses, myId),
-    [storedLiabilities, finance, expenses, myId],
+    () => withLiveOutstanding(storedLiabilities, finance),
+    [storedLiabilities, finance],
   );
-  const unparked = useMemo(() => unparkedAmount(finance, expenses, accounts, myId), [finance, expenses, accounts, myId]);
   const health = useMemo(
-    () => healthScore({ finance, expenses, meId: myId, budget, accounts: liveAccounts, liabilities, emergency, unparked }),
-    [finance, expenses, myId, budget, liveAccounts, liabilities, emergency, unparked],
+    () => healthScore({ finance, expenses, meId: myId, budget, accounts: liveAccounts, liabilities, emergency }),
+    [finance, expenses, myId, budget, liveAccounts, liabilities, emergency],
   );
-  const ef = useMemo(() => emergencyStatus(emergency, liveAccounts, unparked), [emergency, liveAccounts, unparked]);
-  const nw = useMemo(
-    () => ({ net: netWorth(liveAccounts, liabilities).net + unparked }),
-    [liveAccounts, liabilities, unparked],
-  );
+  const ef = useMemo(() => emergencyStatus(emergency, liveAccounts), [emergency, liveAccounts]);
+  const nw = useMemo(() => ({ net: netWorth(liveAccounts, liabilities).net }), [liveAccounts, liabilities]);
   const runway = useMemo(
-    () => wealthRunway({ finance, expenses, meId: myId, accounts: liveAccounts, liabilities, unparked }),
-    [finance, expenses, myId, liveAccounts, liabilities, unparked],
+    () => wealthRunway({ finance, expenses, meId: myId, accounts: liveAccounts, liabilities }),
+    [finance, expenses, myId, liveAccounts, liabilities],
   );
 
   const pending = useMemo(() => pendingFromSplits(expenses, myId), [expenses, myId]);

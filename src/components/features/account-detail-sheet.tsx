@@ -5,7 +5,7 @@ import { Sheet } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { BankBadge } from "./bank-badge";
 import { ACCOUNT_KIND_META } from "@/lib/categories";
-import { useStore, useMyId } from "@/store/useStore";
+import { useStore } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { liveBalance, accountTransactions } from "@/lib/accounts";
 import { formatINR, cn } from "@/lib/utils";
@@ -17,14 +17,12 @@ export function AccountDetailSheet() {
   const openWealth = useUI((s) => s.openWealth);
   const accounts = useStore((s) => s.accounts);
   const finance = useStore((s) => s.finance);
-  const expenses = useStore((s) => s.expenses);
-  const myId = useMyId() ?? "";
 
   const account = id ? accounts.find((a) => a.id === id) ?? null : null;
   if (!account) return null;
 
-  const balance = liveBalance(account, finance, expenses, myId);
-  const txns = accountTransactions(account.id, finance, expenses, myId);
+  const balance = liveBalance(account, finance);
+  const txns = accountTransactions(account.id, finance);
   const Icon = ACCOUNT_KIND_META[account.kind as AccountKind].icon;
 
   return (

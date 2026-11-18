@@ -11,7 +11,7 @@ import { useStore, useMe, useMyId } from "@/store/useStore";
 import { monthlyMoney, financeForMonth, spendByCategory, monthLabel, monthFromParam, budgetView } from "@/lib/money";
 import { scopedDebts, scopedTotals, splitOverview, myShare } from "@/lib/balances";
 import { netWorth } from "@/lib/health";
-import { withLiveBalances, unparkedAmount } from "@/lib/accounts";
+import { withLiveBalances } from "@/lib/accounts";
 import { withLiveOutstanding } from "@/lib/liabilities";
 import { formatINR, formatDate, percentShares, monthKey, cn } from "@/lib/utils";
 import { MonthNav } from "@/components/app/month-nav";
@@ -58,12 +58,11 @@ function Report() {
   const totals = useMemo(() => scopedTotals(debts), [debts]);
   const splits = useMemo(() => splitOverview(expenses, myId), [expenses, myId]);
 
-  const live = useMemo(() => withLiveBalances(accounts, finance, expenses, myId), [accounts, finance, expenses, myId]);
+  const live = useMemo(() => withLiveBalances(accounts, finance), [accounts, finance]);
   const liabilities = useMemo(
-    () => withLiveOutstanding(storedLiabilities, finance, expenses, myId),
-    [storedLiabilities, finance, expenses, myId],
+    () => withLiveOutstanding(storedLiabilities, finance),
+    [storedLiabilities, finance],
   );
-  const unparked = useMemo(() => unparkedAmount(finance, expenses, accounts, myId), [finance, expenses, accounts, myId]);
   const nw = useMemo(() => netWorth(live, liabilities), [live, liabilities]);
 
   const catTotal = byCat.reduce((a, c) => a + c.amount, 0) || 1;
@@ -278,12 +277,12 @@ function Report() {
         <section className="break-inside-avoid">
           <h2 className="report-h2">Where you stand</h2>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <Stat label="Assets" value={formatINR(nw.assets + unparked)} />
+            <Stat label="Assets" value={formatINR(nw.assets)} />
             <Stat label="Liabilities" value={formatINR(nw.debts)} />
             <Stat
               label="Net worth"
-              value={formatINR(nw.net + unparked)}
-              tone={nw.net + unparked >= 0 ? "positive" : "negative"}
+              value={formatINR(nw.net)}
+              tone={nw.net >= 0 ? "positive" : "negative"}
             />
             <Stat label="Accounts" value={String(live.filter((a) => a.kind !== "investment").length)} />
           </div>

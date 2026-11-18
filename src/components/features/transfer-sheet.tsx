@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { AccountPicker } from "./account-picker";
-import { useStore, useMyId } from "@/store/useStore";
+import { useStore } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { useToast } from "@/components/ui/toast";
 import { formatINR, sanitizeMoneyInput, formatDate, uid } from "@/lib/utils";
@@ -21,10 +21,8 @@ export function TransferSheet() {
   const accounts = useStore((s) => s.accounts);
   const liabilities = useStore((s) => s.liabilities);
   const finance = useStore((s) => s.finance);
-  const expenses = useStore((s) => s.expenses);
   const addFinance = useStore((s) => s.addFinance);
   const setWealth = useStore((s) => s.setWealth);
-  const myId = useMyId() ?? "";
   const { toast } = useToast();
 
   const [amount, setAmount] = useState("");
@@ -49,7 +47,7 @@ export function TransferSheet() {
   const valid = value > 0 && toId !== null && fromId !== toId;
   const cardLiability = liabilities.find((l) => l.id === toId && l.kind === "card");
   const isPayingCard = Boolean(cardLiability);
-  const cardOutstanding = cardLiability ? liveLiabilityOutstanding(cardLiability, finance, expenses, myId) : 0;
+  const cardOutstanding = cardLiability ? liveLiabilityOutstanding(cardLiability, finance) : 0;
 
   async function transfer() {
     if (!valid || busy) return;

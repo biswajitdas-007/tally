@@ -61,6 +61,10 @@ export interface ExpenseDoc {
   isSettlement?: boolean;
   createdBy: string;
   createdAt: string;
+  /**
+   * @deprecated Legacy "paid from account" link. No longer written or read;
+   * left on old documents until the post-split cleanup removes it.
+   */
   accountId?: string;
 }
 
@@ -170,7 +174,6 @@ function toClientExpense(e: ExpenseDoc): Expense {
     isSettlement: e.isSettlement,
     createdBy: e.createdBy,
     createdAt: e.createdAt,
-    accountId: e.accountId,
   };
 }
 

@@ -16,7 +16,6 @@ import { DeleteGroupDialog } from "@/components/features/delete-group-dialog";
 import { WealthSheet } from "@/components/features/wealth-sheet";
 import { CardDashboardSheet } from "@/components/features/card-dashboard-sheet";
 import { AccountDetailSheet } from "@/components/features/account-detail-sheet";
-import { ParkSheet } from "@/components/features/park-sheet";
 import { EmiConfirm } from "@/components/features/emi-confirm";
 import { SettleSheet } from "@/components/features/settle-sheet";
 import { InviteDialog } from "@/components/features/invite-dialog";
@@ -76,7 +75,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <WealthSheet />
       <CardDashboardSheet />
       <AccountDetailSheet />
-      <ParkSheet />
       <Suspense fallback={null}>
         <EmiConfirm />
       </Suspense>

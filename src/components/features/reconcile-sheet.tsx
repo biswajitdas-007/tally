@@ -9,7 +9,7 @@ import { BankBadge } from "./bank-badge";
 import { ACCOUNT_KIND_META } from "@/lib/categories";
 import { withLiveBalances } from "@/lib/accounts";
 import { staleAccounts, reconciled, confirmed, lastCheckedLabel, DRIFT_EPSILON } from "@/lib/reconcile";
-import { useStore, useMyId } from "@/store/useStore";
+import { useStore } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { useToast } from "@/components/ui/toast";
 import { formatINR, cn , sanitizeMoneyInput} from "@/lib/utils";
@@ -20,13 +20,11 @@ export function ReconcileSheet() {
   const close = useUI((s) => s.closeReconcile);
   const accounts = useStore((s) => s.accounts);
   const finance = useStore((s) => s.finance);
-  const expenses = useStore((s) => s.expenses);
   const setWealth = useStore((s) => s.setWealth);
   const addFinance = useStore((s) => s.addFinance);
-  const myId = useMyId() ?? "";
   const { toast } = useToast();
 
-  const live = withLiveBalances(accounts, finance, expenses, myId);
+  const live = withLiveBalances(accounts, finance);
   const stale = staleAccounts(live);
 
   const [idx, setIdx] = useState(0);

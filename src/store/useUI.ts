@@ -65,9 +65,6 @@ interface UIState {
   openWealth: (mode?: "asset" | "liability", editId?: ID | null, initialKind?: string | null) => void;
   closeWealth: () => void;
 
-  parkOpen: boolean;
-  openPark: () => void;
-  closePark: () => void;
 
   accountDetailId: ID | null;
   openAccountDetail: (id: ID) => void;
@@ -164,9 +161,6 @@ export const useUI = create<UIState>((set) => ({
   openWealth: (mode = "asset", editId = null, initialKind = null) => set({ wealthOpen: true, wealthMode: mode, wealthEditId: editId, wealthInitialKind: initialKind }),
   closeWealth: () => set({ wealthOpen: false, wealthEditId: null }),
 
-  parkOpen: false,
-  openPark: () => set({ parkOpen: true }),
-  closePark: () => set({ parkOpen: false }),
 
   accountDetailId: null,
   openAccountDetail: (id) => set({ accountDetailId: id }),

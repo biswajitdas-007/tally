@@ -47,8 +47,6 @@ export interface Expense {
   recurring?: "none" | "monthly" | "weekly";
   /** Period already repeated ("YYYY-MM" monthly, "YYYY-MM-DD" weekly) — guards against repeating twice. */
   recurringLast?: string;
-  /** The recorder's private account this cash moved through (payer paid, or payee received). */
-  accountId?: ID;
 }
 
 export interface Group {

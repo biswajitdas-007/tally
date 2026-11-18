@@ -1,4 +1,4 @@
-import { useStore, useMyId } from "@/store/useStore";
+import { useStore } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { Sheet } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -15,8 +15,6 @@ export function CardDashboardSheet() {
   
   const liabilities = useStore((s) => s.liabilities);
   const finance = useStore((s) => s.finance);
-  const expenses = useStore((s) => s.expenses);
-  const myId = useMyId() ?? "";
   
   const openTransfer = useUI((s) => s.openTransfer);
   const openWealth = useUI((s) => s.openWealth);
@@ -27,12 +25,7 @@ export function CardDashboardSheet() {
     return <Sheet open={open} onClose={close} title=""><></></Sheet>;
   }
 
-  const { outstanding, limit, available, utilization, overLimit, overBy, inCredit } = cardStatus(
-    card,
-    finance,
-    expenses,
-    myId,
-  );
+  const { outstanding, limit, available, utilization, overLimit, overBy, inCredit } = cardStatus(card, finance);
   
   const Icon = LIABILITY_KIND_META[card.kind as LiabilityKind]?.icon ?? CreditCard;
   

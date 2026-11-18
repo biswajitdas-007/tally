@@ -69,3 +69,17 @@ describe("pendingFromSplits", () => {
     expect(pendingFromSplits([], "me").any).toBe(false);
   });
 });
+
+describe("legacy account link", () => {
+  it("never affects split balances", () => {
+    // Older expenses still carry `accountId` in the database; the ledger must
+    // compute exactly the same with or without it.
+    const plain = [
+      E({ id: "a", amount: 900, paidBy: "me", splits: [{ personId: "me", amount: 300 }, { personId: "A", amount: 600 }] }),
+      E({ id: "s", amount: 200, paidBy: "A", splits: [{ personId: "me", amount: 200 }], isSettlement: true }),
+    ];
+    const linked = plain.map((e) => ({ ...e, accountId: "acc-hdfc" }) as Expense);
+    expect(splitOverview(linked, "me")).toEqual(splitOverview(plain, "me"));
+    expect(pendingFromSplits(linked, "me")).toEqual(pendingFromSplits(plain, "me"));
+  });
+});

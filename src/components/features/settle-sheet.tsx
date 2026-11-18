@@ -6,7 +6,6 @@ import { Sheet } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar } from "@/components/ui/avatar";
-import { AccountPicker } from "./account-picker";
 import { UpiQr } from "./upi-qr";
 import { useStore, useMe, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
@@ -26,14 +25,12 @@ export function SettleSheet() {
   const people = useStore((s) => s.people);
   const expenses = useStore((s) => s.expenses);
   const groups = useStore((s) => s.groups);
-  const accounts = useStore((s) => s.accounts);
   const me = useMe();
   const myId = useMyId() ?? "";
   const { toast } = useToast();
 
   const [upiDraft, setUpiDraft] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [accountId, setAccountId] = useState<string | null>(null);
   const [lastTarget, setLastTarget] = useState(target);
   const [showQr, setShowQr] = useState(false);
 
@@ -50,7 +47,6 @@ export function SettleSheet() {
     setLastTarget(target);
     setSelected(new Set(scopes.map((s) => scopeKey(s.scopeId))));
     setUpiDraft("");
-    setAccountId(accounts[0]?.id ?? null);
     setShowQr(false);
   }
 
@@ -98,9 +94,9 @@ export function SettleSheet() {
   function confirmSettled() {
     for (const s of activeScopes) {
       if (s.amount < -0.01)
-        settleUp({ from: myId, to: person!.id, amount: Math.abs(s.amount), groupId: s.scopeId, accountId: accountId ?? undefined });
+        settleUp({ from: myId, to: person!.id, amount: Math.abs(s.amount), groupId: s.scopeId });
       else if (s.amount > 0.01)
-        settleUp({ from: person!.id, to: myId, amount: s.amount, groupId: s.scopeId, accountId: accountId ?? undefined });
+        settleUp({ from: person!.id, to: myId, amount: s.amount, groupId: s.scopeId });
     }
     toast({ message: youPay ? `Settled up with ${person!.name.split(" ")[0]}` : "Payment recorded" });
     celebrate();
@@ -263,11 +259,6 @@ export function SettleSheet() {
           <Button variant="secondary" size="md" onClick={shareReminder}>
             <Share2 className="h-4 w-4" /> Send a reminder
           </Button>
-        )}
-
-        {/* Which account this cash moved through */}
-        {amount >= 0.01 && (
-          <AccountPicker value={accountId} onChange={setAccountId} label={youPay ? "Paid from" : "Received into (optional)"} />
         )}
 
         {/* Confirm */}

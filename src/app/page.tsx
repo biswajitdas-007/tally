@@ -144,8 +144,8 @@ export default function HomePage() {
   const { toast } = useToast();
 
   const liabilities = useMemo(
-    () => withLiveOutstanding(storedLiabilities, finance, expenses, myId ?? ""),
-    [storedLiabilities, finance, expenses, myId],
+    () => withLiveOutstanding(storedLiabilities, finance),
+    [storedLiabilities, finance],
   );
   const money = usesMoney({ pref: moneyMode ?? undefined, finance, accounts, liabilities, budget, emergency });
 

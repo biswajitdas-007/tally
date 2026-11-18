@@ -51,7 +51,7 @@ export function EmergencySheet() {
   const myId = useMyId() ?? "";
   const { toast } = useToast();
 
-  const liveAccounts = withLiveBalances(accounts, finance, expenses, myId).filter((a) => a.kind !== "investment");
+  const liveAccounts = withLiveBalances(accounts, finance).filter((a) => a.kind !== "investment");
   const outflow = avgMonthly(finance, expenses, myId).spend + monthlyEmi(liabilities);
   const suggested = suggestedEmergency(outflow);
 
