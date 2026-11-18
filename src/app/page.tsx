@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { Suspense, useMemo } from "react";
 import Link from "next/link";
 import { Plus, ArrowLeftRight, Users, UserPlus, ChevronRight, Receipt } from "lucide-react";
 import { BalanceHero } from "@/components/features/balance-hero";
@@ -11,6 +11,7 @@ import { Card, SectionHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageGrid, PageCol } from "@/components/app/page-grid";
 import { MoneyMovedBanner } from "@/components/app/money-moved-banner";
+import { ShortcutAction } from "@/components/app/shortcut-action";
 import { useStore, useMe, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { useToast } from "@/components/ui/toast";
@@ -97,6 +98,11 @@ export default function HomePage() {
 
   return (
     <div className="flex flex-col gap-6">
+      {/* Reads the URL, so it needs its own boundary to keep the page prerendering. */}
+      <Suspense fallback={null}>
+        <ShortcutAction onAdd={() => openAdd()} onSettle={quickSettle} />
+      </Suspense>
+
       <div>
         <p className="text-sm text-text-2">{greeting()},</p>
         <h1 className="font-display text-2xl font-bold tracking-[-0.02em] text-text">
