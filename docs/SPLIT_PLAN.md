@@ -462,7 +462,7 @@ come out of every phase identical.** This section covers how that's guaranteed.
 2. **No script writes to `groups`, `expenses` or `invites`** during Phases 0–3.
    The only planned write is the optional `$unset accountId` in Phase 4, which
    doesn't affect any balance (`balances.ts` never reads `accountId`).
-3. **Allowlisted cleanup.** `scripts/cleanup-money-fields.mjs` has a hard-coded
+3. **Allowlisted cleanup.** `npm run ledger:cleanup` (`scripts/ledger/cleanup.ts`, allowlist in `src/lib/ledger-cleanup.ts`) has a hard-coded
    allowlist of the 8 money field names on `users` and the `finance` collection.
    It refuses to run without `--confirm`, requires a backup file path that
    exists, and logs counts before and after.
@@ -522,8 +522,8 @@ same data, so it catches logic regressions as well as data changes.
 
 1. Fresh `mongodump` + verify it restores.
 2. `ledger-snapshot` → `pre-cleanup.json`.
-3. `cleanup-money-fields.mjs --dry-run`, review counts.
-4. `cleanup-money-fields.mjs --confirm --backup <path>`.
+3. `npm run ledger:cleanup` (dry run), review counts.
+4. `npm run ledger:cleanup -- --confirm --backup <path> --unset-account-id` (snapshots and compares before/after itself).
 5. `ledger-snapshot` → `post-cleanup.json`; `ledger-diff` must be empty.
 
 ## 9. Cutover runbook
@@ -660,29 +660,31 @@ Fix in Phase 2 (each repo's new docs):
 
 ## 17. Master checklist
 
-**Before starting**
-- [ ] Open decisions D1, D3–D7 made (§11)
-- [ ] Atlas tier / backup capability checked
+_Status as of 2026-11-19._
 
-**Phase 0: decouple in place**
-- [ ] 0.0 backups verified, `ledger-snapshot`/`ledger-diff` written + fixture-tested, **baseline snapshot taken**, split tests pinned
-- [ ] 0.1 account-linking feature removed (C1, C2, C4), snapshot diff empty
-- [ ] 0.3 split spend cut from money logic (C3)
-- [ ] (0.2, 0.4–0.7 are done inside Phase 2, see v4 note)
-- [ ] 0.8 remove money-mode; split nav
-- [ ] exit criteria met; 1 week stable
+**Phase 0: decouple in place** — done (#263, #264, #265)
+- [x] Ledger snapshot / diff / verify tooling; baseline snapshot taken; `ledger:verify` on `develop` reports no differences
+- [x] 0.1 account-linking feature removed (C1, C2, C4)
+- [x] 0.3 split spend cut from money logic (C3)
+- [x] 0.8 money-mode removed
+- [ ] Atlas backups confirmed (tier check / scheduled `mongodump`)
 
-**Phase 1: Money infrastructure**
-- [ ] repo, Atlas B, Firebase project B, Vercel B, domain, Resend, VAPID, CRON_SECRET, Sonar
+**Phase 1: Money Ledger infrastructure** — owner
+- [x] Repo `money-ledger` (private)
+- [ ] Atlas cluster, Firebase project, Vercel project + domain, Resend, VAPID, `CRON_SECRET`, SonarCloud
 
 **Phase 2: cut**
-- [ ] `money-ledger` mirrored & pruned (`feature/extract-money`)
-- [ ] `tally` pruned (`feature/extract-splits`), redirects + banner
-- [ ] rehearsal on restored prod dump, snapshot diff empty
-- [ ] docs, env examples, CI, badges per repo
+- [x] `tally` pruned to splits, v2.0.0, redirects + banner (#266)
+- [ ] `money-ledger` extraction merged (money-ledger #1, then #2, #3)
+- [ ] Logo, icons and OG images for Money Ledger
 
-**Phase 3: launch**
-- [ ] runbook executed (§9); smoke tests pass; post-cutover snapshot diff empty
+**Phase 3: launch** — owner
+- [ ] Deploy Money Ledger; set `NEXT_PUBLIC_MONEY_LEDGER_URL` in Tally
+- [ ] Release Tally 2.0.0 (`develop` → `main`)
+- [ ] `ledger:snapshot -- post-cutover` + `ledger:diff` against the baseline: no errors
 
-**Phase 4: cleanup (+30 days)**
-- [ ] allowlisted cleanup run (§8.5); snapshot diff empty; 301 redirects; remove legacy `accountId` tolerance
+**Phase 4: cleanup (≈30 days after launch)**
+- [x] Allowlisted cleanup script: `npm run ledger:cleanup` (dry run by default)
+- [ ] `mongodump`, then `npm run ledger:cleanup -- --confirm --backup <dump> --unset-account-id`
+- [ ] Redirects 302 → 301; remove the banner
+- [ ] Remove legacy `accountId` input tolerance in the expenses/settle APIs and the `/api/cron/emi` alias

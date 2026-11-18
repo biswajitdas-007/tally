@@ -109,6 +109,7 @@ the git-ignored `.ledger/` folder.
 npm run ledger:snapshot -- baseline          # read-only: dump split data + computed balances
 npm run ledger:verify -- .ledger/<file>.json # recompute balances with the current code
 npm run ledger:diff -- <before>.json <after>.json  # what changed between two snapshots
+npm run ledger:cleanup       # post-split cleanup; dry run unless --confirm --backup <dump>
 ```
 
 ## Project structure
