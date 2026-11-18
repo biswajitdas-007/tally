@@ -64,10 +64,10 @@ function Analytics() {
   const prevKey = key(new Date(mDate.getFullYear(), mDate.getMonth() - 1, 1));
   const isCurrent = thisKey === key(new Date());
 
-  const tips = useMemo(() => insights(finance, expenses, budget, myId), [finance, expenses, budget, myId]);
+  const tips = useMemo(() => insights(finance, budget), [finance, budget]);
 
-  const thisSpend = useMemo(() => monthlyMoney(finance, expenses, myId, thisKey).spend, [finance, expenses, myId, thisKey]);
-  const lastSpend = useMemo(() => monthlyMoney(finance, expenses, myId, prevKey).spend, [finance, expenses, myId, prevKey]);
+  const thisSpend = useMemo(() => monthlyMoney(finance, thisKey).spend, [finance, thisKey]);
+  const lastSpend = useMemo(() => monthlyMoney(finance, prevKey).spend, [finance, prevKey]);
   const delta = lastSpend > 0 ? ((thisSpend - lastSpend) / lastSpend) * 100 : 0;
   const up = thisSpend > lastSpend;
   const spendCaption =
@@ -79,12 +79,12 @@ function Analytics() {
     const out: { label: string; value: number }[] = [];
     for (let i = 5; i >= 0; i--) {
       const k = key(new Date(mDate.getFullYear(), mDate.getMonth() - i, 1));
-      out.push({ label: monthLabel(k), value: monthlyMoney(finance, expenses, myId, k).spend });
+      out.push({ label: monthLabel(k), value: monthlyMoney(finance, k).spend });
     }
     return out;
-  }, [finance, expenses, myId, mDate]);
+  }, [finance, mDate]);
 
-  const breakdown = useMemo(() => spendByCategory(finance, expenses, myId, thisKey), [finance, expenses, myId, thisKey]);
+  const breakdown = useMemo(() => spendByCategory(finance, thisKey), [finance, thisKey]);
   const breakdownShares = useMemo(() => percentShares(breakdown.map((b) => b.amount)), [breakdown]);
   const donutData = breakdown.map((b) => ({
     label: CATEGORIES[b.category].label,

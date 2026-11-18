@@ -9,7 +9,7 @@ import { Card, SectionHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { useStore, useMyId } from "@/store/useStore";
+import { useStore } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { ACCOUNT_KIND_META, INVESTMENT_TYPE_META, LIABILITY_KIND_META } from "@/lib/categories";
 import { BankBadge } from "@/components/features/bank-badge";
@@ -17,7 +17,6 @@ import { healthScore, netWorth, gradeColor, avgMonthly, wealthRunway, emergencyS
 import { investmentTotals, holdingGain } from "@/lib/investments";
 import { buildPlan, humanMonths } from "@/lib/payoff";
 import { staleAccounts, lastCheckedLabel } from "@/lib/reconcile";
-import { pendingFromSplits } from "@/lib/balances";
 import { debtSuggestions, monthlyLiability, type DebtSuggestion } from "@/lib/debt";
 import { creditCardSuggestions } from "@/lib/cards";
 import { withLiveBalances } from "@/lib/accounts";
@@ -58,7 +57,6 @@ function SuggestionCard({ s }: { s: DebtSuggestion }) {
 
 export default function WealthPage() {
   const finance = useStore((s) => s.finance);
-  const expenses = useStore((s) => s.expenses);
   const budget = useStore((s) => s.budget);
   const accounts = useStore((s) => s.accounts);
   const liabilities = useStore((s) => s.liabilities);
@@ -71,7 +69,6 @@ export default function WealthPage() {
   const openMoney = useUI((s) => s.openMoney);
   const openReconcile = useUI((s) => s.openReconcile);
   const openTransfer = useUI((s) => s.openTransfer);
-  const myId = useMyId() ?? "";
 
   function runSetup(key: SetupKey) {
     if (key === "income") openMoney("income");
@@ -97,24 +94,23 @@ export default function WealthPage() {
     [liabilities, finance],
   );
   const health = useMemo(
-    () => healthScore({ finance, expenses, meId: myId, budget, accounts: liveAccounts, liabilities: liveLiabilities, emergency }),
-    [finance, expenses, myId, budget, liveAccounts, liveLiabilities, emergency],
+    () => healthScore({ finance, budget, accounts: liveAccounts, liabilities: liveLiabilities, emergency }),
+    [finance, budget, liveAccounts, liveLiabilities, emergency],
   );
   const ef = useMemo(() => emergencyStatus(emergency, liveAccounts), [emergency, liveAccounts]);
   const cashAccounts = useMemo(() => liveAccounts.filter((a) => a.kind !== "investment"), [liveAccounts]);
   const stale = useMemo(() => staleAccounts(cashAccounts), [cashAccounts]);
-  const pending = useMemo(() => pendingFromSplits(expenses, myId), [expenses, myId]);
   const investList = useMemo(() => liveAccounts.filter((a) => a.kind === "investment"), [liveAccounts]);
   const invTotals = useMemo(() => investmentTotals(liveAccounts), [liveAccounts]);
   const nwBase = useMemo(() => netWorth(liveAccounts, liveLiabilities), [liveAccounts, liveLiabilities]);
   const assets = nwBase.assets;
   const netTotal = assets - nwBase.debts;
 
-  const avg = useMemo(() => avgMonthly(finance, expenses, myId), [finance, expenses, myId]);
+  const avg = useMemo(() => avgMonthly(finance), [finance]);
   const income = avg.income;
   const runway = useMemo(
-    () => wealthRunway({ finance, expenses, meId: myId, accounts: liveAccounts, liabilities: liveLiabilities }),
-    [finance, expenses, myId, liveAccounts, liveLiabilities],
+    () => wealthRunway({ finance, accounts: liveAccounts, liabilities: liveLiabilities }),
+    [finance, liveAccounts, liveLiabilities],
   );
   const emiTotal = useMemo(() => monthlyLiability(liveLiabilities), [liveLiabilities]);
   const payoff = useMemo(() => buildPlan(liveLiabilities, "avalanche"), [liveLiabilities]);
@@ -345,24 +341,6 @@ export default function WealthPage() {
                 <p className="mt-1 tnum text-lg font-bold text-text">{formatINR(nwBase.debts)}</p>
               </div>
             </div>
-
-            {pending.any && (
-              <p className="mt-3 rounded-[12px] bg-surface-inset px-3 py-2.5 text-[0.78rem] leading-snug text-text-2">
-                Not counted above:{" "}
-                {pending.incoming > 0.5 && (
-                  <>
-                    <b className="text-positive">{formatINR(pending.incoming)}</b> owed to you
-                  </>
-                )}
-                {pending.incoming > 0.5 && pending.outgoing > 0.5 && " and "}
-                {pending.outgoing > 0.5 && (
-                  <>
-                    <b className="text-negative">{formatINR(pending.outgoing)}</b> you owe
-                  </>
-                )}{" "}
-                from splits — it settles between accounts, so it isn&apos;t net worth until it does.
-              </p>
-            )}
           </Card>
 
           {/* Emergency fund */}

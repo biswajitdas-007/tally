@@ -49,10 +49,10 @@ function Report() {
   const [mDate, setMDate] = useState(() => monthFromParam(requested));
   const mKey = `${mDate.getFullYear()}-${String(mDate.getMonth() + 1).padStart(2, "0")}`;
 
-  const m = useMemo(() => monthlyMoney(finance, expenses, myId, mKey), [finance, expenses, myId, mKey]);
+  const m = useMemo(() => monthlyMoney(finance, mKey), [finance, mKey]);
   const entries = useMemo(() => financeForMonth(finance, mKey).filter((f) => !f.transfer), [finance, mKey]);
   const splitRows = useMemo(() => rowsForMonth(expenses, mKey), [expenses, mKey]);
-  const byCat = useMemo(() => spendByCategory(finance, expenses, myId, mKey), [finance, expenses, myId, mKey]);
+  const byCat = useMemo(() => spendByCategory(finance, mKey), [finance, mKey]);
   const bv = useMemo(() => budgetView(budget, byCat, m.spend), [budget, byCat, m.spend]);
   const debts = useMemo(() => scopedDebts(expenses, myId), [expenses, myId]);
   const totals = useMemo(() => scopedTotals(debts), [debts]);
@@ -124,11 +124,6 @@ function Report() {
             <p className="mt-3 text-[0.85rem] text-text-2">
               Budget {formatINR(bv.monthly)} · spent {formatINR(bv.spent)}
               {bv.over ? ` · ${formatINR(bv.spent - bv.monthly)} over` : ` · ${formatINR(bv.monthly - bv.spent)} to spare`}
-            </p>
-          )}
-          {m.splitSpend > 0.5 && (
-            <p className="mt-1 text-[0.85rem] text-text-2">
-              Includes {formatINR(m.splitSpend)} as your share of split expenses.
             </p>
           )}
         </section>

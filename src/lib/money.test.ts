@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { clampMonth, missingIncome, monthFromParam, suggestedBudget } from "./money";
-import type { Expense, FinanceEntry } from "./types";
+import { clampMonth, missingIncome, monthFromParam, monthlyMoney, spendByCategory, suggestedBudget } from "./money";
+import type { FinanceEntry } from "./types";
 
 const NOW = new Date(2026, 6, 15); // 15 Jul 2026
 const inMonth = (monthsAgo: number, day = 10) =>
@@ -19,24 +19,24 @@ describe("suggestedBudget", () => {
       spend("b", 19800, inMonth(2)),
       spend("c", 21300, inMonth(3)),
     ];
-    expect(suggestedBudget(finance, [] as Expense[], "me", NOW)).toBe(21000);
+    expect(suggestedBudget(finance, NOW)).toBe(21000);
   });
 
   it("never suggests less than you actually spend", () => {
     // Rounding to nearest would give 20000 here — under the average, so the
     // budget would be blown the moment it's accepted.
     const finance = [spend("a", 20400, inMonth(1)), spend("b", 20400, inMonth(2))];
-    const suggestion = suggestedBudget(finance, [] as Expense[], "me", NOW);
+    const suggestion = suggestedBudget(finance, NOW);
     expect(suggestion).toBeGreaterThanOrEqual(20400);
   });
 
   it("ignores the current month, which is still running", () => {
     const finance = [spend("now", 99999, inMonth(0)), spend("a", 12000, inMonth(1))];
-    expect(suggestedBudget(finance, [] as Expense[], "me", NOW)).toBe(12000);
+    expect(suggestedBudget(finance, NOW)).toBe(12000);
   });
 
   it("has nothing to suggest without history", () => {
-    expect(suggestedBudget([], [] as Expense[], "me", NOW)).toBe(0);
+    expect(suggestedBudget([], NOW)).toBe(0);
   });
 });
 
@@ -48,19 +48,19 @@ describe("missingIncome", () => {
   ];
 
   it("spots spending logged with no income at all", () => {
-    expect(missingIncome(threeSpends, [] as Expense[], "me", NOW)).toBe(true);
+    expect(missingIncome(threeSpends, NOW)).toBe(true);
   });
 
   it("stays quiet once income is logged", () => {
-    expect(missingIncome([...threeSpends, earn("i", 50000, inMonth(0, 4))], [] as Expense[], "me", NOW)).toBe(false);
+    expect(missingIncome([...threeSpends, earn("i", 50000, inMonth(0, 4))], NOW)).toBe(false);
   });
 
   it("doesn't nag someone who has barely started", () => {
-    expect(missingIncome([spend("a", 500, inMonth(0))], [] as Expense[], "me", NOW)).toBe(false);
+    expect(missingIncome([spend("a", 500, inMonth(0))], NOW)).toBe(false);
   });
 
   it("says nothing when there's no spending either", () => {
-    expect(missingIncome([], [] as Expense[], "me", NOW)).toBe(false);
+    expect(missingIncome([], NOW)).toBe(false);
   });
 });
 
@@ -109,5 +109,33 @@ describe("clampMonth", () => {
 
   it("rolls the year over going backwards", () => {
     expect(clampMonth(new Date(2026, -1, 1), NOW_C)).toEqual(new Date(2025, 11, 1));
+  });
+});
+
+describe("monthlyMoney", () => {
+  const key = "2026-07";
+  const move = (id: string, amount: number, type: "income" | "expense"): FinanceEntry =>
+    ({ id, type, amount, category: "other", date: inMonth(0), createdAt: inMonth(0), transfer: true }) as FinanceEntry;
+
+  it("totals the month's own entries", () => {
+    const m = monthlyMoney([earn("i", 50000, inMonth(0)), spend("a", 1200, inMonth(0)), spend("b", 800, inMonth(0))], key);
+    expect(m).toEqual({ income: 50000, spend: 2000, net: 48000 });
+  });
+
+  it("leaves out other months and transfers between your own accounts", () => {
+    const m = monthlyMoney([spend("old", 999, inMonth(1)), move("t1", 5000, "expense"), move("t2", 5000, "income")], key);
+    expect(m).toEqual({ income: 0, spend: 0, net: 0 });
+  });
+});
+
+describe("spendByCategory", () => {
+  it("groups the month's spending, largest first, ignoring income and transfers", () => {
+    const rent = { ...spend("r", 20000, inMonth(0)), category: "rent" } as FinanceEntry;
+    const moved = { ...spend("t", 7000, inMonth(0)), transfer: true } as FinanceEntry;
+    const out = spendByCategory([spend("a", 300, inMonth(0)), spend("b", 200, inMonth(0)), rent, moved, earn("i", 1, inMonth(0))], "2026-07");
+    expect(out).toEqual([
+      { category: "rent", amount: 20000 },
+      { category: "food", amount: 500 },
+    ]);
   });
 });

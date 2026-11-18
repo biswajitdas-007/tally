@@ -10,7 +10,6 @@ import { ExpenseRow } from "@/components/features/expense-row";
 import { MoneyRow } from "@/components/features/money-row";
 import { useStore } from "@/store/useStore";
 import { recentActivity, type ActivityItem } from "@/lib/activity";
-import { usesMoney } from "@/lib/money-mode";
 
 function monthTitle(iso: string) {
   return new Date(iso).toLocaleDateString("en-IN", { month: "long", year: "numeric" });
@@ -19,19 +18,14 @@ function monthTitle(iso: string) {
 export default function ActivityPage() {
   const expenses = useStore((s) => s.expenses);
   const finance = useStore((s) => s.finance);
-  const accounts = useStore((s) => s.accounts);
-  const liabilities = useStore((s) => s.liabilities);
-  const budget = useStore((s) => s.budget);
-  const emergency = useStore((s) => s.emergency);
-  const moneyMode = useStore((s) => s.moneyMode);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"all" | "mine" | "split" | "settled">("all");
-
-  const money = usesMoney({ pref: moneyMode ?? undefined, finance, accounts, liabilities, budget, emergency });
+  // Personal entries show up alongside splits only for people who log them.
+  const money = finance.length > 0;
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return recentActivity(expenses, finance, Number.MAX_SAFE_INTEGER, money).filter((item) => {
+    return recentActivity(expenses, finance, Number.MAX_SAFE_INTEGER).filter((item) => {
       if (item.kind === "money") {
         if (filter === "split" || filter === "settled") return false;
         if (q && !`${item.entry.note ?? ""} ${item.entry.category}`.toLowerCase().includes(q)) return false;
@@ -43,7 +37,7 @@ export default function ActivityPage() {
       if (q && !item.expense.description.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [expenses, finance, money, filter, query]);
+  }, [expenses, finance, filter, query]);
 
   const groups = useMemo(() => {
     const map = new Map<string, ActivityItem[]>();

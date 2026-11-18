@@ -1,5 +1,6 @@
 import { verifyUser } from "@/lib/auth-server";
 import { collections, type FinanceDoc } from "@/lib/db";
+import { overspendPush } from "@/lib/budget-alerts";
 import { badRequest, isNum, isStr, json, serverError, unauthorized } from "@/lib/api-helpers";
 
 export const runtime = "nodejs";
@@ -37,11 +38,21 @@ export async function POST(req: Request) {
       recurringId: isStr(b.recurringId) ? (b.recurringId as string).slice(0, 40) : undefined,
     };
     
-    await finance.updateOne(
+    const result = await finance.updateOne(
       { _id: doc._id },
       { $setOnInsert: doc },
       { upsert: true }
     );
+
+    // Only a newly inserted spend can tip the month over budget — a retried
+    // request for the same entry must not alert twice.
+    if (result.upsertedCount > 0 && doc.type === "expense" && !doc.transfer) {
+      try {
+        await overspendPush([user.uid], () => doc.amount, doc.date);
+      } catch {
+        /* alerts are best-effort */
+      }
+    }
 
     return json({ ok: true });
   } catch {

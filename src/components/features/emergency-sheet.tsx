@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Check, Trash2 } from "lucide-react";
 import { Sheet } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { useStore, useMyId } from "@/store/useStore";
+import { useStore } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { useToast } from "@/components/ui/toast";
 import { withLiveBalances } from "@/lib/accounts";
@@ -46,13 +46,11 @@ export function EmergencySheet() {
   const setEmergency = useStore((s) => s.setEmergency);
   const accounts = useStore((s) => s.accounts);
   const finance = useStore((s) => s.finance);
-  const expenses = useStore((s) => s.expenses);
   const liabilities = useStore((s) => s.liabilities);
-  const myId = useMyId() ?? "";
   const { toast } = useToast();
 
   const liveAccounts = withLiveBalances(accounts, finance).filter((a) => a.kind !== "investment");
-  const outflow = avgMonthly(finance, expenses, myId).spend + monthlyEmi(liabilities);
+  const outflow = avgMonthly(finance).spend + monthlyEmi(liabilities);
   const suggested = suggestedEmergency(outflow);
 
   const [amount, setAmount] = useState("");
