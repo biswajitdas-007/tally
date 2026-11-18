@@ -12,7 +12,8 @@
     "test:coverage": "vitest run --coverage",
     "ledger:snapshot": "tsx scripts/ledger/snapshot.ts",
     "ledger:diff": "tsx scripts/ledger/diff.ts",
-    "ledger:verify": "tsx scripts/ledger/verify.ts"
+    "ledger:verify": "tsx scripts/ledger/verify.ts",
+    "ledger:cleanup": "tsx scripts/ledger/cleanup.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
