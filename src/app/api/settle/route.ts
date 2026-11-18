@@ -1,6 +1,6 @@
 import type { Collection } from "mongodb";
 import { verifyUser } from "@/lib/auth-server";
-import { collections, type ExpenseDoc, type GroupDoc, type UserDoc } from "@/lib/db";
+import { collections, knownUids, type ExpenseDoc, type GroupDoc, type UserDoc } from "@/lib/db";
 import { notifyChange } from "@/lib/notify";
 import { simplifiedPlan } from "@/lib/balances";
 import type { Expense } from "@/lib/types";
@@ -45,9 +45,18 @@ export async function POST(req: Request) {
       // in it, and only recordable by a member.
       group = await groups.findOne({ _id: gid });
       if (!group || !group.memberUids.includes(user.uid)) return forbidden();
+      // Both sides must be in the group (members who haven't joined yet count).
+      const inGroup = new Set(group.members.map((m) => m.id));
+      if (!inGroup.has(from) || !inGroup.has(to)) return forbidden();
       memberUids = group.memberUids;
     } else {
+      // Like direct expenses: only with someone already in your circle, so a
+      // stranger can't be handed a balance (and an email) they never agreed to.
+      const other = from === user.uid ? to : from;
       const found = await users.find({ _id: { $in: [from, to] } }, { projection: { _id: 1 } }).toArray();
+      if (other !== user.uid && found.some((u) => u._id === other) && !(await knownUids(user.uid)).has(other)) {
+        return forbidden();
+      }
       memberUids = [...new Set([user.uid, ...found.map((u) => u._id)])];
     }
 
