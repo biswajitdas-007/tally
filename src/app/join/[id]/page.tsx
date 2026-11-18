@@ -51,14 +51,19 @@ export default function JoinPage() {
     setPhase("joining");
     (async () => {
       const res = await acceptInvite(id);
-      if (res?.self) {
+      if (!res) {
+        toast({ message: "This invite link isn't valid any more", tone: "info" });
+        router.replace("/");
+        return;
+      }
+      if (res.self) {
         toast({ message: "That's your own invite link", tone: "info" });
         router.replace("/");
         return;
       }
       await refetch();
       setPhase("done");
-      if (res?.groupId) {
+      if (res.groupId) {
         toast({ message: "You've joined the group" });
         setTimeout(() => router.replace(`/groups/${res.groupId}`), 700);
       } else {
