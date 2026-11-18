@@ -19,7 +19,6 @@ interface AddExpenseInput {
   date?: string;
   notes?: string;
   recurring?: "none" | "monthly" | "weekly";
-  accountId?: ID;
 }
 
 interface State {
@@ -59,7 +58,7 @@ interface State {
   updateGroup: (id: ID, patch: Partial<Pick<Group, "name" | "icon" | "color" | "offlineIds">>) => void;
   deleteGroup: (id: ID) => void;
 
-  settleUp: (input: { from: ID; to: ID; amount: number; groupId?: ID | null; note?: string; accountId?: ID }) => void;
+  settleUp: (input: { from: ID; to: ID; amount: number; groupId?: ID | null; note?: string }) => void;
   updateProfile: (patch: { name?: string; upiId?: string; moneyMode?: boolean }) => void;
   deleteFriend: (id: ID) => Promise<{ ok: boolean; unsettled?: boolean; amount?: number }>;
 
@@ -197,7 +196,6 @@ export const useStore = create<State>()(
       createdBy: meId,
       createdAt: now(),
       recurring: input.recurring ?? "none",
-      accountId: input.accountId,
     };
     set((s) => ({ expenses: [e, ...s.expenses] }));
     api.addExpenseApi({ ...e }).then((res) => reconcile(res, get));
@@ -249,7 +247,7 @@ export const useStore = create<State>()(
     api.deleteGroupApi(id).then((res) => reconcile(res, get));
   },
 
-  settleUp: ({ from, to, amount, groupId = null, note, accountId }) => {
+  settleUp: ({ from, to, amount, groupId = null, note }) => {
     const meId = get().currentUserId ?? "";
     const e: Expense = {
       id: uid("e_"),
@@ -263,10 +261,9 @@ export const useStore = create<State>()(
       createdBy: meId,
       createdAt: now(),
       isSettlement: true,
-      accountId,
     };
     set((s) => ({ expenses: [e, ...s.expenses] }));
-    api.settleApi({ id: e.id, from, to, amount, groupId, note, accountId }).then((res) => reconcile(res, get));
+    api.settleApi({ id: e.id, from, to, amount, groupId, note }).then((res) => reconcile(res, get));
   },
 
   updateProfile: (patch) => {

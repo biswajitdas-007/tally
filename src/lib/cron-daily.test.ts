@@ -265,3 +265,66 @@ describe("daily EMI orchestration", () => {
     expect(result).toMatchObject({ reminders: 1 });
   });
 });
+
+describe("repeating split expenses", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.stubEnv("CRON_SECRET", "test-secret");
+    dependencies.collections.mockReset();
+    dependencies.sendPush.mockReset().mockResolvedValue(pushResult(0));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllEnvs();
+  });
+
+  it("copies the split unchanged but no longer carries the legacy account link", async () => {
+    vi.setSystemTime(new Date("2026-08-10T04:00:00.000Z"));
+    const source = {
+      _id: "e-rent",
+      groupId: "g-flat",
+      memberUids: ["user-1", "user-2"],
+      description: "Rent",
+      amount: 30_000,
+      category: "rent",
+      paidBy: "user-1",
+      splits: [{ personId: "user-1", amount: 15_000 }, { personId: "user-2", amount: 15_000 }],
+      date: "2026-07-05T00:00:00.000Z",
+      recurring: "monthly",
+      recurringLast: "2026-07",
+      isSettlement: false,
+      createdBy: "user-1",
+      createdAt: "2026-07-05T00:00:00.000Z",
+      accountId: "acc-hdfc",
+    };
+    const inserted: Record<string, unknown>[] = [];
+    const expenses = {
+      find: vi.fn((query: Record<string, unknown>) => ({ toArray: async () => ("recurring" in query ? [source] : []) })),
+      insertMany: vi.fn(async (docs: Record<string, unknown>[]) => inserted.push(...docs)),
+      updateOne: vi.fn(async () => ({ modifiedCount: 1 })),
+    };
+    const users = {
+      find: vi.fn(() => ({ toArray: async () => [] })),
+      updateOne: vi.fn(async () => ({ modifiedCount: 1 })),
+    };
+    dependencies.collections.mockResolvedValue({ users, expenses, finance: {} });
+
+    const res = await (await runDaily(request())).json();
+
+    expect(res.repeated).toBe(1);
+    expect(inserted).toHaveLength(1);
+    const copy = inserted[0];
+    expect(copy).toMatchObject({
+      groupId: "g-flat",
+      memberUids: ["user-1", "user-2"],
+      amount: 30_000,
+      paidBy: "user-1",
+      splits: source.splits,
+      recurring: "none",
+    });
+    expect(copy).not.toHaveProperty("accountId");
+    expect(copy).not.toHaveProperty("recurringLast");
+    expect(expenses.updateOne).toHaveBeenCalledWith({ _id: "e-rent" }, { $set: { recurringLast: "2026-08" } });
+  });
+});

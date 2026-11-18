@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ChevronLeft, Plus, Check, Flag, ScanLine, Wallet, Scale, TrendingUp, TrendingDown, CalendarClock, AlertTriangle, Lightbulb, Sparkles, PiggyBank, ChevronRight, Info, ShieldCheck, ShieldAlert, Pencil, LineChart, type LucideIcon } from "lucide-react";
+import { ChevronLeft, Plus, Check, Flag, ScanLine, Wallet, Scale, TrendingUp, TrendingDown, CalendarClock, AlertTriangle, Lightbulb, Sparkles, ChevronRight, Info, ShieldCheck, ShieldAlert, Pencil, LineChart, type LucideIcon } from "lucide-react";
 import { PageGrid, PageCol } from "@/components/app/page-grid";
 import { Card, SectionHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,7 +20,7 @@ import { staleAccounts, lastCheckedLabel } from "@/lib/reconcile";
 import { pendingFromSplits } from "@/lib/balances";
 import { debtSuggestions, monthlyLiability, type DebtSuggestion } from "@/lib/debt";
 import { creditCardSuggestions } from "@/lib/cards";
-import { withLiveBalances, unparkedAmount } from "@/lib/accounts";
+import { withLiveBalances } from "@/lib/accounts";
 import { cardStatus, liveLiabilityOutstanding, stampNow, withLiveOutstanding } from "@/lib/liabilities";
 import { formatINR, cn } from "@/lib/utils";
 import type { AccountKind, InvestmentType, LiabilityKind } from "@/lib/types";
@@ -65,7 +65,6 @@ export default function WealthPage() {
   const emergency = useStore((s) => s.emergency);
   const openWealth = useUI((s) => s.openWealth);
   const openCardDashboard = useUI((s) => s.openCardDashboard);
-  const openPark = useUI((s) => s.openPark);
   const openAccountDetail = useUI((s) => s.openAccountDetail);
   const openEmergency = useUI((s) => s.openEmergency);
   const openInvest = useUI((s) => s.openInvest);
@@ -88,40 +87,38 @@ export default function WealthPage() {
   }
 
   const liveAccounts = useMemo(
-    () => withLiveBalances(accounts, finance, expenses, myId),
-    [accounts, finance, expenses, myId],
+    () => withLiveBalances(accounts, finance),
+    [accounts, finance],
   );
   // Totals and advice run on live card balances; the rows below keep the raw
   // records, since each derives its own figure and editing writes them back.
   const liveLiabilities = useMemo(
-    () => withLiveOutstanding(liabilities, finance, expenses, myId),
-    [liabilities, finance, expenses, myId],
+    () => withLiveOutstanding(liabilities, finance),
+    [liabilities, finance],
   );
-  const unparked = useMemo(() => unparkedAmount(finance, expenses, accounts, myId), [finance, expenses, accounts, myId]);
-
   const health = useMemo(
-    () => healthScore({ finance, expenses, meId: myId, budget, accounts: liveAccounts, liabilities: liveLiabilities, emergency, unparked }),
-    [finance, expenses, myId, budget, liveAccounts, liveLiabilities, emergency, unparked],
+    () => healthScore({ finance, expenses, meId: myId, budget, accounts: liveAccounts, liabilities: liveLiabilities, emergency }),
+    [finance, expenses, myId, budget, liveAccounts, liveLiabilities, emergency],
   );
-  const ef = useMemo(() => emergencyStatus(emergency, liveAccounts, unparked), [emergency, liveAccounts, unparked]);
+  const ef = useMemo(() => emergencyStatus(emergency, liveAccounts), [emergency, liveAccounts]);
   const cashAccounts = useMemo(() => liveAccounts.filter((a) => a.kind !== "investment"), [liveAccounts]);
   const stale = useMemo(() => staleAccounts(cashAccounts), [cashAccounts]);
   const pending = useMemo(() => pendingFromSplits(expenses, myId), [expenses, myId]);
   const investList = useMemo(() => liveAccounts.filter((a) => a.kind === "investment"), [liveAccounts]);
   const invTotals = useMemo(() => investmentTotals(liveAccounts), [liveAccounts]);
   const nwBase = useMemo(() => netWorth(liveAccounts, liveLiabilities), [liveAccounts, liveLiabilities]);
-  const assets = nwBase.assets + unparked;
+  const assets = nwBase.assets;
   const netTotal = assets - nwBase.debts;
 
   const avg = useMemo(() => avgMonthly(finance, expenses, myId), [finance, expenses, myId]);
   const income = avg.income;
   const runway = useMemo(
-    () => wealthRunway({ finance, expenses, meId: myId, accounts: liveAccounts, liabilities: liveLiabilities, unparked }),
-    [finance, expenses, myId, liveAccounts, liveLiabilities, unparked],
+    () => wealthRunway({ finance, expenses, meId: myId, accounts: liveAccounts, liabilities: liveLiabilities }),
+    [finance, expenses, myId, liveAccounts, liveLiabilities],
   );
   const emiTotal = useMemo(() => monthlyLiability(liveLiabilities), [liveLiabilities]);
   const payoff = useMemo(() => buildPlan(liveLiabilities, "avalanche"), [liveLiabilities]);
-  const liquid = liveAccounts.filter((a) => a.kind !== "investment").reduce((s, a) => s + a.balance, 0) + unparked;
+  const liquid = liveAccounts.filter((a) => a.kind !== "investment").reduce((s, a) => s + a.balance, 0);
   const dti = income > 0 ? emiTotal / income : 0;
   const suggestions = useMemo(
     () => debtSuggestions({ liabilities: liveLiabilities, income, spend: avg.spend, liquid }),
@@ -451,25 +448,6 @@ export default function WealthPage() {
         </PageCol>
 
         <PageCol>
-          {/* Unparked money */}
-          {unparked > 0.5 && (
-            <button
-              onClick={openPark}
-              className="flex items-center gap-3.5 rounded-[16px] border border-border bg-surface p-4 text-left shadow-[var(--shadow-xs)] transition-all hover:-translate-y-0.5 hover:border-border-strong hover:shadow-[var(--shadow-md)]"
-            >
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand">
-                <PiggyBank className="h-5 w-5" />
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="text-[0.9rem] font-semibold text-text">Unparked money</p>
-                <p className="text-[0.76rem] text-text-3">
-                  {formatINR(unparked)} received but not in an account yet — tap to park it.
-                </p>
-              </div>
-              <ChevronRight className="h-5 w-5 shrink-0 text-text-3" />
-            </button>
-          )}
-
           {/* Monthly commitments */}
           {emiTotal > 0 && (
             <Card className="flex items-center justify-between p-4">
@@ -666,7 +644,7 @@ export default function WealthPage() {
                 <div className="divide-y divide-border">
                   {liabilities.filter((l) => l.kind === "card").map((l) => {
                     const Icon = LIABILITY_KIND_META[l.kind as LiabilityKind].icon;
-                    const liveOut = liveLiabilityOutstanding(l, finance, expenses, myId);
+                    const liveOut = liveLiabilityOutstanding(l, finance);
                     
                     const now = new Date();
                     let cycleStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -686,7 +664,7 @@ export default function WealthPage() {
                     const amountPaid = cyclePayments.reduce((acc, curr) => acc + curr.amount, 0);
                     const paidThisCycle = amountPaid > 0;
                     
-                    const status = cardStatus(l, finance, expenses, myId);
+                    const status = cardStatus(l, finance);
                     const metaParts = [];
                     if (l.limit) {
                       metaParts.push(
@@ -800,7 +778,7 @@ export default function WealthPage() {
                 <div className="divide-y divide-border">
                   {liabilities.filter((l) => l.kind !== "card").map((l) => {
                     const Icon = LIABILITY_KIND_META[l.kind as LiabilityKind].icon;
-                    const liveOut = liveLiabilityOutstanding(l, finance, expenses, myId);
+                    const liveOut = liveLiabilityOutstanding(l, finance);
                     
                     const metaParts = [];
                     if (l.lender) metaParts.push(l.lender);

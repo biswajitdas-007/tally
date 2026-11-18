@@ -5,7 +5,7 @@ import { Plus, Check, Ban } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BankBadge } from "./bank-badge";
 import { ACCOUNT_KIND_META, LIABILITY_KIND_META } from "@/lib/categories";
-import { useStore, useMyId } from "@/store/useStore";
+import { useStore } from "@/store/useStore";
 import { withLiveBalances } from "@/lib/accounts";
 import { cardStatus } from "@/lib/liabilities";
 import { formatINR, cn, uid as newId } from "@/lib/utils";
@@ -27,9 +27,7 @@ export function AccountPicker({
   const accounts = useStore((s) => s.accounts);
   const liabilities = useStore((s) => s.liabilities);
   const finance = useStore((s) => s.finance);
-  const expenses = useStore((s) => s.expenses);
   const setWealth = useStore((s) => s.setWealth);
-  const myId = useMyId() ?? "";
   // Investments live in their own section — you don't pay from an SIP.
   const live: (Omit<Account, "balance" | "createdAt"> & {
     balance: number;
@@ -38,13 +36,13 @@ export function AccountPicker({
     overBy?: number;
   })[] = cardsOnly
     ? []
-    : withLiveBalances(accounts, finance, expenses, myId).filter((a) => a.kind !== "investment");
+    : withLiveBalances(accounts, finance).filter((a) => a.kind !== "investment");
 
   if (includeCards || cardsOnly) {
     const cards = liabilities
       .filter((l) => l.kind === "card")
       .map((l) => {
-        const { available, overLimit, overBy } = cardStatus(l, finance, expenses, myId);
+        const { available, overLimit, overBy } = cardStatus(l, finance);
         return { id: l.id, name: l.name, kind: "card" as AccountKind, balance: available, limit: l.limit ?? 0, overLimit, overBy };
       });
     live.push(...cards);

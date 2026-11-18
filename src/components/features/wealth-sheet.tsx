@@ -76,7 +76,7 @@ export function WealthSheet() {
         setMode("asset");
         setName(editingAccount.name);
         setKind(editingAccount.kind);
-        setAmount(formatMoneyInput(editingAccount.balance + linkedDelta(editingAccount.id, finance, expenses, myId)));
+        setAmount(formatMoneyInput(editingAccount.balance + linkedDelta(editingAccount.id, finance)));
       } else if (editingLiability) {
         const el = editingLiability;
         setMode("liability");
@@ -98,7 +98,7 @@ export function WealthSheet() {
           // Show what is actually left to spend. Saving restates this as the
           // new baseline, so prefilling the stale figure would drop every
           // charge made since the last one.
-          const liveOut = liveLiabilityOutstanding(el, finance, expenses, myId);
+          const liveOut = liveLiabilityOutstanding(el, finance);
           setAvailableLimit(l > 0 ? formatMoneyInput(l - liveOut) : "");
         } else {
           setAvailableLimit("");
@@ -154,7 +154,7 @@ export function WealthSheet() {
     const id = editing?.id ?? newId(isAsset ? "acc_" : "liab_");
     if (isAsset) {
       // Store the baseline: what you entered minus what's already logged against it.
-      const baseline = editingAccount ? total - linkedDelta(id, finance, expenses, myId) : total;
+      const baseline = editingAccount ? total - linkedDelta(id, finance) : total;
       const acc: Account = { id, name: name.trim(), kind: kind as AccountKind, balance: baseline };
       setWealth({ accounts: editingAccount ? accounts.map((a) => (a.id === id ? acc : a)) : [acc, ...accounts] });
     } else {

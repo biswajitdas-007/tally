@@ -466,6 +466,7 @@ async function repeatExpenses(
         recurring: "none",
       };
       delete copy.recurringLast; // only the original carries the schedule
+      delete copy.accountId; // legacy "paid from account" link — no longer carried forward
       return copy;
     });
 

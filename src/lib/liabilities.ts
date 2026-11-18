@@ -1,4 +1,4 @@
-import type { Expense, FinanceEntry, ID, Liability } from "./types";
+import type { FinanceEntry, Liability } from "./types";
 import { linkedDelta } from "./accounts";
 import { roundMoney } from "./utils";
 
@@ -201,9 +201,9 @@ export const stampNow = (now = new Date()): string => periodOf(calendarDate(now)
  * from interest or fees, and overpaying one leaves a credit balance. Both are
  * real states the UI needs to see.
  */
-export function liveLiabilityOutstanding(l: Liability, finance: FinanceEntry[], expenses: Expense[], meId: ID): number {
+export function liveLiabilityOutstanding(l: Liability, finance: FinanceEntry[]): number {
   if (l.kind !== "card" || !l.baselineAt) return l.outstanding;
-  return roundMoney(l.outstanding - linkedDelta(l.id, finance, expenses, meId, l.baselineAt));
+  return roundMoney(l.outstanding - linkedDelta(l.id, finance, l.baselineAt));
 }
 
 /**
@@ -212,13 +212,8 @@ export function liveLiabilityOutstanding(l: Liability, finance: FinanceEntry[], 
  * figure is a baseline, and writing a derived value over it would fold the
  * same spending in twice.
  */
-export function withLiveOutstanding(
-  liabilities: Liability[],
-  finance: FinanceEntry[],
-  expenses: Expense[],
-  meId: ID,
-): Liability[] {
-  return liabilities.map((l) => ({ ...l, outstanding: liveLiabilityOutstanding(l, finance, expenses, meId) }));
+export function withLiveOutstanding(liabilities: Liability[], finance: FinanceEntry[]): Liability[] {
+  return liabilities.map((l) => ({ ...l, outstanding: liveLiabilityOutstanding(l, finance) }));
 }
 
 const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
@@ -248,8 +243,8 @@ export interface CardStatus {
 }
 
 /** A card's spending position, including the states banks allow past the limit. */
-export function cardStatus(l: Liability, finance: FinanceEntry[], expenses: Expense[], meId: ID): CardStatus {
-  const outstanding = liveLiabilityOutstanding(l, finance, expenses, meId);
+export function cardStatus(l: Liability, finance: FinanceEntry[]): CardStatus {
+  const outstanding = liveLiabilityOutstanding(l, finance);
   const limit = l.limit ?? 0;
   const overBy = limit > 0 ? Math.max(0, roundMoney(outstanding - limit)) : 0;
   return {

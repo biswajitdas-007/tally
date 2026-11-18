@@ -5,12 +5,12 @@ import { Check, Trash2, ShieldAlert, TrendingUp, TrendingDown } from "lucide-rea
 import { Sheet } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useStore, useMyId } from "@/store/useStore";
+import { useStore } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { useToast } from "@/components/ui/toast";
 import { INVESTMENT_TYPES, INVESTMENT_TYPE_META } from "@/lib/categories";
 import { emergencyStatus } from "@/lib/health";
-import { withLiveBalances, unparkedAmount } from "@/lib/accounts";
+import { withLiveBalances } from "@/lib/accounts";
 import { cn, formatINR, uid as newId , sanitizeMoneyInput} from "@/lib/utils";
 import type { Account, InvestmentType } from "@/lib/types";
 
@@ -21,17 +21,15 @@ export function InvestmentSheet() {
   const openEmergency = useUI((s) => s.openEmergency);
   const accounts = useStore((s) => s.accounts);
   const finance = useStore((s) => s.finance);
-  const expenses = useStore((s) => s.expenses);
   const emergency = useStore((s) => s.emergency);
   const setWealth = useStore((s) => s.setWealth);
-  const myId = useMyId() ?? "";
   const { toast } = useToast();
 
   const editing = editId ? accounts.find((a) => a.id === editId) ?? null : null;
 
   // Nudge to shore up the emergency fund before piling into investments.
-  const live = withLiveBalances(accounts, finance, expenses, myId);
-  const ef = emergencyStatus(emergency, live, unparkedAmount(finance, expenses, accounts, myId));
+  const live = withLiveBalances(accounts, finance);
+  const ef = emergencyStatus(emergency, live);
   const efNudge = !editing && (!ef.set || !ef.funded);
 
   const [name, setName] = useState("");

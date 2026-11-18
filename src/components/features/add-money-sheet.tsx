@@ -18,7 +18,7 @@ import { crossingWarning, monthlyMoney, spendByCategory } from "@/lib/money";
 import { emergencyStatus } from "@/lib/health";
 import { periodKey } from "@/lib/recurring";
 import { guessCategory } from "@/lib/categorise";
-import { withLiveBalances, unparkedAmount } from "@/lib/accounts";
+import { withLiveBalances } from "@/lib/accounts";
 import { cn, formatDate, formatINR, monthKey, uid as newId, sanitizeMoneyInput } from "@/lib/utils";
 import type { CategoryKey, FinanceType, Recurring } from "@/lib/types";
 
@@ -120,8 +120,8 @@ export function AddMoneySheet() {
   // When income comes in and the emergency fund is short, nudge to top it up.
   function incomeEfNudge(): string | null {
     if (!isIncome) return null;
-    const live = withLiveBalances(accounts, finance, expenses, myId);
-    const ef = emergencyStatus(emergency, live, unparkedAmount(finance, expenses, accounts, myId));
+    const live = withLiveBalances(accounts, finance);
+    const ef = emergencyStatus(emergency, live);
     if (ef.set && !ef.funded) return `Nice — consider adding ${formatINR(Math.min(total, ef.short))} to your emergency fund first.`;
     return null;
   }
