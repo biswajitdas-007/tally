@@ -1,7 +1,16 @@
 import { getDb } from "./mongodb";
 import { collections } from "./db";
-import { scopedDebts } from "./balances";
+import { scopedDebts, type PersonDebt } from "./balances";
 import type { Expense } from "./types";
+
+/**
+ * Whether anything is still open with this person in any ledger. Checked per
+ * ledger, not on the net total: owing ₹500 in one group and being owed ₹500 in
+ * another nets to zero, but both groups still show a debt.
+ */
+export function isOpen(debt: PersonDebt): boolean {
+  return debt.scopes.some((s) => Math.abs(s.amount) > 0.01);
+}
 
 export interface OpenBalance {
   people: number;
@@ -16,9 +25,10 @@ export interface OpenBalance {
 export async function outstandingBalances(uid: string): Promise<OpenBalance | null> {
   const { expenses } = await collections();
   const mine = await expenses.find({ memberUids: uid }).toArray();
-  const open = scopedDebts(mine as unknown as Expense[], uid).filter((d) => Math.abs(d.total) > 0.01);
+  const open = scopedDebts(mine as unknown as Expense[], uid).filter(isOpen);
   if (!open.length) return null;
-  return { people: open.length, amount: open.reduce((a, d) => a + Math.abs(d.total), 0) };
+  const amount = open.reduce((a, d) => a + d.scopes.reduce((x, s) => x + Math.abs(s.amount), 0), 0);
+  return { people: open.length, amount };
 }
 
 export interface PurgeResult {
@@ -44,7 +54,9 @@ export async function purgeAccount(uid: string): Promise<PurgeResult> {
   // account's leftovers go with it.
   const legacyFinance = (await getDb()).collection<{ uid: string }>("finance");
   const fin = await legacyFinance.deleteMany({ uid });
-  await invites.deleteMany({ invitedBy: uid } as Record<string, unknown>);
+  await invites.deleteMany({ inviterUid: uid });
+  // Nobody else can edit or stop a repeat this user created, so stop it here.
+  await expenses.updateMany({ createdBy: uid, recurring: { $in: ["monthly", "weekly"] } }, { $set: { recurring: "none" } });
 
   const solo = await expenses.deleteMany({ memberUids: [uid] });
   const shared = await expenses.updateMany({ memberUids: uid }, { $pull: { memberUids: uid } } as never);
@@ -54,6 +66,10 @@ export async function purgeAccount(uid: string): Promise<PurgeResult> {
     { $pull: { memberUids: uid, members: { id: uid } } } as never,
   );
   const emptied = await groups.deleteMany({ memberUids: { $size: 0 } });
+  // Groups they created pass to a remaining member, so someone can still manage them.
+  await groups.updateMany({ createdBy: uid, "memberUids.0": { $exists: true } }, [
+    { $set: { createdBy: { $arrayElemAt: ["$memberUids", 0] } } },
+  ]);
 
   await users.updateMany({ "contacts.id": uid }, { $pull: { contacts: { id: uid } } } as never);
   await users.deleteOne({ _id: uid });

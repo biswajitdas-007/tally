@@ -1,6 +1,7 @@
 import { verifyUser } from "@/lib/auth-server";
 import { collections } from "@/lib/db";
 import { scopedDebts } from "@/lib/balances";
+import { isOpen } from "@/lib/delete-account";
 import type { Expense } from "@/lib/types";
 import { json, serverError, unauthorized } from "@/lib/api-helpers";
 
@@ -23,7 +24,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     // Authoritative balance check — same math the friends list shows.
     const mine = await expenses.find({ memberUids: user.uid }).toArray();
     const debt = scopedDebts(mine as unknown as Expense[], user.uid).find((d) => d.personId === friendId);
-    if (debt && Math.abs(debt.total) > 0.01) {
+    if (debt && isOpen(debt)) {
       return json({ error: "unsettled", amount: debt.total }, 409);
     }
 
