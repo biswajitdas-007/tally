@@ -94,10 +94,6 @@ export function uid(prefix = ""): string {
   return prefix + rand.slice(0, 20);
 }
 
-export function clamp(n: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, n));
-}
-
 /** Round a money value to standard currency precision (2 decimals). */
 export function roundMoney(value: number): number {
   return Math.round((value + Number.EPSILON) * 100) / 100;

@@ -9,8 +9,6 @@ const clampDow = (d: number) => Math.min(Math.max(Math.round(d), 0), 6);
 const ym = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
 const ymd = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
-export const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-
 /** The key stamped on a rule once a given occurrence has been generated. */
 export const periodKey = (freq: RecurFreq, d: Date): string => (freq === "monthly" ? ym(d) : ymd(d));
 
