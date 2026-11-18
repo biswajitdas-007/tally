@@ -5,12 +5,12 @@ const dependencies = vi.hoisted(() => ({
   getIdToken: vi.fn(),
   socketId: vi.fn(),
   fetch: vi.fn(),
-  idbSet: vi.fn(),
+  idbUpdate: vi.fn(),
 }));
 
 vi.mock("@/lib/firebase", () => ({ firebaseAuth: dependencies.firebaseAuth }));
 vi.mock("@/lib/pusher-client", () => ({ socketId: dependencies.socketId }));
-vi.mock("idb-keyval", () => ({ get: vi.fn(async () => []), set: dependencies.idbSet }));
+vi.mock("idb-keyval", () => ({ get: vi.fn(async () => []), update: dependencies.idbUpdate }));
 
 import { deleteAccount, settleApi } from "./api";
 
@@ -22,7 +22,7 @@ describe("api requests", () => {
     });
     dependencies.socketId.mockReset().mockReturnValue("socket-1");
     dependencies.fetch.mockReset();
-    dependencies.idbSet.mockReset();
+    dependencies.idbUpdate.mockReset();
     vi.stubGlobal("fetch", dependencies.fetch);
   });
 
@@ -59,7 +59,13 @@ describe("api requests", () => {
 
     expect(res?.ok).toBe(true);
     expect(await res?.json()).toEqual({ ok: true, queued: true });
-    expect(dependencies.idbSet).toHaveBeenCalledTimes(1);
+    expect(dependencies.idbUpdate).toHaveBeenCalledTimes(1);
+  });
+
+  it("never queues an account deletion made offline", async () => {
+    dependencies.fetch.mockRejectedValueOnce(new Error("offline"));
+    await expect(deleteAccount()).resolves.toEqual({ ok: false });
+    expect(dependencies.idbUpdate).not.toHaveBeenCalled();
   });
 
   it("surfaces the unsettled-balance gate when deleting an account", async () => {

@@ -1,4 +1,4 @@
-import { get, set } from "idb-keyval";
+import { get, update } from "idb-keyval";
 
 export interface SyncRequest {
   id: string; // Unique ID for the queue item
@@ -21,19 +21,15 @@ export async function getSyncQueue(): Promise<SyncRequest[]> {
   }
 }
 
+// `update` reads and writes in one IndexedDB transaction, so two writes queued
+// at the same moment (e.g. settling several ledgers offline) can't drop each other.
 export async function enqueueSyncRequest(req: Omit<SyncRequest, "id" | "timestamp">): Promise<void> {
-  const queue = await getSyncQueue();
-  queue.push({
-    ...req,
-    id: Math.random().toString(36).substring(2, 9),
-    timestamp: Date.now(),
-  });
-  await set(QUEUE_KEY, queue);
+  const item: SyncRequest = { ...req, id: Math.random().toString(36).substring(2, 9), timestamp: Date.now() };
+  await update<SyncRequest[]>(QUEUE_KEY, (queue) => [...(queue ?? []), item]);
 }
 
 export async function removeSyncRequest(id: string): Promise<void> {
-  const queue = await getSyncQueue();
-  await set(QUEUE_KEY, queue.filter((item) => item.id !== id));
+  await update<SyncRequest[]>(QUEUE_KEY, (queue) => (queue ?? []).filter((item) => item.id !== id));
 }
 
 /**

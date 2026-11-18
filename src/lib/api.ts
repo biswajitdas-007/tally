@@ -22,6 +22,13 @@ export async function token(): Promise<string | null> {
   }
 }
 
+/**
+ * Writes the UI applies optimistically and can safely replay later. Anything
+ * else — deleting the account, removing a friend, invites — must fail honestly
+ * when offline rather than pretend to succeed.
+ */
+const QUEUEABLE = /^\/api\/(expenses|settle|groups|profile)(\/|$)/;
+
 async function req(method: string, path: string, body?: Record<string, unknown>): Promise<Response | null> {
   const t = await token();
   if (!t) return null;
@@ -36,8 +43,8 @@ async function req(method: string, path: string, body?: Record<string, unknown>)
     // For now, we only queue actual network failures (caught below).
     return res;
   } catch {
-    // Network failure (offline). Queue the mutation if it's a write operation.
-    if (method !== "GET") {
+    // Network failure (offline). Queue the mutation if it's a replayable write.
+    if (method !== "GET" && QUEUEABLE.test(path)) {
       await enqueueSyncRequest({ method, path, body, uid: firebaseAuth()?.currentUser?.uid });
       // Return a simulated success response so the store keeps its optimistic update
       return new Response(JSON.stringify({ ok: true, queued: true }), {
