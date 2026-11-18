@@ -18,6 +18,7 @@ interface InviteDoc {
   inviterName: string;
   status: string;
   isGeneric?: boolean;
+  acceptedByUid?: string;
 }
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -30,6 +31,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (!inv) return NextResponse.json({ error: "not-found" }, { status: 404 });
 
   if (inv.inviterUid === user.uid) return NextResponse.json({ ok: true, self: true });
+  // A personal invite works once. Generic links are meant to be shared.
+  if (!inv.isGeneric && inv.status === "accepted" && inv.acceptedByUid !== user.uid) {
+    return NextResponse.json({ error: "invite-used" }, { status: 410 });
+  }
 
   const { doc: meDoc, isNew } = await upsertUser(users, user.uid, { name: user.name, email: user.email, photoURL: user.picture });
 
@@ -96,6 +101,8 @@ async function handleGroupJoin(
   const { groups, expenses, users } = await collections();
   const g = await groups.findOne({ _id: inv.groupId });
   if (!g || g.memberUids.includes(user.uid)) return null;
+  // The invite only carries the inviter's membership; if they've left, it no longer opens the group.
+  if (!g.memberUids.includes(inv.inviterUid)) return null;
 
   const me: Person = {
     id: user.uid,

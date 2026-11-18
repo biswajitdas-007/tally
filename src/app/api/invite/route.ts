@@ -1,8 +1,8 @@
 import { getDb, isDbConfigured } from "@/lib/mongodb";
 import { verifyUser } from "@/lib/auth-server";
 import { sendEmail } from "@/lib/email";
-import type { UserDoc } from "@/lib/db";
-import { badRequest, escapeHtml, isStr, json, serverError, unauthorized } from "@/lib/api-helpers";
+import type { GroupDoc, UserDoc } from "@/lib/db";
+import { badRequest, escapeHtml, forbidden, isStr, json, serverError, unauthorized } from "@/lib/api-helpers";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -114,6 +114,15 @@ export async function POST(req: Request) {
     if (isDbConfigured) {
       const db = await getDb();
       const users = db.collection<UserDoc>("users");
+
+      // Only a member can invite people into a group.
+      if (groupId) {
+        const inGroup = await db.collection<GroupDoc>("groups").findOne({ _id: groupId, memberUids: user.uid }, { projection: { _id: 1 } });
+        if (!inGroup) return forbidden();
+      }
+      // An invite id belongs to whoever created it; nobody else may rewrite it.
+      const taken = await db.collection<InviteDoc>("invites").findOne({ _id: inviteId }, { projection: { inviterUid: 1 } });
+      if (taken && taken.inviterUid !== user.uid) return forbidden();
 
       // Don't re-invite someone who's already in your circle (skip if generic).
       if (!isGeneric && email) {
