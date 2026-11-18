@@ -1,4 +1,5 @@
 import { verifyUser } from "@/lib/auth-server";
+import { repeatBaseline } from "@/lib/repeat";
 import { collections, knownUids, type ExpenseDoc } from "@/lib/db";
 import { notifyChange } from "@/lib/notify";
 import { badRequest, forbidden, isNum, isStr, json, serverError, unauthorized } from "@/lib/api-helpers";
@@ -59,6 +60,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     if (patch.notes !== undefined) set.notes = isStr(patch.notes) ? (patch.notes as string).slice(0, 500) : undefined;
     if (patch.recurring !== undefined) {
       set.recurring = patch.recurring === "monthly" || patch.recurring === "weekly" ? patch.recurring : "none";
+      // Turning a repeat on (or changing how often) starts it from now, not
+      // from the expense's date — otherwise an old expense replays every period since.
+      if (set.recurring !== "none" && set.recurring !== existing.recurring) {
+        set.recurringLast = repeatBaseline(set.recurring, new Date((set.date ?? existing.date) as string), new Date());
+      }
     }
     if (patch.groupId !== undefined && !(patch.groupId === null || isStr(patch.groupId))) return badRequest();
 

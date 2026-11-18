@@ -1,5 +1,6 @@
 import { collections, type ExpenseDoc, type UserDoc } from "@/lib/db";
-import { duePeriods, periodKey, lastOccurrence } from "@/lib/recurring";
+import { duePeriods } from "@/lib/recurring";
+import { repeatBaseline } from "@/lib/repeat";
 import { scopedDebts, scopedTotals } from "@/lib/balances";
 import { sendSettleReminderEmail } from "@/lib/reminder-email";
 import { sendPush, type PushPayload, type PushResult } from "@/lib/webpush";
@@ -106,8 +107,9 @@ async function repeatExpenses(
     const freq = e.recurring === "weekly" ? "weekly" : "monthly";
     const seed = new Date(e.date);
     const day = freq === "monthly" ? seed.getDate() : seed.getDay();
-    // Fall back to the source date's period so an older expense doesn't
-    // suddenly replay every period it has ever missed.
+    // Without a stamp yet, start from the later of the expense's own period
+    // and when it was created, so a back-dated repeat doesn't replay every
+    // period it has ever "missed".
     const rule: Recurring = {
       id: e._id,
       type: "expense",
@@ -116,7 +118,7 @@ async function repeatExpenses(
       freq,
       day,
       auto: true,
-      lastRun: e.recurringLast ?? periodKey(freq, lastOccurrence(freq, day, seed)),
+      lastRun: e.recurringLast ?? repeatBaseline(freq, seed, new Date(e.createdAt)),
       createdAt: e.createdAt,
     };
 
