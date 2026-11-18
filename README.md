@@ -89,6 +89,18 @@ npm run start          # serve the production build
 node scripts/gen-icons.mjs   # regenerate PWA icons from the tally mark
 ```
 
+### Split-ledger safety checks
+
+Read-only tooling that guards split history (groups, expenses, settlements,
+friends) during refactors. Snapshots contain personal data and are written to
+the git-ignored `.ledger/` folder.
+
+```bash
+npm run ledger:snapshot -- baseline          # read-only: dump split data + computed balances
+npm run ledger:verify -- .ledger/<file>.json # recompute balances with the current code
+npm run ledger:diff -- <before>.json <after>.json  # what changed between two snapshots
+```
+
 ## Project structure
 
 ```

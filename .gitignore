@@ -53,3 +53,6 @@ next-env.d.ts
 *.pdf
 *.xlsx
 *.csv
+
+# split-ledger snapshots (contain personal data)
+/.ledger/
