@@ -1,7 +1,5 @@
 export type ID = string;
 
-export type SplitMode = "equal" | "exact" | "shares" | "percent";
-
 export type CategoryKey =
   | "food"
   | "rent"
@@ -58,23 +56,6 @@ export interface Group {
   offlineIds?: ID[];
   createdAt: string;
   archived?: boolean;
-}
-
-export type InviteStatus = "pending" | "accepted";
-
-export interface Invite {
-  id: ID;
-  email: string;
-  groupId: ID | null;
-  invitedBy: ID;
-  status: InviteStatus;
-  createdAt: string;
-}
-
-/** Net balance between you and another person (positive = they owe you). */
-export interface Balance {
-  personId: ID;
-  amount: number;
 }
 
 /* ---------- schedules ---------- *

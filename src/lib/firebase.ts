@@ -1,6 +1,5 @@
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, browserLocalPersistence, setPersistence, type Auth } from "firebase/auth";
-import { getFirestore, type Firestore } from "firebase/firestore";
 
 /**
  * Provide NEXT_PUBLIC_FIREBASE_* env vars to enable Google sign-in.
@@ -46,11 +45,6 @@ export function firebaseAuthReady(): Promise<Auth | null> {
     persistenceReady = setPersistence(auth, browserLocalPersistence).then(() => auth);
   }
   return persistenceReady;
-}
-
-export function firestore(): Firestore | null {
-  const app = firebaseApp();
-  return app ? getFirestore(app) : null;
 }
 
 export function googleProvider(): GoogleAuthProvider {

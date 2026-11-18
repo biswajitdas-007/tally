@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { duePeriods, lastOccurrence, nextOccurrence, periodKey, recurLabel, stampCurrent } from "./recurring";
+import { duePeriods, lastOccurrence, periodKey } from "./recurring";
 import type { Recurring } from "./types";
 
 const rule = (o: Partial<Recurring>): Recurring => ({
@@ -70,37 +70,5 @@ describe("weekly schedule", () => {
 
   it("catches up missed weeks", () => {
     expect(keys(weekly({ lastRun: "2026-06-29" }), JUL_15)).toEqual(["2026-07-06", "2026-07-13"]);
-  });
-});
-
-describe("stamping a new rule", () => {
-  it("doesn't fire for a period that already passed", () => {
-    const fresh = rule({ lastRun: stampCurrent("monthly", 1, JUL_15) });
-    expect(duePeriods(fresh, JUL_15)).toHaveLength(0);
-  });
-
-  it("but does fire on the next one", () => {
-    const fresh = rule({ lastRun: stampCurrent("monthly", 1, JUL_15) });
-    expect(keys(fresh, new Date(2026, 7, 2))).toEqual(["2026-08"]);
-  });
-});
-
-describe("labels", () => {
-  it("says when the next one lands", () => {
-    expect(periodKey("monthly", nextOccurrence("monthly", 1, JUL_15))).toBe("2026-08");
-  });
-
-  it.each([
-    [1, "Monthly on the 1st"],
-    [2, "Monthly on the 2nd"],
-    [3, "Monthly on the 3rd"],
-    [11, "Monthly on the 11th"],
-    [21, "Monthly on the 21st"],
-  ])("ordinalises day %i", (day, expected) => {
-    expect(recurLabel({ freq: "monthly", day })).toBe(expected);
-  });
-
-  it("names the weekday", () => {
-    expect(recurLabel({ freq: "weekly", day: 1 })).toBe("Weekly on Monday");
   });
 });

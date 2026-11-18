@@ -7,7 +7,7 @@ import { ChevronLeft, Plus, UserPlus, MoreVertical, Trash2, ArrowLeftRight, Rece
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Segmented } from "@/components/ui/segmented";
-import { Avatar, AvatarStack } from "@/components/ui/avatar";
+import { AvatarStack } from "@/components/ui/avatar";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ExpenseRow } from "@/components/features/expense-row";
 import { PersonBalanceRow } from "@/components/features/person-balance-row";
@@ -20,10 +20,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useStore, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
-import { useToast } from "@/components/ui/toast";
 import { memberNet, mySettleRows, simplifiedPlan } from "@/lib/balances";
 import { formatINR } from "@/lib/utils";
-import { resendInviteApi } from "@/lib/api";
 
 export default function GroupDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -31,14 +29,11 @@ export default function GroupDetailPage() {
   const groups = useStore((s) => s.groups);
   const people = useStore((s) => s.people);
   const expenses = useStore((s) => s.expenses);
-  const pendingInvites = useStore((s) => s.pendingInvites);
-  const deleteGroup = useStore((s) => s.deleteGroup);
   const openAdd = useUI((s) => s.openAdd);
   const openInvite = useUI((s) => s.openInvite);
   const openGroupSettings = useUI((s) => s.openGroupSettings);
   const openDeleteGroup = useUI((s) => s.openDeleteGroup);
   const openSettle = useUI((s) => s.openSettle);
-  const { toast } = useToast();
   const myId = useMyId() ?? "";
 
   const [tab, setTab] = useState<"expenses" | "balances">("expenses");
@@ -54,38 +49,6 @@ export default function GroupDetailPage() {
   const myNet = useMemo(() => memberNet(groupExpenses).get(myId) ?? 0, [groupExpenses, myId]);
   const myBalances = useMemo(() => mySettleRows(groupExpenses, myId), [groupExpenses, myId]);
   const transfers = useMemo(() => simplifiedPlan(groupExpenses), [groupExpenses]);
-
-  const groupPending = useMemo(
-    () => pendingInvites.filter((i) => i.groupId === id).sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
-    [pendingInvites, id],
-  );
-
-  const [resendingId, setResendingId] = useState<string | null>(null);
-
-  async function resendInvite(inviteId: string) {
-    setResendingId(inviteId);
-    try {
-      const res = await resendInviteApi(inviteId);
-      if (!res) {
-        toast({ message: "Session expired. Please sign in again.", tone: "error" });
-        return;
-      }
-      if (res.ok) {
-        const data = await res.json();
-        if (data.sent) {
-          toast({ message: "Invitation resent!", tone: "success" });
-        } else {
-          toast({ message: "Email not configured. Resend simulated.", tone: "info" });
-        }
-      } else {
-        toast({ message: "Failed to resend invitation", tone: "error" });
-      }
-    } catch {
-      toast({ message: "Something went wrong", tone: "error" });
-    } finally {
-      setResendingId(null);
-    }
-  }
 
   if (!group) {
     return (
