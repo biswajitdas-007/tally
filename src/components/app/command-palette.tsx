@@ -5,8 +5,7 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  Search, Plus, Minus, Users, UserPlus, Target, Repeat, Wallet, Landmark, ShieldCheck,
-  ScanLine, Home, Receipt, PieChart, Activity, User, Flag, CornerDownLeft, type LucideIcon,
+  Search, Plus, Users, UserPlus, Home, PieChart, Activity, User, CornerDownLeft, type LucideIcon,
 } from "lucide-react";
 import { useUI } from "@/store/useUI";
 import { useScrollLock } from "@/hooks/use-scroll-lock";
@@ -57,25 +56,12 @@ export function CommandPalette() {
     const go = (href: string) => () => router.push(href);
     return [
       { id: "expense", label: "Add a split expense", hint: "Split with friends", icon: Plus, group: "Add", run: () => ui.openAdd() },
-      { id: "spend", label: "Add an expense", hint: "Your own spending", icon: Minus, group: "Add", run: () => ui.openMoney("expense") },
-      { id: "income", label: "Add income", hint: "Salary, refunds, anything in", icon: Wallet, group: "Add", run: () => ui.openMoney("income") },
       { id: "group", label: "New group", hint: "Flat, trip, anything shared", icon: Users, group: "Add", run: ui.openCreateGroup },
       { id: "invite", label: "Invite someone", hint: "Add a friend by email", icon: UserPlus, group: "Add", run: () => ui.openInvite(null) },
-      { id: "repeat", label: "New repeat", hint: "Rent, salary, subscriptions", icon: Repeat, group: "Add", run: () => ui.openRecur() },
-      { id: "account", label: "Add an account", hint: "Bank, cash or wallet", icon: Landmark, group: "Add", run: () => ui.openWealth("asset") },
-      { id: "loan", label: "Add a loan", hint: "Something you owe", icon: Receipt, group: "Add", run: () => ui.openWealth("liability") },
-      { id: "invest", label: "Add an investment", hint: "SIP, stocks, FD", icon: PieChart, group: "Add", run: () => ui.openInvest() },
-
-      { id: "budget", label: "Set your budget", hint: "A monthly limit", icon: Target, group: "Manage", run: ui.openBudget },
-      { id: "ef", label: "Emergency fund", hint: "Set or edit your target", icon: ShieldCheck, group: "Manage", run: ui.openEmergency },
-      { id: "reconcile", label: "Check balances", hint: "Confirm against your bank", icon: ScanLine, group: "Manage", run: ui.openReconcile },
 
       { id: "home", label: "Home", hint: "Balances and activity", icon: Home, group: "Go to", run: go("/") },
-      { id: "money", label: "Money", hint: "Income and spending", icon: Wallet, group: "Go to", run: go("/money") },
-      { id: "wealth", label: "Wealth", hint: "Net worth and health", icon: Landmark, group: "Go to", run: go("/wealth") },
-      { id: "debt", label: "Debt-free plan", hint: "Payoff order and dates", icon: Flag, group: "Go to", run: go("/debt") },
       { id: "ledgers", label: "Ledgers", hint: "Groups and direct splits", icon: Users, group: "Go to", run: go("/groups") },
-      { id: "insights", label: "Insights", hint: "Where it all went", icon: PieChart, group: "Go to", run: go("/analytics") },
+      { id: "insights", label: "Insights", hint: "What your splits cost you", icon: PieChart, group: "Go to", run: go("/analytics") },
       { id: "activity", label: "Activity", hint: "Everything, newest first", icon: Activity, group: "Go to", run: go("/activity") },
       { id: "friends", label: "Friends", hint: "Who you split with", icon: User, group: "Go to", run: go("/friends") },
       { id: "profile", label: "Account", hint: "Profile and settings", icon: User, group: "Go to", run: go("/account") },

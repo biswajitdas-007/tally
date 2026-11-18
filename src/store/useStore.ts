@@ -3,10 +3,9 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { idbStorage } from "@/lib/idb-storage";
-import type { Account, Budget, CategoryKey, Emergency, Expense, FinanceEntry, FinanceType, Group, ID, Liability, Person, Recurring, Split, DebtPlanData, PendingInvite } from "@/lib/types";
+import type { CategoryKey, Expense, Group, ID, Person, Split, PendingInvite } from "@/lib/types";
 import type { ServerState } from "@/lib/api";
 import * as api from "@/lib/api";
-import { duePeriods } from "@/lib/recurring";
 import { avatarColor, uid } from "@/lib/utils";
 
 interface AddExpenseInput {
@@ -30,13 +29,6 @@ interface State {
   people: Person[];
   groups: Group[];
   expenses: Expense[];
-  finance: FinanceEntry[];
-  budget: Budget;
-  accounts: Account[];
-  liabilities: Liability[];
-  emergency: Emergency | null;
-  debtPlan: DebtPlanData | null;
-  recurrings: Recurring[];
   removedFriends: string[];
   pendingInvites: PendingInvite[];
   lastDeleted: Expense | null;
@@ -60,19 +52,6 @@ interface State {
   settleUp: (input: { from: ID; to: ID; amount: number; groupId?: ID | null; note?: string }) => void;
   updateProfile: (patch: { name?: string; upiId?: string }) => void;
   deleteFriend: (id: ID) => Promise<{ ok: boolean; unsettled?: boolean; amount?: number }>;
-
-  addFinance: (input: { type: FinanceType; amount: number; category: string; date?: string; note?: string; accountId?: ID; transfer?: boolean; recurringId?: ID; linkedId?: ID }) => FinanceEntry;
-  updateFinance: (id: ID, patch: Partial<FinanceEntry>) => void;
-  deleteFinance: (id: ID) => void;
-
-  setBudget: (patch: Partial<Budget>) => void;
-  setWealth: (patch: { accounts?: Account[]; liabilities?: Liability[]; emergency?: Emergency | null; debtPlan?: DebtPlanData | null }) => void;
-  confirmEmi: (id: ID, period: string, options?: { extraPayment?: number }) => Promise<api.ConfirmEmiResult>;
-  declineEmi: (id: ID, period: string) => Promise<{ ok: boolean }>;
-  setEmergency: (emergency: Emergency | null) => void;
-  saveRecurring: (rule: Recurring) => void;
-  deleteRecurring: (id: ID) => void;
-  runRecurring: (id: ID) => void;
 }
 
 let lastLoadHash = "";
@@ -80,16 +59,9 @@ const stateHash = (s: {
   people: unknown[];
   groups: unknown[];
   expenses: unknown[];
-  finance: unknown[];
-  budget: unknown;
-  accounts: unknown[];
-  liabilities: unknown[];
   removedFriends: unknown[];
-  emergency: unknown;
-  debtPlan: unknown;
-  recurrings: unknown[];
   pendingInvites: unknown[];
-}) => JSON.stringify([s.people, s.groups, s.expenses, s.finance, s.budget, s.accounts, s.liabilities, s.removedFriends, s.emergency, s.debtPlan, s.recurrings, s.pendingInvites]);
+}) => JSON.stringify([s.people, s.groups, s.expenses, s.removedFriends, s.pendingInvites]);
 
 const now = () => new Date().toISOString();
 const reconcile = (res: Response | null, get: () => State) => {
@@ -107,13 +79,6 @@ export const useStore = create<State>()(
   people: [],
   groups: [],
   expenses: [],
-  finance: [],
-  budget: { limits: {} },
-  accounts: [],
-  liabilities: [],
-  emergency: null,
-  debtPlan: null,
-  recurrings: [],
   removedFriends: [],
   pendingInvites: [],
   lastDeleted: null,
@@ -132,13 +97,6 @@ export const useStore = create<State>()(
       people: state.people,
       groups: state.groups,
       expenses: state.expenses,
-      finance: state.finance,
-      budget: state.budget,
-      accounts: state.accounts,
-      liabilities: state.liabilities,
-      emergency: state.emergency ?? null,
-      debtPlan: state.debtPlan ?? null,
-      recurrings: state.recurrings ?? [],
       removedFriends: state.removedFriends ?? [],
       pendingInvites: state.pendingInvites ?? [],
       dataReady: true,
@@ -154,13 +112,6 @@ export const useStore = create<State>()(
       people: [],
       groups: [],
       expenses: [],
-      finance: [],
-      budget: { limits: {} },
-      accounts: [],
-      liabilities: [],
-      emergency: null,
-      debtPlan: null,
-      recurrings: [],
       removedFriends: [],
       pendingInvites: [],
       lastDeleted: null,
@@ -280,143 +231,19 @@ export const useStore = create<State>()(
     return res;
   },
 
-    addFinance: ({ type, amount, category, date, note, accountId, transfer, recurringId, linkedId }) => {
-    const e: FinanceEntry = {
-      id: uid("f_"),
-      type,
-      amount,
-      category,
-      date: date ?? now(),
-      note,
-      createdAt: now(),
-      accountId,
-      transfer,
-      recurringId,
-      linkedId,
-    };
-    set((s) => ({ finance: [e, ...s.finance] }));
-    api.addFinanceApi({ ...e }).then((res) => reconcile(res, get));
-    return e;
-  },
-
-  updateFinance: (id, patch) => {
-    set((s) => ({ finance: s.finance.map((f) => (f.id === id ? { ...f, ...patch } : f)) }));
-    api.updateFinanceApi(id, { ...patch }).then((res) => reconcile(res, get));
-  },
-
-  deleteFinance: (id) => {
-    const s = get();
-    const entry = s.finance.find((f) => f.id === id);
-    if (!entry) return;
-
-    let toDelete = [id];
-    if (entry.linkedId) {
-      const linked = s.finance.filter(f => f.linkedId === entry.linkedId);
-      toDelete = linked.map(f => f.id);
-    }
-    
-    // A card's balance is derived from the entries against it, so removing a
-    // payment restores what it had cleared with no adjustment of our own.
-    set((s) => ({ finance: s.finance.filter((f) => !toDelete.includes(f.id)) }));
-
-    toDelete.forEach(did => api.deleteFinanceApi(did));
-  },
-
-  setBudget: (patch) => {
-    set((s) => ({ budget: { ...s.budget, ...patch } }));
-    const next = get().budget;
-    api.setBudgetApi({ monthly: next.monthly, limits: next.limits }).then((res) => reconcile(res, get));
-  },
-
-  setWealth: (patch) => {
-    const previousLiabilities = get().liabilities;
-    set((s) => ({ ...s, ...patch }));
-    const s = get();
-    const body: Record<string, unknown> = {};
-    if (patch.accounts !== undefined) body.accounts = s.accounts;
-    if (patch.liabilities !== undefined) {
-      body.liabilities = s.liabilities;
-      body.expectedLiabilities = previousLiabilities;
-    }
-    if (patch.emergency !== undefined) body.emergency = s.emergency;
-    if (patch.debtPlan !== undefined) body.debtPlan = s.debtPlan;
-    api.setWealthApi(body).then((res) => reconcile(res, get));
-  },
-
-  confirmEmi: async (id, period, options) => {
-    const result = await api.confirmEmiApi(id, period, options);
-    const liability = result.liability;
-    if (result.ok && liability) {
-      set((s) => ({
-        liabilities: s.liabilities.map((l) => (l.id === id ? liability : l)),
-      }));
-    }
-    return result;
-  },
-
-  declineEmi: async (id, period) => {
-    return await api.declineEmiApi(id, period);
-  },
-
-  setEmergency: (emergency) => {
-    set({ emergency });
-    api.setWealthApi({ emergency }).then((res) => reconcile(res, get));
-  },
-
-  saveRecurring: (rule) => {
-    set((s) => ({
-      recurrings: s.recurrings.some((r) => r.id === rule.id)
-        ? s.recurrings.map((r) => (r.id === rule.id ? rule : r))
-        : [rule, ...s.recurrings],
-    }));
-    api.setRecurringApi({ recurrings: get().recurrings }).then((res) => reconcile(res, get));
-  },
-
-  deleteRecurring: (id) => {
-    set((s) => ({ recurrings: s.recurrings.filter((r) => r.id !== id) }));
-    api.setRecurringApi({ recurrings: get().recurrings }).then((res) => reconcile(res, get));
-  },
-
-  /**
-   * Add everything a rule owes, right now. The nightly job does this on its own,
-   * but running it here means a due entry shows up the moment you open the app
-   * (and lets you add one early from the Repeats list).
-   */
-  runRecurring: (id) => {
-    const rule = get().recurrings.find((r) => r.id === id);
-    if (!rule) return;
-    const due = duePeriods(rule);
-    if (!due.length) return;
-
-    for (const { date } of due) {
-      get().addFinance({
-        type: rule.type,
-        amount: rule.amount,
-        category: rule.category,
-        date: date.toISOString(),
-        note: rule.note,
-        accountId: rule.accountId,
-        recurringId: rule.id,
-      });
-    }
-    get().saveRecurring({ ...rule, lastRun: due[due.length - 1].key });
-  },
 }),
 {
   name: "tally-storage",
+  // v1: money tracking moved to Money Ledger. Older caches carry money data and
+  // are dropped on load; the server is the source of truth, so the app refetches.
+  version: 1,
+  migrate: () => ({}) as State,
   storage: createJSONStorage(() => idbStorage),
   partialize: (state) => ({
     me: state.me,
     people: state.people,
     groups: state.groups,
     expenses: state.expenses,
-    finance: state.finance,
-    budget: state.budget,
-    accounts: state.accounts,
-    liabilities: state.liabilities,
-    emergency: state.emergency,
-    debtPlan: state.debtPlan,
-    recurrings: state.recurrings,
     removedFriends: state.removedFriends,
     pendingInvites: state.pendingInvites,
   } as unknown as State),

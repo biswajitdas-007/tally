@@ -1,7 +1,7 @@
 "use client";
 
 import { create } from "zustand";
-import type { FinanceType, ID } from "@/lib/types";
+import type { ID } from "@/lib/types";
 
 export interface SettleTarget {
   /** The person on the other side of the balance. */
@@ -48,63 +48,14 @@ interface UIState {
   openMenu: () => void;
   closeMenu: () => void;
 
-  moneyOpen: boolean;
-  moneyType: FinanceType;
-  moneyEditId: ID | null;
-  openMoney: (type?: FinanceType, editId?: ID | null) => void;
-  closeMoney: () => void;
-
-  budgetOpen: boolean;
-  openBudget: () => void;
-  closeBudget: () => void;
-
-  wealthOpen: boolean;
-  wealthMode: "asset" | "liability";
-  wealthEditId: ID | null;
-  wealthInitialKind: string | null;
-  openWealth: (mode?: "asset" | "liability", editId?: ID | null, initialKind?: string | null) => void;
-  closeWealth: () => void;
-
-
-  accountDetailId: ID | null;
-  openAccountDetail: (id: ID) => void;
-  closeAccountDetail: () => void;
-
   supportOpen: boolean;
   openSupport: () => void;
   closeSupport: () => void;
-
-  emergencyOpen: boolean;
-  openEmergency: () => void;
-  closeEmergency: () => void;
-
-  investOpen: boolean;
-  investEditId: ID | null;
-  openInvest: (editId?: ID | null) => void;
-  closeInvest: () => void;
-
-  reconcileOpen: boolean;
-  openReconcile: () => void;
-  closeReconcile: () => void;
-
-  recurOpen: boolean;
-  recurEditId: ID | null;
-  recurSeed: FinanceType | null;
-  openRecur: (editId?: ID | null, type?: FinanceType) => void;
-  closeRecur: () => void;
 
   whoOwesWhomOpen: boolean;
   openWhoOwesWhom: () => void;
   closeWhoOwesWhom: () => void;
 
-  transferOpen: boolean;
-  transferToId: ID | null;
-  openTransfer: (toId?: ID | null) => void;
-  closeTransfer: () => void;
-
-  cardDashboardId: ID | null;
-  openCardDashboard: (id: ID) => void;
-  closeCardDashboard: () => void;
 }
 
 export const useUI = create<UIState>((set) => ({
@@ -144,61 +95,11 @@ export const useUI = create<UIState>((set) => ({
   openMenu: () => set({ menuOpen: true }),
   closeMenu: () => set({ menuOpen: false }),
 
-  moneyOpen: false,
-  moneyType: "expense",
-  moneyEditId: null,
-  openMoney: (type = "expense", editId = null) => set({ moneyOpen: true, moneyType: type, moneyEditId: editId }),
-  closeMoney: () => set({ moneyOpen: false, moneyEditId: null }),
-
-  budgetOpen: false,
-  openBudget: () => set({ budgetOpen: true }),
-  closeBudget: () => set({ budgetOpen: false }),
-
-  wealthOpen: false,
-  wealthMode: "asset",
-  wealthEditId: null,
-  wealthInitialKind: null,
-  openWealth: (mode = "asset", editId = null, initialKind = null) => set({ wealthOpen: true, wealthMode: mode, wealthEditId: editId, wealthInitialKind: initialKind }),
-  closeWealth: () => set({ wealthOpen: false, wealthEditId: null }),
-
-
-  accountDetailId: null,
-  openAccountDetail: (id) => set({ accountDetailId: id }),
-  closeAccountDetail: () => set({ accountDetailId: null }),
-
   supportOpen: false,
   openSupport: () => set({ supportOpen: true }),
   closeSupport: () => set({ supportOpen: false }),
 
-  emergencyOpen: false,
-  openEmergency: () => set({ emergencyOpen: true }),
-  closeEmergency: () => set({ emergencyOpen: false }),
-
-  investOpen: false,
-  investEditId: null,
-  openInvest: (editId = null) => set({ investOpen: true, investEditId: editId }),
-  closeInvest: () => set({ investOpen: false, investEditId: null }),
-
-  reconcileOpen: false,
-  openReconcile: () => set({ reconcileOpen: true }),
-  closeReconcile: () => set({ reconcileOpen: false }),
-
-  recurOpen: false,
-  recurEditId: null,
-  recurSeed: null,
-  openRecur: (editId = null, type = "expense") => set({ recurOpen: true, recurEditId: editId, recurSeed: type }),
-  closeRecur: () => set({ recurOpen: false, recurEditId: null, recurSeed: null }),
-
   whoOwesWhomOpen: false,
   openWhoOwesWhom: () => set({ whoOwesWhomOpen: true }),
   closeWhoOwesWhom: () => set({ whoOwesWhomOpen: false }),
-
-  transferOpen: false,
-  transferToId: null,
-  openTransfer: (toId = null) => set({ transferOpen: true, transferToId: toId }),
-  closeTransfer: () => set({ transferOpen: false, transferToId: null }),
-
-  cardDashboardId: null,
-  openCardDashboard: (id) => set({ cardDashboardId: id }),
-  closeCardDashboard: () => set({ cardDashboardId: null }),
 }));

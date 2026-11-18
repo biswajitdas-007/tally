@@ -1,7 +1,6 @@
 import type { Collection } from "mongodb";
 import { getDb } from "./mongodb";
-import { normalizeLiability, startOfToday } from "./liabilities";
-import type { Account, Budget, DebtPlanData, Emergency, Expense, FinanceEntry, Group, Liability, Person, Recurring, PendingInvite } from "./types";
+import type { Expense, Group, Person, PendingInvite } from "./types";
 import type { PushSubscription } from "web-push";
 
 /* ---------- server document shapes ---------- */
@@ -16,22 +15,10 @@ export interface UserDoc {
   contacts?: Person[];
   removedFriends?: string[]; // friend ids hidden from your list after removal
   pushSubs?: PushSubscription[];
-  budget?: Budget;
-  accounts?: Account[];
-  liabilities?: Liability[];
-  emergency?: Emergency;
-  recurrings?: Recurring[];
-  debtPlan?: DebtPlanData;
-  /**
-   * `<liabilityId>:<period>` for every payment receipt already emailed. Kept
-   * outside `liabilities` so stamping one can't collide with the wealth route's
-   * compare-and-set on that array.
-   */
-  receiptKeys?: string[];
-  /** Explicit choice of home screen; unset means infer it from their data. */
-  /** @deprecated Old home-screen switch. No longer read or written; removed in the post-split cleanup. */
-  moneyMode?: boolean;
   updatedAt?: Date;
+  // Legacy money fields (budget, accounts, liabilities, emergency, recurrings,
+  // debtPlan, receiptKeys, moneyMode) may still sit on older documents until the
+  // post-split cleanup removes them. Tally never reads or writes them.
 }
 
 export interface GroupDoc {
@@ -69,21 +56,6 @@ export interface ExpenseDoc {
   accountId?: string;
 }
 
-/** Private personal money entry — belongs to exactly one user, never shared. */
-export interface FinanceDoc {
-  _id: string;
-  uid: string;
-  type: FinanceEntry["type"];
-  amount: number;
-  category: string;
-  date: string;
-  note?: string;
-  createdAt: string;
-  accountId?: string;
-  transfer?: boolean;
-  recurringId?: string;
-}
-
 export interface InviteDoc {
   _id: string;
   email?: string;
@@ -103,7 +75,6 @@ export async function collections() {
     users: db.collection<UserDoc>("users"),
     groups: db.collection<GroupDoc>("groups"),
     expenses: db.collection<ExpenseDoc>("expenses"),
-    finance: db.collection<FinanceDoc>("finance"),
     invites: db.collection<InviteDoc>("invites"),
   };
 }
@@ -178,78 +149,24 @@ function toClientExpense(e: ExpenseDoc): Expense {
   };
 }
 
-function toClientFinance(f: FinanceDoc): FinanceEntry {
-  return {
-    id: f._id,
-    type: f.type,
-    amount: f.amount,
-    category: f.category,
-    date: f.date,
-    note: f.note,
-    createdAt: f.createdAt,
-    accountId: f.accountId,
-    transfer: f.transfer,
-    recurringId: f.recurringId,
-  };
-}
-
 export interface ClientState {
   me: Person;
   people: Person[];
   groups: Group[];
   expenses: Expense[];
-  finance: FinanceEntry[];
-  budget: Budget;
-  accounts: Account[];
-  liabilities: Liability[];
-  emergency: Emergency | null;
-  recurrings: Recurring[];
   removedFriends: string[];
-  debtPlan: DebtPlanData | null;
   pendingInvites: PendingInvite[];
-}
-
-/**
- * Give any card still missing a baseline one, dated to the start of today.
- *
- * A card's balance is only derived once it has a baseline to measure from, and
- * the alternative write paths — saving a card, saving wealth — may never be
- * touched by someone who only ever adds expenses. Stamping it as state is built
- * means a card starts tracking on the next load rather than on the next edit.
- * The stored figure is taken as fact, so nothing already folded into it is
- * replayed, and today's entries still count.
- */
-export async function baselinedCards(
-  users: Collection<UserDoc>,
-  uid: string,
-  liabilities: Liability[],
-): Promise<Liability[]> {
-  if (!liabilities.some((l) => l.kind === "card" && !l.baselineAt)) return liabilities;
-
-  const baselineAt = startOfToday();
-  try {
-    await users.updateOne(
-      { _id: uid },
-      { $set: { "liabilities.$[card].baselineAt": baselineAt } },
-      { arrayFilters: [{ "card.kind": "card", "card.baselineAt": { $exists: false } }] },
-    );
-  } catch {
-    // Reading state must not fail over a backfill; the next load retries it.
-    return liabilities;
-  }
-  return liabilities.map((l) => (l.kind === "card" && !l.baselineAt ? { ...l, baselineAt } : l));
 }
 
 /** The full view for one user: profile, everyone they share with, groups, expenses. */
 export async function buildState(uid: string): Promise<ClientState> {
-  const { users, groups, expenses, finance, invites } = await collections();
+  const { users, groups, expenses, invites } = await collections();
   const meDoc = ((await users.findOne({ _id: uid })) ?? { _id: uid, name: "You" }) as UserDoc;
 
   // Newest first, matching where the client puts a group the moment it's made —
   // without this the order reverted to insertion order on the next load.
   const groupDocs = await groups.find({ memberUids: uid }).sort({ createdAt: -1 }).toArray();
   const expenseDocs = await expenses.find({ memberUids: uid }).sort({ date: -1 }).toArray();
-  const financeDocs = await finance.find({ uid }).sort({ date: -1 }).toArray();
 
   // Self-heal: expenses where I'm a party (someone put me in a split / paid me)
   // but I'm missing from memberUids — e.g. a direct split created while a
@@ -311,14 +228,7 @@ export async function buildState(uid: string): Promise<ClientState> {
     people: [...byId.values()],
     groups: groupDocs.map(toClientGroup),
     expenses: expenseDocs.map(toClientExpense),
-    finance: financeDocs.map(toClientFinance),
-    budget: meDoc.budget ?? { limits: {} },
-    accounts: meDoc.accounts ?? [],
-    liabilities: await baselinedCards(users, uid, (meDoc.liabilities ?? []).map(normalizeLiability)),
-    emergency: meDoc.emergency ?? null,
-    recurrings: meDoc.recurrings ?? [],
     removedFriends: meDoc.removedFriends ?? [],
-    debtPlan: meDoc.debtPlan ?? null,
     pendingInvites,
   };
 }
@@ -339,39 +249,6 @@ export async function addContact(
     { $pull: { contacts: { id: person.id }, removedFriends: person.id } } as any,
   );
   await users.updateOne({ _id: ownerUid }, { $push: { contacts: person } });
-}
-
-/**
- * A liability payment can be recorded two ways — "Record payment" (a transfer)
- * and "Already recorded" (a confirmation) — and both send the same receipt.
- * Claiming the period before sending means whichever runs first wins and the
- * other stays quiet. Oldest claims fall off once the list is full; by then the
- * period they cover is long past.
- */
-const RECEIPT_KEY_LIMIT = 200;
-
-export async function claimReceipt(
-  users: Collection<UserDoc>,
-  uid: string,
-  liabilityId: string,
-  period: string,
-): Promise<boolean> {
-  const key = `${liabilityId}:${period}`;
-  const claimed = await users.updateOne(
-    { _id: uid, receiptKeys: { $ne: key } },
-    { $push: { receiptKeys: { $each: [key], $slice: -RECEIPT_KEY_LIMIT } } },
-  );
-  return claimed.modifiedCount === 1;
-}
-
-/** Hand a claim back when the send failed, so a retry can still deliver it. */
-export async function releaseReceipt(
-  users: Collection<UserDoc>,
-  uid: string,
-  liabilityId: string,
-  period: string,
-): Promise<void> {
-  await users.updateOne({ _id: uid }, { $pull: { receiptKeys: `${liabilityId}:${period}` } });
 }
 
 /** uids to notify about a change (minus the actor). */

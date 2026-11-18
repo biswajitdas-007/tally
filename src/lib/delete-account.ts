@@ -1,3 +1,4 @@
+import { getDb } from "./mongodb";
 import { collections } from "./db";
 import { scopedDebts } from "./balances";
 import type { Expense } from "./types";
@@ -36,9 +37,13 @@ export interface PurgeResult {
  * that was only ever theirs is deleted outright.
  */
 export async function purgeAccount(uid: string): Promise<PurgeResult> {
-  const { users, groups, expenses, finance, invites } = await collections();
+  const { users, groups, expenses, invites } = await collections();
 
-  const fin = await finance.deleteMany({ uid });
+  // Money entries from before money tracking moved to Money Ledger. The whole
+  // collection is dropped in the post-split cleanup; until then a deleted
+  // account's leftovers go with it.
+  const legacyFinance = (await getDb()).collection<{ uid: string }>("finance");
+  const fin = await legacyFinance.deleteMany({ uid });
   await invites.deleteMany({ invitedBy: uid } as Record<string, unknown>);
 
   const solo = await expenses.deleteMany({ memberUids: [uid] });

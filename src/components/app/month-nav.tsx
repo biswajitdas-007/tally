@@ -2,7 +2,7 @@
 
 import type { Dispatch, SetStateAction } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { clampMonth, monthLabel } from "@/lib/money";
+import { clampMonth, monthLabel } from "@/lib/months";
 import { cn } from "@/lib/utils";
 
 /** Step back and forward through months. Never past the current one — there's
