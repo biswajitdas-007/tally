@@ -38,7 +38,7 @@ async function req(method: string, path: string, body?: Record<string, unknown>)
   } catch {
     // Network failure (offline). Queue the mutation if it's a write operation.
     if (method !== "GET") {
-      await enqueueSyncRequest({ method, path, body });
+      await enqueueSyncRequest({ method, path, body, uid: firebaseAuth()?.currentUser?.uid });
       // Return a simulated success response so the store keeps its optimistic update
       return new Response(JSON.stringify({ ok: true, queued: true }), {
         status: 200,

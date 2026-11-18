@@ -4,7 +4,8 @@ import { useEffect } from "react";
 import { useStore } from "@/store/useStore";
 import * as api from "@/lib/api";
 import { getPusherClient, isPusherConfigured } from "@/lib/pusher-client";
-import { getSyncQueue, removeSyncRequest } from "@/lib/sync-queue";
+import { belongsTo, getSyncQueue, removeSyncRequest } from "@/lib/sync-queue";
+import { firebaseAuth } from "@/lib/firebase";
 
 /** Loads the user's shared data (with retry) and keeps it live via Pusher. */
 export function SyncManager() {
@@ -22,6 +23,11 @@ export function SyncManager() {
       try {
         const t = typeof window !== "undefined" ? await api.token() : null;
         if (!t) continue;
+        // Someone else's offline write: drop it rather than send it as this user.
+        if (!belongsTo(req, firebaseAuth()?.currentUser?.uid)) {
+          await removeSyncRequest(req.id);
+          continue;
+        }
         
         const res = await fetch(req.path, {
           method: req.method,
