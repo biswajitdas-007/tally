@@ -31,7 +31,6 @@ interface State {
   expenses: Expense[];
   removedFriends: string[];
   pendingInvites: PendingInvite[];
-  lastDeleted: Expense | null;
 
   setAuthReady: () => void;
   setLoadError: (v: boolean) => void;
@@ -43,7 +42,6 @@ interface State {
   addExpense: (input: AddExpenseInput) => Expense;
   updateExpense: (id: ID, patch: Partial<Expense>) => void;
   deleteExpense: (id: ID) => void;
-  undoDelete: () => void;
 
   addGroup: (input: { name: string; icon: string; color: string; memberIds: ID[] }) => Group;
   updateGroup: (id: ID, patch: Partial<Pick<Group, "name" | "icon" | "color" | "offlineIds">>) => void;
@@ -81,7 +79,6 @@ export const useStore = create<State>()(
   expenses: [],
   removedFriends: [],
   pendingInvites: [],
-  lastDeleted: null,
 
   setAuthReady: () => set({ authReady: true }),
   setLoadError: (v) => set({ loadError: v }),
@@ -114,7 +111,6 @@ export const useStore = create<State>()(
       expenses: [],
       removedFriends: [],
       pendingInvites: [],
-      lastDeleted: null,
       dataReady: false,
       loadError: false,
     });
@@ -154,16 +150,8 @@ export const useStore = create<State>()(
   },
 
   deleteExpense: (id) => {
-    const target = get().expenses.find((e) => e.id === id) ?? null;
-    set((s) => ({ expenses: s.expenses.filter((e) => e.id !== id), lastDeleted: target }));
+    set((s) => ({ expenses: s.expenses.filter((e) => e.id !== id) }));
     api.deleteExpenseApi(id).then((res) => reconcile(res, get));
-  },
-
-  undoDelete: () => {
-    const d = get().lastDeleted;
-    if (!d) return;
-    set((s) => ({ expenses: [d, ...s.expenses], lastDeleted: null }));
-    api.addExpenseApi({ ...d }).then((res) => reconcile(res, get));
   },
 
   addGroup: ({ name, icon, color, memberIds }) => {

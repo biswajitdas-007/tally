@@ -33,18 +33,6 @@ export function formatINR(
   return `${sign}₹${body}`;
 }
 
-/** Just the grouped number, no symbol — for keypad-style displays. */
-export function formatNumber(value: number, decimals = true): string {
-  return new Intl.NumberFormat("en-IN", {
-    minimumFractionDigits: decimals ? 2 : 0,
-    maximumFractionDigits: 2,
-  }).format(roundMoney(value));
-}
-
-export function formatMoneyInput(value: number): string {
-  return roundMoney(value).toFixed(2).replace(/\.00$/, "");
-}
-
 export function initials(name: string): string {
   const parts = name.trim().split(/\s+/);
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
@@ -69,21 +57,6 @@ export function avatarColor(seed: string): string {
   let h = 0;
   for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
   return AVATAR_COLORS[h % AVATAR_COLORS.length];
-}
-
-/** Compact relative time (2h, 3d, Aug 4). */
-export function relativeTime(iso: string): string {
-  const then = new Date(iso).getTime();
-  const now = Date.now();
-  const diff = Math.max(0, now - then);
-  const m = Math.floor(diff / 60000);
-  if (m < 1) return "now";
-  if (m < 60) return `${m}m`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h`;
-  const d = Math.floor(h / 24);
-  if (d < 7) return `${d}d`;
-  return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
 }
 
 export function formatDate(iso: string, withYear = false): string {
@@ -130,16 +103,6 @@ export function roundMoney(value: number): number {
   return Math.round((value + Number.EPSILON) * 100) / 100;
 }
 
-export function parseMoneyInput(value: string): number {
-  const cleaned = value.replace(/[^0-9.]/g, "");
-  const parts = cleaned.split(".");
-  const whole = parts[0] ?? "";
-  const fraction = parts.slice(1).join("");
-  const normalized = fraction ? `${whole || "0"}.${fraction.slice(0, 2)}` : whole;
-  const parsed = Number(normalized);
-  return Number.isFinite(parsed) ? roundMoney(parsed) : 0;
-}
-
 /** Sanitizes raw input string to ensure it's a valid monetary amount (max 2 decimal places). */
 export function sanitizeMoneyInput(value: string, opts?: { allowNegative?: boolean }): string {
   const allowNegative = opts?.allowNegative ?? false;
@@ -156,10 +119,6 @@ export function sanitizeMoneyInput(value: string, opts?: { allowNegative?: boole
   return cleaned;
 }
 
-export function toCurrencyString(value: number): string {
-  return new Intl.NumberFormat("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(roundMoney(value));
-}
-
 /** Split a total into n near-equal integer paise-safe rupee shares. */
 export function splitEqually(total: number, count: number): number[] {
   if (count <= 0) return [];
@@ -167,21 +126,6 @@ export function splitEqually(total: number, count: number): number[] {
   const base = Math.floor(cents / count);
   const remainder = cents - base * count;
   return Array.from({ length: count }, (_, i) => (base + (i < remainder ? 1 : 0)) / 100);
-}
-
-/**
- * One amount's share of a total, for a figure shown on its own.
- *
- * Something real but tiny reads "<1%" rather than "0%", which next to an
- * actual amount looks like a mistake. Use `percentShares` instead for a column
- * of shares, where the numbers also have to add up.
- */
-export function formatShare(part: number, total: number): string {
-  if (total <= 0 || part <= 0) return "0%";
-  const pct = (part / total) * 100;
-  if (pct < 1) return "<1%";
-  if (pct > 99 && pct < 100) return ">99%";
-  return `${Math.round(pct)}%`;
 }
 
 /**

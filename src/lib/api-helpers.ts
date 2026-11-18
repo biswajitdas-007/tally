@@ -26,8 +26,3 @@ const HTML_ESCAPES: Record<string, string> = {
 export function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) => HTML_ESCAPES[c]);
 }
-
-/** Logs a security-relevant event to the server logs (no PII). */
-export function securityLog(event: string, meta: Record<string, unknown> = {}) {
-  console.warn(`[security] ${event}`, JSON.stringify(meta));
-}

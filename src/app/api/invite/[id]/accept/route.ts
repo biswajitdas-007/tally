@@ -5,7 +5,7 @@ import { notifyChange } from "@/lib/notify";
 import { sendWelcomeEmail } from "@/lib/email";
 import type { Person } from "@/lib/types";
 import type { Collection } from "mongodb";
-import type { UserDoc, GroupDoc, ExpenseDoc } from "@/lib/db";
+import type { UserDoc } from "@/lib/db";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,7 +25,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const { id } = await params;
 
-  const { invites, groups, expenses, users } = await collections();
+  const { invites, users } = await collections();
   const inv = (await invites.findOne({ _id: id })) as InviteDoc | null;
   if (!inv) return NextResponse.json({ error: "not-found" }, { status: 404 });
 

@@ -1,4 +1,4 @@
-import type { CategoryKey, FinanceType } from "./types";
+import type { CategoryKey } from "./types";
 
 /**
  * Guess a category from free text. The first set of rules is aimed at bank
@@ -33,28 +33,6 @@ const EXPENSE_RULES: [RegExp, CategoryKey][] = [
     "health",
   ],
 ];
-
-const INCOME_RULES: [RegExp, string][] = [
-  [/salary|payroll|sal cr|monthly pay|wages|stipend/i, "salary"],
-  [/bonus|incentive|commission|arrear/i, "bonus"],
-  [/interest|dividend|maturity|redemption|mutual fund|sip refund|zerodha|groww|upstox/i, "investment"],
-  [/refund|reversal|cashback|returned|failed txn/i, "refund"],
-  [/gift/i, "gift"],
-];
-
-/**
- * Category for a piece of text. Income and expenses use different category
- * sets, so the type decides which rules apply.
- */
-export function guessCategory(text: string, type: FinanceType = "expense"): string {
-  if (!text) return type === "income" ? "other" : "other";
-  if (type === "income") {
-    for (const [re, cat] of INCOME_RULES) if (re.test(text)) return cat;
-    return "other";
-  }
-  for (const [re, cat] of EXPENSE_RULES) if (re.test(text)) return cat;
-  return "other";
-}
 
 /** Expense-only variant, for the add-expense sheet's live guess. */
 export function guessExpenseCategory(text: string): CategoryKey | null {
