@@ -48,7 +48,7 @@ const nextConfig: NextConfig = {
       permanent: false,
     }));
   },
-  serverExternalPackages: ["mongodb", "nodemailer"],
+  serverExternalPackages: ["mongodb"],
   async headers() {
     return [
       { source: "/(.*)", headers: securityHeaders },
