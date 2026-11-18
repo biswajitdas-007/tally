@@ -16,6 +16,7 @@ import { useStore, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { useToast } from "@/components/ui/toast";
 import { cn, formatINR, formatDate, splitEqually, sanitizeMoneyInput } from "@/lib/utils";
+import { isEqualSplit } from "@/lib/splits";
 import type { CategoryKey, ID, Split } from "@/lib/types";
 
 export function AddExpenseSheet() {
@@ -77,9 +78,16 @@ export function AddExpenseSheet() {
       setDate(new Date(editing.date));
       setNotes(editing.notes ?? "");
       setShowNotes(Boolean(editing.notes));
-      setRecurring(editing.recurring === "monthly");
-      setSplitMode("equal");
-      setExact({});
+      setRecurring(editing.recurring === "monthly" || editing.recurring === "weekly");
+      // Reopen an unequal split as exact amounts — resetting to equal would
+      // silently rewrite everyone's share on any edit.
+      if (isEqualSplit(editing.amount, editing.splits.map((s) => s.amount))) {
+        setSplitMode("equal");
+        setExact({});
+      } else {
+        setSplitMode("exact");
+        setExact(Object.fromEntries(editing.splits.map((s) => [s.personId, String(s.amount)])));
+      }
     } else {
       setAmount("");
       setDescription("");
@@ -160,7 +168,8 @@ export function AddExpenseSheet() {
       splits,
       date: date.toISOString(),
       notes: notes.trim() || undefined,
-      recurring: (recurring ? "monthly" : "none") as "monthly" | "none",
+      // Keep a weekly repeat weekly; the toggle only turns repeating on or off.
+      recurring: (recurring ? (editing?.recurring === "weekly" ? "weekly" : "monthly") : "none") as "monthly" | "weekly" | "none",
     };
     if (editing) {
       updateExpense(editing.id, payload);
