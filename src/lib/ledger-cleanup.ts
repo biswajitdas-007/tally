@@ -1,7 +1,7 @@
 import { USER_SPLIT_FIELDS } from "./ledger-snapshot";
 
 /**
- * Post-split cleanup (plan §8.5): remove the money data left in Tally's database
+ * Post-split cleanup: remove the money data left in Tally's database
  * after money tracking moved to Money Ledger. Everything this is allowed to touch
  * is listed here and nowhere else, so a review of this file is a review of the
  * whole blast radius.
