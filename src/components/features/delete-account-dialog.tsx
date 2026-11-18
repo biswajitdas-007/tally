@@ -52,7 +52,7 @@ export function DeleteAccountDialog({ open, onClose }: { open: boolean; onClose:
         <div className="flex items-start gap-3 rounded-[14px] border border-negative/30 bg-negative-soft p-4 text-negative">
           <AlertTriangle className="mt-0.5 h-4.5 w-4.5 shrink-0" />
           <p className="text-[0.85rem] font-medium leading-snug">
-            This removes your profile, accounts, loans, budget, repeats and every money entry. It can&apos;t be undone.
+            This removes your profile, your friends list and anything that was only ever yours. It can&apos;t be undone.
           </p>
         </div>
 
@@ -68,9 +68,7 @@ export function DeleteAccountDialog({ open, onClose }: { open: boolean; onClose:
           onClick={() => {
             downloadJson(
               buildExport({
-                me: store.me, people: store.people, accounts: store.accounts,
-                liabilities: store.liabilities, emergency: store.emergency, budget: store.budget,
-                recurrings: store.recurrings, finance: store.finance, groups: store.groups, expenses: store.expenses,
+                me: store.me, people: store.people, groups: store.groups, expenses: store.expenses,
               }),
               exportFilename(),
             );

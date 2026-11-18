@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
-import { Plus, ArrowLeftRight, Users, UserPlus, ChevronRight, Receipt, Wallet } from "lucide-react";
+import { Plus, ArrowLeftRight, Users, UserPlus, ChevronRight, Receipt } from "lucide-react";
 import { BalanceHero } from "@/components/features/balance-hero";
 import { GroupCard } from "@/components/features/group-card";
 import { ExpenseRow } from "@/components/features/expense-row";
@@ -10,6 +10,7 @@ import { SplitOverviewCard } from "@/components/features/split-overview-card";
 import { Card, SectionHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageGrid, PageCol } from "@/components/app/page-grid";
+import { MoneyMovedBanner } from "@/components/app/money-moved-banner";
 import { useStore, useMe, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { useToast } from "@/components/ui/toast";
@@ -55,7 +56,6 @@ export default function HomePage() {
   const myId = useMyId();
   const expenses = useStore((s) => s.expenses);
   const groups = useStore((s) => s.groups);
-  const finance = useStore((s) => s.finance);
   const openAdd = useUI((s) => s.openAdd);
   const openInvite = useUI((s) => s.openInvite);
   const openCreateGroup = useUI((s) => s.openCreateGroup);
@@ -64,7 +64,7 @@ export default function HomePage() {
 
   const debts = useMemo(() => scopedDebts(expenses, myId ?? ""), [expenses, myId]);
   const splits = useMemo(() => splitOverview(expenses, myId ?? ""), [expenses, myId]);
-  const recent = useMemo(() => recentActivity(expenses, finance, 7, false), [expenses, finance]);
+  const recent = useMemo(() => recentActivity(expenses, 7), [expenses]);
   const topGroups = groups.slice(0, 3);
 
   function quickSettle() {
@@ -121,22 +121,7 @@ export default function HomePage() {
             <SplitOverviewCard direct={splits.direct} group={splits.group} />
           </section>
 
-          {/* Money tracking still lives here until it moves to its own app. */}
-          <Link
-            href="/money"
-            className="flex items-center gap-3.5 rounded-[16px] border border-border bg-surface p-4 shadow-[var(--shadow-xs)] transition-all hover:-translate-y-0.5 hover:border-border-strong hover:shadow-[var(--shadow-md)]"
-          >
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand">
-              <Wallet className="h-5 w-5" />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="text-[0.9rem] font-semibold text-text">Your money</p>
-              <p className="text-[0.76rem] leading-snug text-text-3">
-                Budget, net worth, repeats and your health score.
-              </p>
-            </div>
-            <ChevronRight className="h-5 w-5 shrink-0 text-text-3" />
-          </Link>
+          <MoneyMovedBanner />
         </PageCol>
 
         <PageCol>
@@ -178,9 +163,9 @@ export default function HomePage() {
             {recent.length > 0 ? (
               <Card className="overflow-hidden">
                 <div className="divide-y divide-border">
-                  {recent.map((item) =>
-                    item.kind === "split" ? <ExpenseRow key={item.id} expense={item.expense} showGroup /> : null,
-                  )}
+                  {recent.map((e) => (
+                    <ExpenseRow key={e.id} expense={e} showGroup />
+                  ))}
                 </div>
               </Card>
             ) : (

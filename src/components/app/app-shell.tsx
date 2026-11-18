@@ -1,6 +1,5 @@
 "use client";
 
-import { Suspense } from "react";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Sidebar } from "./sidebar";
@@ -8,27 +7,16 @@ import { BottomNav } from "./bottom-nav";
 import { TopBar } from "./top-bar";
 import { MenuDrawer } from "./menu-drawer";
 import { AddExpenseSheet } from "@/components/features/add-expense-sheet";
-import { AddMoneySheet } from "@/components/features/add-money-sheet";
 import { ExpenseDetailSheet } from "@/components/features/expense-detail-sheet";
-import { BudgetSheet } from "@/components/features/budget-sheet";
 import { GroupSettingsSheet } from "@/components/features/group-settings-sheet";
 import { DeleteGroupDialog } from "@/components/features/delete-group-dialog";
-import { WealthSheet } from "@/components/features/wealth-sheet";
-import { CardDashboardSheet } from "@/components/features/card-dashboard-sheet";
-import { AccountDetailSheet } from "@/components/features/account-detail-sheet";
-import { EmiConfirm } from "@/components/features/emi-confirm";
 import { SettleSheet } from "@/components/features/settle-sheet";
 import { InviteDialog } from "@/components/features/invite-dialog";
 import { CreateGroupSheet } from "@/components/features/create-group-sheet";
 import { SupportSheet } from "@/components/features/support-sheet";
-import { EmergencySheet } from "@/components/features/emergency-sheet";
-import { InvestmentSheet } from "@/components/features/investment-sheet";
-import { RecurringSheet } from "@/components/features/recurring-sheet";
-import { ReconcileSheet } from "@/components/features/reconcile-sheet";
 import { WhoOwesWhomSheet } from "@/components/features/who-owes-whom-sheet";
 import { CommandPalette } from "./command-palette";
 import { InstallPrompt } from "./install-prompt";
-import { TransferSheet } from "@/components/features/transfer-sheet";
 import { PushAutoEnable } from "./push-auto";
 import { NotificationPrompt } from "./notification-prompt";
 
@@ -37,7 +25,7 @@ import { NotificationPrompt } from "./notification-prompt";
  * earn the extra width. Everything else is a single list or form, which stays
  * readable at a narrower measure.
  */
-const WIDE_ROUTES = new Set(["/", "/money", "/wealth", "/groups", "/analytics", "/debt"]);
+const WIDE_ROUTES = new Set(["/", "/groups", "/analytics"]);
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -67,29 +55,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Global surfaces */}
       <AddExpenseSheet />
-      <AddMoneySheet />
       <GroupSettingsSheet />
       <DeleteGroupDialog />
       <ExpenseDetailSheet />
-      <BudgetSheet />
-      <WealthSheet />
-      <CardDashboardSheet />
-      <AccountDetailSheet />
-      <Suspense fallback={null}>
-        <EmiConfirm />
-      </Suspense>
       <SettleSheet />
       <InviteDialog />
       <CreateGroupSheet />
       <SupportSheet />
-      <EmergencySheet />
-      <InvestmentSheet />
-      <RecurringSheet />
-      <ReconcileSheet />
       <WhoOwesWhomSheet />
       <CommandPalette />
       <InstallPrompt />
-      <TransferSheet />
       <PushAutoEnable />
       <NotificationPrompt />
     </>

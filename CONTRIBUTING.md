@@ -40,7 +40,7 @@ We follow [Conventional Commits](https://www.conventionalcommits.org), lowercase
 feat(friends): allow removing a friend once settled
 fix(settle): guard against negative amounts
 chore(deps): bump next to 16.x
-docs(readme): document gmail smtp setup
+docs(readme): document resend email setup
 ```
 
 Common types: `feat`, `fix`, `chore`, `docs`, `refactor`, `test`, `perf`.

@@ -75,7 +75,7 @@ export async function sendWelcomeEmail(to: string, name: string): Promise<boolea
           <table role="presentation" width="100%" style="border-collapse:collapse;">
             <tr><td style="padding:7px 0;font-size:14.5px;color:#3d4c44;"><span style="display:inline-block;width:30px;">🏖️</span> Create a group for your next trip or flatmates</td></tr>
             <tr><td style="padding:7px 0;font-size:14.5px;color:#3d4c44;"><span style="display:inline-block;width:30px;">⚡</span> Add your UPI ID so friends can pay you instantly</td></tr>
-            <tr><td style="padding:7px 0;font-size:14.5px;color:#3d4c44;"><span style="display:inline-block;width:30px;">💰</span> Use "Money Mode" to track personal budgets</td></tr>
+            <tr><td style="padding:7px 0;font-size:14.5px;color:#3d4c44;"><span style="display:inline-block;width:30px;">✅</span> Add your first expense and settle up when you&#39;re ready</td></tr>
           </table>
         </div>
 

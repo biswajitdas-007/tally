@@ -41,12 +41,6 @@ export default function AccountPage() {
       buildExport({
         me: store.me,
         people: store.people,
-        accounts: store.accounts,
-        liabilities: store.liabilities,
-        emergency: store.emergency,
-        budget: store.budget,
-        recurrings: store.recurrings,
-        finance: store.finance,
         groups: store.groups,
         expenses: store.expenses,
       }),
@@ -153,7 +147,7 @@ export default function AccountPage() {
             <div className="flex-1">
               <p className="text-[0.9rem] font-medium text-text">Notifications</p>
               <p className="text-[0.76rem] text-text-3">
-                {supported ? "EMI reminders, payments, and shared expenses" : "Install the app to enable"}
+                {supported ? "New expenses, settlements and monthly reminders" : "Install the app to enable"}
               </p>
             </div>
             <Switch checked={enabled} onChange={toggleNotifications} label="Notifications" />
@@ -183,7 +177,7 @@ export default function AccountPage() {
             <div className="min-w-0 flex-1">
               <p className="text-[0.9rem] font-medium text-text">Download everything</p>
               <p className="text-[0.76rem] leading-snug text-text-3">
-                One JSON file with your accounts, money, groups and splits.
+                One JSON file with your groups, splits and settlements.
               </p>
             </div>
           </button>

@@ -32,12 +32,12 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "Tally",
-    description: "Split expenses, track net worth, and settle up.",
+    description: "Split expenses with friends, track who owes whom, and settle up over UPI.",
   },
   twitter: {
     card: "summary",
     title: "Tally",
-    description: "Split expenses, track net worth, and settle up.",
+    description: "Split expenses with friends, track who owes whom, and settle up over UPI.",
   },
 };
 

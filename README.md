@@ -13,6 +13,10 @@ minimal settle-up transactions, and you settle by copying the payee's UPI ID and
 paying in your own UPI app — Tally records the settlement (it never touches the
 money, so there's no gateway, KYC or licensing).
 
+> **Looking for budgets, accounts, loans or net worth?** Personal-finance tracking
+> moved to its own app, **Money Ledger**, in Tally 2.0. The two apps are fully
+> independent — separate accounts, databases and deployments.
+
 > **A warm digital ledger** — pine-green identity, brass accents, tabular
 > numerals everywhere money appears. Designed mobile-first, works beautifully on
 > desktop, with independently designed light and dark themes.
@@ -24,7 +28,8 @@ money, so there's no gateway, KYC or licensing).
 - **UPI settle-up** — copy a friend's UPI ID, pay in any UPI app, and mark it
   settled. Tally is the ledger, not the payment rail — uniform on Android + iOS.
 - **Google sign-in** (via Firebase) + **email invites** so friends can join.
-- **Insights** — animated 6-month trend, category donut, spend-by-group, CSV export.
+- **Realtime** — group members see new expenses and settlements instantly (Pusher).
+- **Insights** — your share of splits: 6-month trend, category donut, spend by group, JSON export.
 - **PWA** — installable, offline support (service worker), app shortcuts,
   maskable icons, web-push ready.
 - **Polish** — skeletons, micro-interactions, swipe-to-delete with undo,
@@ -34,7 +39,7 @@ money, so there's no gateway, KYC or licensing).
 
 Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS v4 ·
 shadcn/ui (Base UI) · Zustand · Framer Motion · Firebase Auth · MongoDB Atlas ·
-lucide-react.
+Pusher · Resend · lucide-react.
 
 Data lives in **MongoDB Atlas**, scoped per user. API routes verify the
 caller's Firebase ID token (via Google's JWKS — no Admin SDK needed) before
@@ -63,9 +68,12 @@ Copy `.env.local.example` → `.env.local` and fill in what you need:
 - **Google login** — create a [Firebase](https://console.firebase.google.com)
   project, add a Web App, enable the Google sign-in provider, and set the
   `NEXT_PUBLIC_FIREBASE_*` vars. **Required for sign-in.**
-- **Email** (invites, settlement receipts, EMI reminders) — sent via Gmail SMTP
-  with Nodemailer. Set `GMAIL_USER` + a Gmail **App Password** (`GMAIL_APP_PASSWORD`).
+- **Email** (invites, settlement receipts, monthly settle-up reminders) — sent via
+  [Resend](https://resend.com). Set `RESEND_API_KEY` and `RESEND_FROM_EMAIL`.
   Without them, invites are still recorded and a shareable link is shown.
+- **Realtime sync** — create a [Pusher](https://pusher.com) Channels app and set
+  the `PUSHER_*` / `NEXT_PUBLIC_PUSHER_*` vars. Without them, the app refreshes
+  when it comes back into view instead.
 - **Push notifications** — `npx web-push generate-vapid-keys`, then set the
   `*_VAPID_*` vars.
 
@@ -86,6 +94,8 @@ Copy `.env.local.example` → `.env.local` and fill in what you need:
 npm run dev            # dev server (Turbopack)
 npm run build          # production build
 npm run start          # serve the production build
+npm run lint           # eslint
+npm test               # vitest
 node scripts/gen-icons.mjs   # regenerate PWA icons from the tally mark
 ```
 
@@ -105,13 +115,13 @@ npm run ledger:diff -- <before>.json <after>.json  # what changed between two sn
 
 ```
 src/
-  app/                 routes (home, groups, analytics, activity, account), manifest, api
+  app/                 routes (home, groups, friends, direct, join, analytics, activity, account), manifest, api
   components/
     ui/                design-system primitives + shadcn components (bridged to our tokens)
     charts/            bespoke SVG donut + bar chart
     features/          add-expense, settle (UPI), invite, group, expense/balance rows
     app/               shell: sidebar, bottom nav, top bar, login, install prompt
-  lib/                 types, balances engine, UPI helpers, categories, seed, firebase
+  lib/                 types, balances engine, UPI helpers, categories, emails, db, firebase
   store/               Zustand stores (data + ephemeral UI)
 ```
 
