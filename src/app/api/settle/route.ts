@@ -12,100 +12,105 @@ import { badRequest, forbidden, isNum, isStr, json, serverError, unauthorized } 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+interface SettleInput {
+  id: string;
+  from: string;
+  to: string;
+  amount: number;
+  gid: string | null;
+  note: string | null;
+  socketId?: string;
+}
+
+function parseInput(b: Record<string, unknown> | null): SettleInput | null {
+  if (!b || !isStr(b.id) || !isStr(b.from) || !isStr(b.to)) return null;
+  if (!isNum(b.amount) || b.amount <= 0) return null;
+  if (b.groupId != null && !isStr(b.groupId)) return null;
+  return {
+    id: b.id as string,
+    from: b.from as string,
+    to: b.to as string,
+    amount: b.amount,
+    gid: (b.groupId as string | null) ?? null,
+    note: isStr(b.note) ? (b.note as string).slice(0, 200) : null,
+    socketId: isStr(b.socketId) ? (b.socketId as string) : undefined,
+  };
+}
+
+type Collections = Awaited<ReturnType<typeof collections>>;
+interface Scope {
+  memberUids: string[];
+  group: GroupDoc | null;
+}
+
+/**
+ * A group settlement is part of that group's ledger — visible to everyone in
+ * it, recordable only by a member, and both sides must be in the group
+ * (members who haven't joined yet count).
+ */
+async function groupScope(c: Collections, uid: string, s: SettleInput): Promise<Scope | null> {
+  const group = await c.groups.findOne({ _id: s.gid! });
+  if (!group?.memberUids.includes(uid)) return null;
+  const inGroup = new Set(group.members.map((m) => m.id));
+  return inGroup.has(s.from) && inGroup.has(s.to) ? { memberUids: group.memberUids, group } : null;
+}
+
+/**
+ * Like direct expenses: only with someone already in your circle, so a
+ * stranger can't be handed a balance (and an email) they never agreed to.
+ */
+async function directScope(c: Collections, uid: string, s: SettleInput): Promise<Scope | null> {
+  const other = s.from === uid ? s.to : s.from;
+  const found = await c.users.find({ _id: { $in: [s.from, s.to] } }, { projection: { _id: 1 } }).toArray();
+  const registered = other !== uid && found.some((u) => u._id === other);
+  if (registered && !(await knownUids(uid)).has(other)) return null;
+  return { memberUids: [...new Set([uid, ...found.map((u) => u._id)])], group: null };
+}
+
 export async function POST(req: Request) {
   const user = await verifyUser(req);
   if (!user) return unauthorized();
 
   try {
-    const b = (await req.json().catch(() => null)) as Record<string, unknown> | null;
-    if (
-      !b ||
-      !isStr(b.id) ||
-      !isStr(b.from) ||
-      !isStr(b.to) ||
-      !isNum(b.amount) ||
-      b.amount <= 0 ||
-      (b.groupId != null && !isStr(b.groupId))
-    ) {
-      return badRequest();
-    }
-
-    const from = b.from as string;
-    const to = b.to as string;
+    const s = parseInput((await req.json().catch(() => null)) as Record<string, unknown> | null);
+    if (!s) return badRequest();
     // You may only record settlements that you're a party to.
-    if (from !== user.uid && to !== user.uid) return forbidden();
+    if (s.from !== user.uid && s.to !== user.uid) return forbidden();
 
-    const { expenses, users, groups } = await collections();
-    const gid = (b.groupId as string | null) ?? null;
-
-    let memberUids: string[];
-    let group: GroupDoc | null = null;
-    if (gid) {
-      // A group settlement is part of that group's ledger — visible to everyone
-      // in it, and only recordable by a member.
-      group = await groups.findOne({ _id: gid });
-      if (!group || !group.memberUids.includes(user.uid)) return forbidden();
-      // Both sides must be in the group (members who haven't joined yet count).
-      const inGroup = new Set(group.members.map((m) => m.id));
-      if (!inGroup.has(from) || !inGroup.has(to)) return forbidden();
-      memberUids = group.memberUids;
-    } else {
-      // Like direct expenses: only with someone already in your circle, so a
-      // stranger can't be handed a balance (and an email) they never agreed to.
-      const other = from === user.uid ? to : from;
-      const found = await users.find({ _id: { $in: [from, to] } }, { projection: { _id: 1 } }).toArray();
-      if (other !== user.uid && found.some((u) => u._id === other) && !(await knownUids(user.uid)).has(other)) {
-        return forbidden();
-      }
-      memberUids = [...new Set([user.uid, ...found.map((u) => u._id)])];
-    }
+    const c = await collections();
+    const scope = s.gid ? await groupScope(c, user.uid, s) : await directScope(c, user.uid, s);
+    if (!scope) return forbidden();
+    const { memberUids, group } = scope;
 
     const doc: ExpenseDoc = {
-      _id: b.id as string,
-      groupId: (b.groupId as string | null) ?? null,
+      _id: s.id,
+      groupId: s.gid,
       memberUids,
-      description: isStr(b.note) ? (b.note as string).slice(0, 200) : "Settled up",
-      amount: b.amount,
+      description: s.note ?? "Settled up",
+      amount: s.amount,
       category: "other",
-      paidBy: from,
-      splits: [{ personId: to, amount: b.amount }],
+      paidBy: s.from,
+      splits: [{ personId: s.to, amount: s.amount }],
       date: new Date().toISOString(),
       isSettlement: true,
       createdBy: user.uid,
       createdAt: new Date().toISOString(),
       // A legacy `accountId` from an older cached client is ignored on purpose.
     };
-    
-    await expenses.updateOne(
-      { _id: doc._id },
-      { $setOnInsert: doc },
-      { upsert: true }
-    );
+
+    await c.expenses.updateOne({ _id: doc._id }, { $setOnInsert: doc }, { upsert: true });
 
     await notifyChange(
       memberUids,
       user.uid,
-      { title: "Tally", body: `${user.name || "Someone"} recorded a settlement of ${formatINR(b.amount)}`, url: "/" },
-      isStr(b.socketId) ? (b.socketId as string) : undefined,
+      { title: "Tally", body: `${user.name || "Someone"} recorded a settlement of ${formatINR(s.amount)}`, url: "/" },
+      s.socketId,
     );
 
     // Email side-effects (best-effort; never blocks or fails the settlement).
-    try {
-      await dispatchEmails({
-        users,
-        expenses,
-        group,
-        gid,
-        from,
-        to,
-        amount: b.amount as number,
-        note: isStr(b.note) ? (b.note as string).slice(0, 200) : null,
-        newDocId: doc._id,
-        memberUids,
-      });
-    } catch {
+    await dispatchEmails({ users: c.users, expenses: c.expenses, group, gid: s.gid, from: s.from, to: s.to, amount: s.amount, note: s.note, newDocId: doc._id, memberUids }).catch(() => {
       // swallow — the settlement itself already succeeded
-    }
+    });
 
     return json({ ok: true });
   } catch {
