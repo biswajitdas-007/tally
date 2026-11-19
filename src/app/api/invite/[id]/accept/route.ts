@@ -32,9 +32,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   if (inv.inviterUid === user.uid) return NextResponse.json({ ok: true, self: true });
   // A personal invite works once. Generic links are meant to be shared.
-  if (!inv.isGeneric && inv.status === "accepted" && inv.acceptedByUid !== user.uid) {
-    return NextResponse.json({ error: "invite-used" }, { status: 410 });
-  }
+  if (usedBySomeoneElse(inv, user.uid)) return NextResponse.json({ error: "invite-used" }, { status: 410 });
 
   const { doc: meDoc, isNew } = await upsertUser(users, user.uid, { name: user.name, email: user.email, photoURL: user.picture });
 
@@ -54,6 +52,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }
 
   return NextResponse.json({ ok: true, groupId });
+}
+
+function usedBySomeoneElse(inv: InviteDoc, uid: string): boolean {
+  if (inv.isGeneric || inv.status !== "accepted") return false;
+  return inv.acceptedByUid !== uid;
 }
 
 async function handleDirectFriendship(

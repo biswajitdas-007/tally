@@ -184,23 +184,28 @@ export interface Findings {
 
 const EPS = 0.005;
 
+type Obj = Record<string, unknown>;
+
+const isObject = (v: unknown): v is Obj => typeof v === "object" && v !== null;
+
+function sameObject(a: Obj, b: Obj): boolean {
+  const ka = Object.keys(a).sort();
+  return sameValue(ka, Object.keys(b).sort()) && ka.every((k) => sameValue(a[k], b[k]));
+}
+
 /** Deep equality with a small tolerance for money rounding. */
 export function sameValue(a: unknown, b: unknown): boolean {
   if (typeof a === "number" && typeof b === "number") return Math.abs(a - b) < EPS;
   if (Array.isArray(a) && Array.isArray(b)) return a.length === b.length && a.every((v, i) => sameValue(v, b[i]));
-  if (a && b && typeof a === "object" && typeof b === "object") {
-    const ka = Object.keys(a).sort();
-    const kb = Object.keys(b).sort();
-    if (!sameValue(ka, kb)) return false;
-    return ka.every((k) => sameValue((a as Record<string, unknown>)[k], (b as Record<string, unknown>)[k]));
-  }
+  if (isObject(a) && isObject(b)) return sameObject(a, b);
   return a === b;
 }
 
-export function compareSnapshots(before: Snapshot, after: Snapshot): Findings {
-  const f: Findings = { errors: [], review: [], info: [] };
-  const touched = new Set<string>(); // expense / group ids whose data changed
+const sample = (ids: string[]) => ids.slice(0, 20).join(", ");
 
+/** Records which docs were removed, changed or added; returns their `collection:id` keys. */
+function diffHashes(before: Snapshot, after: Snapshot, f: Findings): Set<string> {
+  const touched = new Set<string>();
   for (const key of Object.keys(IGNORED_FIELDS) as (keyof RawLedger)[]) {
     const a = before.hashes[key];
     const b = after.hashes[key];
@@ -208,45 +213,54 @@ export function compareSnapshots(before: Snapshot, after: Snapshot): Findings {
     const changed = Object.keys(a).filter((id) => id in b && a[id] !== b[id]);
     const added = Object.keys(b).filter((id) => !(id in a));
     for (const id of [...removed, ...changed, ...added]) touched.add(`${key}:${id}`);
-    if (removed.length) f.review.push(`${key}: ${removed.length} removed — ${removed.slice(0, 20).join(", ")}`);
-    if (changed.length) f.review.push(`${key}: ${changed.length} changed — ${changed.slice(0, 20).join(", ")}`);
+    if (removed.length) f.review.push(`${key}: ${removed.length} removed — ${sample(removed)}`);
+    if (changed.length) f.review.push(`${key}: ${changed.length} changed — ${sample(changed)}`);
     if (added.length) f.info.push(`${key}: ${added.length} added`);
   }
+  return touched;
+}
 
-  // A user's balances must be identical when none of the expenses they can see changed.
+/** A user's balances must be identical when none of the expenses they can see changed. */
+function compareUserBalances(before: Snapshot, after: Snapshot, touched: Set<string>, f: Findings) {
   const visBefore = visibleExpenseIds(before.raw.expenses);
   const visAfter = visibleExpenseIds(after.raw.expenses);
   let skipped = 0;
   for (const uid of new Set([...visBefore.keys(), ...visAfter.keys()])) {
-    const ids = new Set([...(visBefore.get(uid) ?? []), ...(visAfter.get(uid) ?? [])]);
-    if ([...ids].some((id) => touched.has(`expenses:${id}`))) {
-      skipped++;
-      continue;
-    }
-    if (!sameValue(before.balances[uid], after.balances[uid])) f.errors.push(`balances changed for user ${uid} with no change to their expenses`);
+    const ids = [...(visBefore.get(uid) ?? []), ...(visAfter.get(uid) ?? [])];
+    if (ids.some((id) => touched.has(`expenses:${id}`))) skipped++;
+    else if (!sameValue(before.balances[uid], after.balances[uid])) f.errors.push(`balances changed for user ${uid} with no change to their expenses`);
   }
   if (skipped) f.info.push(`${skipped} user(s) skipped for balance comparison because their expenses changed`);
+}
 
-  for (const gid of Object.keys(before.groups)) {
-    if (!(gid in after.groups)) continue;
-    const groupTouched = before.raw.expenses.concat(after.raw.expenses).some((e) => e.groupId === gid && touched.has(`expenses:${e._id}`));
-    if (groupTouched) continue;
-    if (!sameValue(before.groups[gid], after.groups[gid])) f.errors.push(`settle-up plan changed for group ${gid} with no change to its expenses`);
+/** Same rule per group: an unchanged group must keep the same settle-up plan. */
+function compareGroupPlans(before: Snapshot, after: Snapshot, touched: Set<string>, f: Findings) {
+  const all = before.raw.expenses.concat(after.raw.expenses);
+  for (const gid of Object.keys(before.groups).filter((g) => g in after.groups)) {
+    const groupTouched = all.some((e) => e.groupId === gid && touched.has(`expenses:${e._id}`));
+    if (!groupTouched && !sameValue(before.groups[gid], after.groups[gid])) f.errors.push(`settle-up plan changed for group ${gid} with no change to its expenses`);
   }
+}
 
+export function compareSnapshots(before: Snapshot, after: Snapshot): Findings {
+  const f: Findings = { errors: [], review: [], info: [] };
+  const touched = diffHashes(before, after, f);
+  compareUserBalances(before, after, touched, f);
+  compareGroupPlans(before, after, touched, f);
   return f;
+}
+
+/** Ids present in either record whose values differ. */
+function differingKeys(a: Record<string, unknown>, b: Record<string, unknown>): string[] {
+  return [...new Set([...Object.keys(a), ...Object.keys(b)])].filter((k) => !sameValue(a[k], b[k]));
 }
 
 /** Recompute balances from the snapshot's frozen data with the code as it is now. */
 export function verifySnapshot(snapshot: Snapshot): Findings {
   const f: Findings = { errors: [], review: [], info: [] };
   const now = computeBalances(snapshot.raw);
-  for (const uid of new Set([...Object.keys(snapshot.balances), ...Object.keys(now.balances)])) {
-    if (!sameValue(snapshot.balances[uid], now.balances[uid])) f.errors.push(`current code computes different balances for user ${uid}`);
-  }
-  for (const gid of new Set([...Object.keys(snapshot.groups), ...Object.keys(now.groups)])) {
-    if (!sameValue(snapshot.groups[gid], now.groups[gid])) f.errors.push(`current code computes a different settle-up plan for group ${gid}`);
-  }
+  for (const uid of differingKeys(snapshot.balances, now.balances)) f.errors.push(`current code computes different balances for user ${uid}`);
+  for (const gid of differingKeys(snapshot.groups, now.groups)) f.errors.push(`current code computes a different settle-up plan for group ${gid}`);
   f.info.push(`checked ${Object.keys(now.balances).length} user(s) and ${Object.keys(now.groups).length} group(s)`);
   return f;
 }
