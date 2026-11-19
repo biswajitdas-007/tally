@@ -45,7 +45,7 @@ verify against the latest before reporting.
 ## Handling of secrets
 
 No credentials live in this repository or its git history. All secrets
-(`MONGODB_URI`, Gmail app password, VAPID private key, `CRON_SECRET`, Firebase
+(`MONGODB_URI`, Resend API key, Pusher secret, VAPID private key, `CRON_SECRET`, Firebase
 config) are injected via environment variables and `.env*` is git-ignored.
 Server-side auth verifies Firebase ID tokens against Google's public JWKS — no
 service-account key is stored anywhere. If you believe a secret has been

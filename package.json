@@ -1,6 +1,6 @@
 {
   "name": "tally",
-  "version": "1.41.1",
+  "version": "2.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -9,14 +9,17 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "ledger:snapshot": "tsx scripts/ledger/snapshot.ts",
+    "ledger:diff": "tsx scripts/ledger/diff.ts",
+    "ledger:verify": "tsx scripts/ledger/verify.ts",
+    "ledger:cleanup": "tsx scripts/ledger/cleanup.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
     "canvas-confetti": "^1.9.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "date-fns": "^4.4.0",
     "firebase": "^12.16.0",
     "framer-motion": "^12.42.2",
     "idb-keyval": "^6.3.0",
@@ -50,6 +53,7 @@
     "jsqr": "^1.4.0",
     "playwright": "^1.61.1",
     "tailwindcss": "^4",
+    "tsx": "4.23.15",
     "typescript": "^5",
     "vitest": "^4.1.10"
   },

@@ -1,9 +1,8 @@
 "use client";
 
 import { Suspense, useMemo, useState } from "react";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { TrendingDown, TrendingUp, FileText, ChartPie, AlertTriangle, Sparkles, Lightbulb, type LucideIcon } from "lucide-react";
+import { TrendingDown, TrendingUp, ChartPie } from "lucide-react";
 import { PageHeader } from "@/components/app/page-header";
 import { PageGrid, PageCol } from "@/components/app/page-grid";
 import { Card } from "@/components/ui/card";
@@ -12,34 +11,10 @@ import { Donut } from "@/components/charts/donut";
 import { BarChart } from "@/components/charts/bar-chart";
 import { useStore, useMyId } from "@/store/useStore";
 import { CATEGORIES } from "@/lib/categories";
-import { myShare } from "@/lib/balances";
-import { monthlyMoney, spendByCategory, monthFromParam, monthLabel as monthName } from "@/lib/money";
-import { insights, type Insight } from "@/lib/insights";
+import { categoryBreakdown, monthlySpend, myShare } from "@/lib/balances";
+import { monthFromParam, monthLabel as monthName } from "@/lib/months";
 import { formatINR, percentShares, monthLabel, cn } from "@/lib/utils";
 import { MonthNav } from "@/components/app/month-nav";
-
-const INSIGHT_ICON: Record<Insight["tone"], LucideIcon> = { warn: AlertTriangle, good: Sparkles, info: Lightbulb };
-
-function InsightCard({ ins }: { ins: Insight }) {
-  const Icon = INSIGHT_ICON[ins.tone];
-  const styles =
-    ins.tone === "warn"
-      ? "bg-negative-soft text-negative"
-      : ins.tone === "good"
-        ? "bg-positive-soft text-positive"
-        : "bg-brand-soft text-brand";
-  return (
-    <div className="flex gap-3 rounded-[15px] border border-border bg-surface p-3.5 shadow-[var(--shadow-xs)]">
-      <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full", styles)}>
-        <Icon className="h-[18px] w-[18px]" />
-      </span>
-      <div className="min-w-0">
-        <p className="text-[0.88rem] font-semibold leading-snug text-text">{ins.title}</p>
-        <p className="mt-0.5 text-[0.8rem] leading-snug text-text-2">{ins.detail}</p>
-      </div>
-    </div>
-  );
-}
 
 export default function AnalyticsPage() {
   // useSearchParams needs a boundary so the rest of the page can prerender.
@@ -52,8 +27,6 @@ export default function AnalyticsPage() {
 
 function Analytics() {
   const expenses = useStore((s) => s.expenses);
-  const finance = useStore((s) => s.finance);
-  const budget = useStore((s) => s.budget);
   const groups = useStore((s) => s.groups);
   const myId = useMyId() ?? "";
 
@@ -64,27 +37,26 @@ function Analytics() {
   const prevKey = key(new Date(mDate.getFullYear(), mDate.getMonth() - 1, 1));
   const isCurrent = thisKey === key(new Date());
 
-  const tips = useMemo(() => insights(finance, expenses, budget, myId), [finance, expenses, budget, myId]);
-
-  const thisSpend = useMemo(() => monthlyMoney(finance, expenses, myId, thisKey).spend, [finance, expenses, myId, thisKey]);
-  const lastSpend = useMemo(() => monthlyMoney(finance, expenses, myId, prevKey).spend, [finance, expenses, myId, prevKey]);
+  // Your share of split expenses — what the bills actually cost you.
+  const thisSpend = useMemo(() => monthlySpend(expenses, myId, thisKey), [expenses, myId, thisKey]);
+  const lastSpend = useMemo(() => monthlySpend(expenses, myId, prevKey), [expenses, myId, prevKey]);
   const delta = lastSpend > 0 ? ((thisSpend - lastSpend) / lastSpend) * 100 : 0;
   const up = thisSpend > lastSpend;
   const spendCaption =
     lastSpend > 0
       ? `${up ? "Up" : "Down"} from ${formatINR(lastSpend)} in ${monthName(prevKey)}`
-      : "Personal spending + your share of splits";
+      : "Your share of every split";
 
   const trend = useMemo(() => {
     const out: { label: string; value: number }[] = [];
     for (let i = 5; i >= 0; i--) {
       const k = key(new Date(mDate.getFullYear(), mDate.getMonth() - i, 1));
-      out.push({ label: monthLabel(k), value: monthlyMoney(finance, expenses, myId, k).spend });
+      out.push({ label: monthLabel(k), value: monthlySpend(expenses, myId, k) });
     }
     return out;
-  }, [finance, expenses, myId, mDate]);
+  }, [expenses, myId, mDate]);
 
-  const breakdown = useMemo(() => spendByCategory(finance, expenses, myId, thisKey), [finance, expenses, myId, thisKey]);
+  const breakdown = useMemo(() => categoryBreakdown(expenses, myId, thisKey), [expenses, myId, thisKey]);
   const breakdownShares = useMemo(() => percentShares(breakdown.map((b) => b.amount)), [breakdown]);
   const donutData = breakdown.map((b) => ({
     label: CATEGORIES[b.category].label,
@@ -115,15 +87,7 @@ function Analytics() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Insights"
-        subtitle="Your full spending picture"
-        action={
-          <Link
-            href={`/report?m=${thisKey}`}
-            className="flex h-9 items-center gap-1.5 rounded-full border border-border bg-surface px-3.5 text-[0.8rem] font-semibold text-text-2 transition-colors hover:border-border-strong"
-          >
-            <FileText className="h-4 w-4" /> Report
-          </Link>
-        }
+        subtitle="What your splits cost you"
       />
 
       {/* Its own row — beside the title it would push a narrow phone sideways. */}
@@ -131,15 +95,6 @@ function Analytics() {
 
       <PageGrid>
         <PageCol>
-          {/* Smart insights */}
-          {isCurrent && tips.length > 0 && (
-            <section className="flex flex-col gap-2.5">
-              {tips.map((t) => (
-                <InsightCard key={t.key} ins={t} />
-              ))}
-            </section>
-          )}
-
           {/* This month */}
           <Card className="p-5">
             <p className="text-[0.72rem] font-semibold uppercase tracking-wide text-text-3">
@@ -199,7 +154,7 @@ function Analytics() {
               <EmptyState
                 icon={ChartPie}
                 title={isCurrent ? "No spending yet" : `Nothing in ${monthName(thisKey)}`}
-                description={isCurrent ? "Add expenses to see your category breakdown." : "Pick another month to see where the money went."}
+                description={isCurrent ? "Add a split to see your category breakdown." : "Pick another month to see where the money went."}
               />
             )}
           </Card>

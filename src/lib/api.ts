@@ -1,6 +1,6 @@
 import { firebaseAuth } from "@/lib/firebase";
 import { socketId } from "@/lib/pusher-client";
-import type { Account, Budget, Emergency, Expense, FinanceEntry, Group, Liability, Person, Recurring, DebtPlanData, PendingInvite } from "@/lib/types";
+import type { Expense, Group, Person, PendingInvite } from "@/lib/types";
 import { enqueueSyncRequest } from "./sync-queue";
 
 export interface ServerState {
@@ -8,15 +8,7 @@ export interface ServerState {
   people: Person[];
   groups: Group[];
   expenses: Expense[];
-  finance: FinanceEntry[];
-  budget: Budget;
-  accounts: Account[];
-  liabilities: Liability[];
-  emergency: Emergency | null;
-  recurrings: Recurring[];
-  moneyMode: boolean | null;
   removedFriends: string[];
-  debtPlan: DebtPlanData | null;
   pendingInvites: PendingInvite[];
 }
 
@@ -30,6 +22,25 @@ export async function token(): Promise<string | null> {
   }
 }
 
+/**
+ * Writes the UI applies optimistically and can safely replay later. Anything
+ * else — deleting the account, removing a friend, invites — must fail honestly
+ * when offline rather than pretend to succeed.
+ */
+const QUEUEABLE = /^\/api\/(expenses|settle|groups|profile)(\/|$)/;
+
+const replayable = (method: string, path: string) => method !== "GET" && QUEUEABLE.test(path);
+
+/** Queues a replayable write made offline and answers as if it went through, so the optimistic update stays. */
+async function queueOffline(method: string, path: string, body?: Record<string, unknown>): Promise<Response | null> {
+  if (!replayable(method, path)) return null;
+  await enqueueSyncRequest({ method, path, body, uid: firebaseAuth()?.currentUser?.uid });
+  return new Response(JSON.stringify({ ok: true, queued: true }), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
 async function req(method: string, path: string, body?: Record<string, unknown>): Promise<Response | null> {
   const t = await token();
   if (!t) return null;
@@ -40,20 +51,10 @@ async function req(method: string, path: string, body?: Record<string, unknown>)
       headers: { authorization: `Bearer ${t}`, ...(body ? { "content-type": "application/json" } : {}) },
       body: body ? JSON.stringify({ ...body, socketId: socketId() }) : undefined,
     });
-    // If we get a 5xx error, it might be a server outage, but not an offline scenario.
-    // For now, we only queue actual network failures (caught below).
+    // A 5xx is a server problem, not being offline — only network failures are queued.
     return res;
   } catch {
-    // Network failure (offline). Queue the mutation if it's a write operation.
-    if (method !== "GET") {
-      await enqueueSyncRequest({ method, path, body });
-      // Return a simulated success response so the store keeps its optimistic update
-      return new Response(JSON.stringify({ ok: true, queued: true }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-    return null;
+    return queueOffline(method, path, body);
   }
 }
 
@@ -77,48 +78,6 @@ export const addGroupApi = (g: Record<string, unknown>) => req("POST", "/api/gro
 export const updateGroupApi = (id: string, patch: Record<string, unknown>) => req("PATCH", `/api/groups/${id}`, patch);
 export const deleteGroupApi = (id: string) => req("DELETE", `/api/groups/${id}`);
 export const updateProfileApi = (p: Record<string, unknown>) => req("POST", "/api/profile", p);
-export const addFinanceApi = (f: Record<string, unknown>) => req("POST", "/api/finance", f);
-export const updateFinanceApi = (id: string, patch: Record<string, unknown>) => req("PATCH", `/api/finance/${id}`, patch);
-export const deleteFinanceApi = (id: string) => req("DELETE", `/api/finance/${id}`);
-export const setBudgetApi = (b: Record<string, unknown>) => req("POST", "/api/budget", b);
-export const setWealthApi = (w: Record<string, unknown>) => req("POST", "/api/wealth", w);
-export const setRecurringApi = (r: Record<string, unknown>) => req("POST", "/api/recurring", r);
-
-export interface ConfirmEmiResult {
-  ok: boolean;
-  liability?: Liability;
-  applied: string[];
-  alreadyHandled?: boolean;
-  error?: string;
-}
-
-export async function confirmEmiApi(id: string, period: string, options?: { extraPayment?: number; declineBoth?: boolean }): Promise<ConfirmEmiResult> {
-  const res = await req("POST", `/api/liabilities/${encodeURIComponent(id)}/confirm`, { period, ...options });
-  if (!res) return { ok: false, applied: [], error: "network-error" };
-
-  const body = (await res.json().catch(() => ({}))) as Partial<ConfirmEmiResult>;
-  if (!res.ok || !body.liability || body.liability.id !== id) {
-    return { ok: false, applied: [], error: body.error ?? "confirm-failed" };
-  }
-  return {
-    ok: true,
-    liability: body.liability,
-    applied: Array.isArray(body.applied) ? body.applied.filter((p): p is string => typeof p === "string") : [],
-    alreadyHandled: body.alreadyHandled === true,
-  };
-}
-
-export async function sendReceiptApi(id: string, amountPaid: number, date: string): Promise<boolean> {
-  const res = await req("POST", `/api/liabilities/${encodeURIComponent(id)}/receipt`, { amountPaid, date });
-  if (!res) return false;
-  return res.ok;
-}
-
-export async function declineEmiApi(id: string, period: string): Promise<{ ok: boolean }> {
-  const res = await req("POST", `/api/liabilities/${encodeURIComponent(id)}/decline`, { period });
-  if (!res) return { ok: false };
-  return { ok: res.ok };
-}
 
 export async function deleteAccount(): Promise<{ ok: boolean; unsettled?: boolean; people?: number; amount?: number }> {
   const res = await req("DELETE", "/api/account");

@@ -1,6 +1,7 @@
 import { Resend } from "resend";
 
 const resendApiKey = process.env.RESEND_API_KEY;
+const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").replace(/\/$/, "");
 const fromEmail = process.env.RESEND_FROM_EMAIL || "Tally <noreply@apptally.tech>";
 
 /** Emails send only when a Resend API key is configured. */
@@ -67,7 +68,7 @@ export async function sendWelcomeEmail(to: string, name: string): Promise<boolea
       </div>
       <div style="padding:26px;">
         <p style="margin:0 0 18px;font-size:15px;line-height:1.55;color:#3d4c44;">
-          We're thrilled to have you on board. Tally is the easiest way to split expenses with friends, track your personal finances, and settle up in seconds.
+          We're thrilled to have you on board. Tally is the easiest way to split expenses with friends, see who owes whom, and settle up in seconds.
         </p>
         
         <div style="margin: 24px 0;">
@@ -75,12 +76,12 @@ export async function sendWelcomeEmail(to: string, name: string): Promise<boolea
           <table role="presentation" width="100%" style="border-collapse:collapse;">
             <tr><td style="padding:7px 0;font-size:14.5px;color:#3d4c44;"><span style="display:inline-block;width:30px;">🏖️</span> Create a group for your next trip or flatmates</td></tr>
             <tr><td style="padding:7px 0;font-size:14.5px;color:#3d4c44;"><span style="display:inline-block;width:30px;">⚡</span> Add your UPI ID so friends can pay you instantly</td></tr>
-            <tr><td style="padding:7px 0;font-size:14.5px;color:#3d4c44;"><span style="display:inline-block;width:30px;">💰</span> Use "Money Mode" to track personal budgets</td></tr>
+            <tr><td style="padding:7px 0;font-size:14.5px;color:#3d4c44;"><span style="display:inline-block;width:30px;">✅</span> Add your first expense and settle up when you&#39;re ready</td></tr>
           </table>
         </div>
 
         <div style="text-align:center;margin:26px 0 6px;">
-          <a href="https://tally.com" style="display:inline-block;background:#1c6b52;color:#ffffff;padding:14px 34px;border-radius:12px;text-decoration:none;font-weight:700;font-size:15px;">Open Tally</a>
+          <a href="${appUrl}" style="display:inline-block;background:#1c6b52;color:#ffffff;padding:14px 34px;border-radius:12px;text-decoration:none;font-weight:700;font-size:15px;">Open Tally</a>
         </div>
       </div>
     </div>

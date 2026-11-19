@@ -185,22 +185,6 @@ export function categoryBreakdown(
     .sort((a, b) => b.amount - a.amount);
 }
 
-/** Your spend per month over the last `count` months (oldest → newest). */
-export function monthlyTrend(
-  expenses: Expense[],
-  meId: ID,
-  count = 6,
-): { key: string; amount: number }[] {
-  const now = new Date();
-  const out: { key: string; amount: number }[] = [];
-  for (let i = count - 1; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-    out.push({ key, amount: monthlySpend(expenses, meId, key) });
-  }
-  return out;
-}
-
 export interface SplitSide extends ScopedTotals {
   /** How many people you're square-less with on this side. */
   people: number;
@@ -236,34 +220,5 @@ export function splitOverview(expenses: Expense[], meId: ID): SplitOverview {
     direct: side(direct),
     group: side(grouped),
     all: scopedTotals(scopedDebts(expenses, meId)),
-  };
-}
-
-export interface Pending {
-  /** Money that lands back in your accounts when others settle. */
-  incoming: number;
-  /** Money that leaves your accounts when you settle. */
-  outgoing: number;
-  /** incoming − outgoing. */
-  net: number;
-  /** True when there's anything worth telling them about. */
-  any: boolean;
-}
-
-/**
- * What splits still owe your bank balance.
- *
- * Paying for a group dinner takes the whole amount out of your account, but
- * only your share is really your spending — the rest comes back when everyone
- * settles. Until then it's neither spent nor in the bank, which is exactly the
- * gap that makes people distrust the numbers. This names it.
- */
-export function pendingFromSplits(expenses: Expense[], meId: ID): Pending {
-  const t = scopedTotals(scopedDebts(expenses, meId));
-  return {
-    incoming: t.owedToYou,
-    outgoing: t.youOwe,
-    net: t.owedToYou - t.youOwe,
-    any: t.owedToYou > 0.5 || t.youOwe > 0.5,
   };
 }

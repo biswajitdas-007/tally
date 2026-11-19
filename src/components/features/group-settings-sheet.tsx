@@ -8,12 +8,10 @@ import { useStore, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { useToast } from "@/components/ui/toast";
 import { Trash2, UserPlus, Info } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { resendInviteApi } from "@/lib/api";
 
 export function GroupSettingsSheet() {
-  const router = useRouter();
   const { toast } = useToast();
   const [resendingId, setResendingId] = useState<string | null>(null);
   

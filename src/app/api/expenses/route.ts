@@ -1,7 +1,6 @@
 import { verifyUser } from "@/lib/auth-server";
 import { collections, knownUids, type ExpenseDoc } from "@/lib/db";
 import { notifyChange } from "@/lib/notify";
-import { overspendPush } from "@/lib/budget-alerts";
 import { formatINR } from "@/lib/utils";
 import { badRequest, forbidden, isNum, isStr, json, serverError, unauthorized } from "@/lib/api-helpers";
 import type { CategoryKey, Split } from "@/lib/types";
@@ -72,8 +71,8 @@ export async function POST(req: Request) {
       isSettlement: false,
       createdBy: user.uid,
       createdAt: new Date().toISOString(),
-      // Only the payer's own account is attached (it's their private cash source).
-      accountId: isStr(b.accountId) && b.paidBy === user.uid ? (b.accountId as string).slice(0, 40) : undefined,
+      // A legacy `accountId` from an older cached client is ignored on purpose:
+      // splits no longer move money in personal accounts.
     };
     
     await expenses.updateOne(
@@ -92,16 +91,6 @@ export async function POST(req: Request) {
       },
       isStr(b.socketId) ? (b.socketId as string) : undefined,
     );
-
-    try {
-      await overspendPush(
-        memberUids,
-        (uid) => splits.filter((s) => s.personId === uid).reduce((a, s) => a + s.amount, 0),
-        doc.date,
-      );
-    } catch {
-      /* alerts are best-effort */
-    }
 
     return json({ ok: true });
   } catch {

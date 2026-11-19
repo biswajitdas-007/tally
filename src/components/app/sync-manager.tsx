@@ -4,47 +4,47 @@ import { useEffect } from "react";
 import { useStore } from "@/store/useStore";
 import * as api from "@/lib/api";
 import { getPusherClient, isPusherConfigured } from "@/lib/pusher-client";
-import { getSyncQueue, removeSyncRequest } from "@/lib/sync-queue";
+import { belongsTo, getSyncQueue, removeSyncRequest, type SyncRequest } from "@/lib/sync-queue";
+import { firebaseAuth } from "@/lib/firebase";
+
+type Outcome = "done" | "retry";
+
+/** Sends one queued write. 2xx and 4xx are final (a 4xx would fail forever); 5xx is retried later. */
+async function replay(req: SyncRequest, token: string): Promise<Outcome> {
+  // Someone else's offline write: drop it rather than send it as this user.
+  if (belongsTo(req, firebaseAuth()?.currentUser?.uid)) {
+    const res = await fetch(req.path, {
+      method: req.method,
+      headers: { authorization: `Bearer ${token}`, ...(req.body ? { "content-type": "application/json" } : {}) },
+      body: req.body ? JSON.stringify(req.body) : undefined,
+    });
+    if (res.status >= 500) return "retry";
+  }
+  await removeSyncRequest(req.id);
+  return "done";
+}
+
+/** Flushes offline writes in order. Returns false if something must wait (offline or server error). */
+async function processQueue(): Promise<boolean> {
+  for (const req of await getSyncQueue()) {
+    const t = await api.token();
+    if (!t) continue;
+    const outcome = await replay(req, t).catch((): Outcome => "retry");
+    if (outcome === "retry") return false;
+  }
+  return true;
+}
+
+/** Pulls server state, first flushing offline writes so they aren't overwritten. */
+async function flushThenRefetch() {
+  if (await processQueue()) useStore.getState().refetch();
+}
 
 /** Loads the user's shared data (with retry) and keeps it live via Pusher. */
 export function SyncManager() {
   const currentUserId = useStore((s) => s.currentUserId);
   const loadState = useStore((s) => s.loadState);
   const setLoadError = useStore((s) => s.setLoadError);
-
-  // Queue processing logic
-  const processQueue = async () => {
-    const queue = await getSyncQueue();
-    if (queue.length === 0) return true; // Queue empty, safe to pull
-
-    let success = true;
-    for (const req of queue) {
-      try {
-        const t = typeof window !== "undefined" ? await api.token() : null;
-        if (!t) continue;
-        
-        const res = await fetch(req.path, {
-          method: req.method,
-          headers: { authorization: `Bearer ${t}`, ...(req.body ? { "content-type": "application/json" } : {}) },
-          body: req.body ? JSON.stringify(req.body) : undefined,
-        });
-
-        if (res.ok || (res.status >= 400 && res.status < 500)) {
-          // If 200 OK or 4xx (client error), remove it from queue to avoid poison pill loop
-          await removeSyncRequest(req.id);
-        } else {
-          // 5xx error, stop processing and retry later
-          success = false;
-          break;
-        }
-      } catch {
-        // Network error, stop processing
-        success = false;
-        break;
-      }
-    }
-    return success;
-  };
 
   // Initial load — retry on failure, NEVER show an empty (savable) app.
   useEffect(() => {
@@ -53,42 +53,32 @@ export function SyncManager() {
     let attempt = 0;
     setLoadError(false);
 
+    const retry = () => {
+      attempt += 1;
+      if (attempt <= 6) setTimeout(load, Math.min(1000 * 2 ** attempt, 8000));
+      return attempt <= 6;
+    };
+
     const load = async () => {
-      // First, attempt to flush any offline mutations to the server
-      const queueCleared = await processQueue();
-      
-      // If we couldn't clear the queue (offline), DO NOT overwrite local state with fetchState
-      // Just rely on the locally persisted idbStorage state.
-      if (!queueCleared) {
-        attempt += 1;
-        if (attempt <= 6) setTimeout(load, Math.min(1000 * 2 ** attempt, 8000));
+      // Flush offline writes first. If that fails (still offline), keep the
+      // locally persisted state rather than overwrite it with the server's.
+      if (!(await processQueue())) {
+        retry();
         return;
       }
-
       const data = await api.fetchState();
       if (!active) return;
-      if (data && data.me) {
-        loadState(data);
-      } else {
-        attempt += 1;
-        if (attempt <= 6) setTimeout(load, Math.min(1000 * 2 ** attempt, 8000));
-        else setLoadError(true);
-      }
+      if (data?.me) loadState(data);
+      else if (!retry()) setLoadError(true);
     };
     load();
     
     // Also listen for online events to eagerly flush
-    const handleOnline = async () => {
-      const cleared = await processQueue();
-      if (cleared) {
-        useStore.getState().refetch();
-      }
-    };
-    window.addEventListener("online", handleOnline);
+    window.addEventListener("online", flushThenRefetch);
 
     return () => {
       active = false;
-      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("online", flushThenRefetch);
     };
   }, [currentUserId, loadState, setLoadError]);
 
@@ -96,19 +86,9 @@ export function SyncManager() {
   useEffect(() => {
     if (!currentUserId) return;
     let timer: ReturnType<typeof setTimeout>;
-    const debouncedRefetch = async () => {
+    const debouncedRefetch = () => {
       clearTimeout(timer);
-      timer = setTimeout(async () => {
-        // Only pull server state if we don't have pending mutations overriding it
-        const queue = await getSyncQueue();
-        if (queue.length === 0) {
-          useStore.getState().refetch();
-        } else {
-          // Attempt to flush instead
-          const cleared = await processQueue();
-          if (cleared) useStore.getState().refetch();
-        }
-      }, 250);
+      timer = setTimeout(flushThenRefetch, 250);
     };
 
     let cleanupPusher: (() => void) | undefined;

@@ -1,8 +1,8 @@
 import { getDb, isDbConfigured } from "@/lib/mongodb";
 import { verifyUser } from "@/lib/auth-server";
 import { sendEmail } from "@/lib/email";
-import type { UserDoc } from "@/lib/db";
-import { badRequest, escapeHtml, isStr, json, serverError, unauthorized } from "@/lib/api-helpers";
+import type { GroupDoc, UserDoc } from "@/lib/db";
+import { badRequest, escapeHtml, forbidden, isStr, json, serverError, unauthorized } from "@/lib/api-helpers";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -84,6 +84,40 @@ export function inviteEmailHtml(o: {
 </div>`;
 }
 
+type Db = Awaited<ReturnType<typeof getDb>>;
+
+/** Only a group member may invite into a group, and an invite id belongs to whoever created it. */
+async function mayWriteInvite(db: Db, uid: string, inviteId: string, groupId: string | null): Promise<boolean> {
+  if (groupId) {
+    const inGroup = await db.collection<GroupDoc>("groups").findOne({ _id: groupId, memberUids: uid }, { projection: { _id: 1 } });
+    if (!inGroup) return false;
+  }
+  const taken = await db.collection<InviteDoc>("invites").findOne({ _id: inviteId }, { projection: { inviterUid: 1 } });
+  return !taken || taken.inviterUid === uid;
+}
+
+/** Whether the email already belongs to someone in the inviter's circle. */
+async function inCircle(db: Db, uid: string, other: string): Promise<boolean> {
+  const [sharedGroup, sharedExpense, me] = await Promise.all([
+    db.collection("groups").findOne({ memberUids: { $all: [uid, other] } }, { projection: { _id: 1 } }),
+    db.collection("expenses").findOne({ memberUids: { $all: [uid, other] } }, { projection: { _id: 1 } }),
+    db.collection<UserDoc>("users").findOne({ _id: uid }, { projection: { contacts: 1 } }),
+  ]);
+  return Boolean(sharedGroup || sharedExpense || (me?.contacts ?? []).some((c) => c.id === other));
+}
+
+/** The response to send instead of a new invite, or null to go ahead. */
+async function alreadyInvited(db: Db, uid: string, email: string, groupId: string | null): Promise<Record<string, unknown> | null> {
+  const emailRe = { $regex: `^${escapeRegex(email)}$`, $options: "i" };
+  const existing = await db.collection<UserDoc>("users").findOne({ email: emailRe });
+  if (existing?._id === uid) return { ok: true, self: true };
+  if (existing && (await inCircle(db, uid, existing._id))) return { ok: true, alreadyFriend: true, name: existing.name };
+
+  // One pending invite per email, inviter and group.
+  const pending = await db.collection<InviteDoc>("invites").findOne({ email: emailRe, status: "pending", groupId, inviterUid: uid });
+  return pending ? { ok: true, duplicate: true, existingId: pending._id } : null;
+}
+
 /**
  * Records an invite in a shared collection so the link is resolvable by the
  * invitee, and emails it — unless the person is already in the inviter's
@@ -113,35 +147,11 @@ export async function POST(req: Request) {
 
     if (isDbConfigured) {
       const db = await getDb();
-      const users = db.collection<UserDoc>("users");
+      if (!(await mayWriteInvite(db, user.uid, inviteId, groupId))) return forbidden();
 
       // Don't re-invite someone who's already in your circle (skip if generic).
-      if (!isGeneric && email) {
-        const existing = await users.findOne({ email: { $regex: `^${escapeRegex(email)}$`, $options: "i" } });
-        if (existing) {
-          if (existing._id === user.uid) return json({ ok: true, self: true });
-          const [sharedGroup, sharedExpense, me] = await Promise.all([
-            db.collection("groups").findOne({ memberUids: { $all: [user.uid, existing._id] } }, { projection: { _id: 1 } }),
-            db.collection("expenses").findOne({ memberUids: { $all: [user.uid, existing._id] } }, { projection: { _id: 1 } }),
-            users.findOne({ _id: user.uid }, { projection: { contacts: 1 } }),
-          ]);
-          const inContacts = (me?.contacts ?? []).some((c) => c.id === existing._id);
-          if (sharedGroup || sharedExpense || inContacts) {
-            return json({ ok: true, alreadyFriend: true, name: existing.name });
-          }
-        }
-
-        // Prevent multiple pending invites to the same email by the same user for the same context
-        const existingPending = await db.collection<InviteDoc>("invites").findOne({
-          email: { $regex: `^${escapeRegex(email)}$`, $options: "i" },
-          status: "pending",
-          groupId,
-          inviterUid: user.uid,
-        });
-        if (existingPending) {
-          return json({ ok: true, duplicate: true, existingId: existingPending._id });
-        }
-      }
+      const early = !isGeneric && email ? await alreadyInvited(db, user.uid, email, groupId) : null;
+      if (early) return json(early);
 
       const inviteDoc: Partial<InviteDoc> = {
         groupId,

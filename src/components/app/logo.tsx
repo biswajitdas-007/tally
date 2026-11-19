@@ -29,12 +29,3 @@ export function TallyMark({ size = 40, className }: { size?: number; className?:
     </svg>
   );
 }
-
-export function Wordmark({ size = 40, className }: { size?: number; className?: string }) {
-  return (
-    <div className={cn("flex items-center gap-2.5", className)}>
-      <TallyMark size={size} />
-      <span className="font-display text-[1.35rem] font-bold tracking-[-0.03em] text-text">Tally</span>
-    </div>
-  );
-}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatShare, percentShares } from "./utils";
+import { percentShares } from "./utils";
 
 describe("percentShares", () => {
   it("makes a real report's categories add up to 100", () => {
@@ -32,17 +32,5 @@ describe("percentShares", () => {
     expect(percentShares([0, 0])).toEqual([0, 0]);
     expect(percentShares([500])).toEqual([100]);
     expect(percentShares([100, -5]).reduce((a, b) => a + b, 0)).toBe(100);
-  });
-});
-
-describe("formatShare", () => {
-  it.each([
-    [48, 22167, "<1%"],
-    [0, 100, "0%"],
-    [25, 100, "25%"],
-    [999, 1000, ">99%"],
-    [100, 100, "100%"],
-  ])("formats %i of %i as %s", (part, total, expected) => {
-    expect(formatShare(part, total)).toBe(expected);
   });
 });

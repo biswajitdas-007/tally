@@ -52,7 +52,7 @@ export async function POST(req: Request) {
   const { users } = await collections();
   // A browser endpoint belongs to the account currently signed in on that
   // browser. Remove stale ownership first so a shared device cannot receive a
-  // previous account's private finance notifications.
+  // previous account's notifications.
   await users.updateMany(
     { "pushSubs.endpoint": endpoint },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

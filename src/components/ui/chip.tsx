@@ -2,29 +2,6 @@ import { cn } from "@/lib/utils";
 import { CATEGORIES } from "@/lib/categories";
 import type { CategoryKey } from "@/lib/types";
 
-export function Chip({
-  active,
-  className,
-  children,
-  ...props
-}: React.HTMLAttributes<HTMLButtonElement> & { active?: boolean }) {
-  return (
-    <button
-      type="button"
-      className={cn(
-        "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-[0.8125rem] font-medium transition-all",
-        active
-          ? "bg-brand text-on-brand shadow-[var(--shadow-xs)]"
-          : "bg-surface-inset text-text-2 hover:bg-brand-soft hover:text-brand-on-soft",
-        className,
-      )}
-      {...props}
-    >
-      {children}
-    </button>
-  );
-}
-
 /** Tinted rounded-square icon tile for an expense category. */
 export function CategoryIcon({
   category,

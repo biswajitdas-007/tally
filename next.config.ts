@@ -32,9 +32,23 @@ const securityHeaders = [
   { key: "Cross-Origin-Opener-Policy", value: "unsafe-none" },
 ];
 
+/** Money tracking moved to Money Ledger; old links follow it there once its address is set. */
+const MONEY_LEDGER_URL = process.env.NEXT_PUBLIC_MONEY_LEDGER_URL?.replace(/\/$/, "");
+const MOVED_TO_MONEY_LEDGER = ["/money", "/wealth", "/debt", "/report"];
+
 const nextConfig: NextConfig = {
   poweredByHeader: false,
-  serverExternalPackages: ["mongodb", "nodemailer"],
+  async redirects() {
+    if (!MONEY_LEDGER_URL) return [];
+    // Temporary while people update bookmarks and installed shortcuts; made
+    // permanent in the post-split cleanup.
+    return MOVED_TO_MONEY_LEDGER.map((source) => ({
+      source,
+      destination: `${MONEY_LEDGER_URL}${source}`,
+      permanent: false,
+    }));
+  },
+  serverExternalPackages: ["mongodb"],
   async headers() {
     return [
       { source: "/(.*)", headers: securityHeaders },

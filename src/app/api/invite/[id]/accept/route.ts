@@ -5,7 +5,7 @@ import { notifyChange } from "@/lib/notify";
 import { sendWelcomeEmail } from "@/lib/email";
 import type { Person } from "@/lib/types";
 import type { Collection } from "mongodb";
-import type { UserDoc, GroupDoc, ExpenseDoc } from "@/lib/db";
+import type { UserDoc } from "@/lib/db";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,6 +18,7 @@ interface InviteDoc {
   inviterName: string;
   status: string;
   isGeneric?: boolean;
+  acceptedByUid?: string;
 }
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -25,11 +26,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const { id } = await params;
 
-  const { invites, groups, expenses, users } = await collections();
+  const { invites, users } = await collections();
   const inv = (await invites.findOne({ _id: id })) as InviteDoc | null;
   if (!inv) return NextResponse.json({ error: "not-found" }, { status: 404 });
 
   if (inv.inviterUid === user.uid) return NextResponse.json({ ok: true, self: true });
+  // A personal invite works once. Generic links are meant to be shared.
+  if (usedBySomeoneElse(inv, user.uid)) return NextResponse.json({ error: "invite-used" }, { status: 410 });
 
   const { doc: meDoc, isNew } = await upsertUser(users, user.uid, { name: user.name, email: user.email, photoURL: user.picture });
 
@@ -49,6 +52,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }
 
   return NextResponse.json({ ok: true, groupId });
+}
+
+function usedBySomeoneElse(inv: InviteDoc, uid: string): boolean {
+  if (inv.isGeneric || inv.status !== "accepted") return false;
+  return inv.acceptedByUid !== uid;
 }
 
 async function handleDirectFriendship(
@@ -96,6 +104,8 @@ async function handleGroupJoin(
   const { groups, expenses, users } = await collections();
   const g = await groups.findOne({ _id: inv.groupId });
   if (!g || g.memberUids.includes(user.uid)) return null;
+  // The invite only carries the inviter's membership; if they've left, it no longer opens the group.
+  if (!g.memberUids.includes(inv.inviterUid)) return null;
 
   const me: Person = {
     id: user.uid,

@@ -22,6 +22,12 @@ function GoogleGlyph() {
   );
 }
 
+/** Why an accepted invite didn't take the user anywhere, or null if it worked. */
+function refusal(res: { self?: boolean } | null): string | null {
+  if (!res) return "This invite link isn't valid any more";
+  return res.self ? "That's your own invite link" : null;
+}
+
 export default function JoinPage() {
   const params = useParams<{ id: string }>();
   const id = params.id;
@@ -51,20 +57,17 @@ export default function JoinPage() {
     setPhase("joining");
     (async () => {
       const res = await acceptInvite(id);
-      if (res?.self) {
-        toast({ message: "That's your own invite link", tone: "info" });
+      const refused = refusal(res);
+      if (refused) {
+        toast({ message: refused, tone: "info" });
         router.replace("/");
         return;
       }
       await refetch();
       setPhase("done");
-      if (res?.groupId) {
-        toast({ message: "You've joined the group" });
-        setTimeout(() => router.replace(`/groups/${res.groupId}`), 700);
-      } else {
-        toast({ message: "You're in 🎉" });
-        setTimeout(() => router.replace("/"), 700);
-      }
+      const groupId = res?.groupId;
+      toast({ message: groupId ? "You've joined the group" : "You're in 🎉" });
+      setTimeout(() => router.replace(groupId ? `/groups/${groupId}` : "/"), 700);
     })();
   }, [info, currentUserId, dataReady, phase, id, refetch, router, toast]);
 

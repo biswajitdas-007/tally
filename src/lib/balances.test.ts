@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pendingFromSplits, splitOverview } from "./balances";
+import { scopedDebts, splitOverview } from "./balances";
 import type { Expense } from "./types";
 
 const E = (o: Partial<Expense>): Expense =>
@@ -47,25 +47,16 @@ describe("splitOverview", () => {
   });
 });
 
-describe("pendingFromSplits", () => {
-  it("counts what comes back when others settle", () => {
-    // I paid 3000 for three people — 2000 of it isn't really my spending.
-    const paid = [E({ amount: 3000, paidBy: "me",
-      splits: [{ personId: "me", amount: 1000 }, { personId: "A", amount: 1000 }, { personId: "B", amount: 1000 }] })];
-    const p = pendingFromSplits(paid, "me");
-    expect(p.incoming).toBe(2000);
-    expect(p.outgoing).toBe(0);
-    expect(p.net).toBe(2000);
-    expect(p.any).toBe(true);
-  });
-
-  it("counts what still has to go out", () => {
-    const owed = [E({ amount: 1000, paidBy: "A", splits: [{ personId: "me", amount: 400 }, { personId: "A", amount: 600 }] })];
-    const p = pendingFromSplits(owed, "me");
-    expect([p.incoming, p.outgoing, p.net]).toEqual([0, 400, -400]);
-  });
-
-  it("has nothing to say once everything is settled", () => {
-    expect(pendingFromSplits([], "me").any).toBe(false);
+describe("legacy account link", () => {
+  it("never affects split balances", () => {
+    // Older expenses still carry `accountId` in the database; the ledger must
+    // compute exactly the same with or without it.
+    const plain = [
+      E({ id: "a", amount: 900, paidBy: "me", splits: [{ personId: "me", amount: 300 }, { personId: "A", amount: 600 }] }),
+      E({ id: "s", amount: 200, paidBy: "A", splits: [{ personId: "me", amount: 200 }], isSettlement: true }),
+    ];
+    const linked = plain.map((e) => ({ ...e, accountId: "acc-hdfc" }) as Expense);
+    expect(splitOverview(linked, "me")).toEqual(splitOverview(plain, "me"));
+    expect(scopedDebts(linked, "me")).toEqual(scopedDebts(plain, "me"));
   });
 });
