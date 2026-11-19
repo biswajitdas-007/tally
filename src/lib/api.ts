@@ -29,6 +29,18 @@ export async function token(): Promise<string | null> {
  */
 const QUEUEABLE = /^\/api\/(expenses|settle|groups|profile)(\/|$)/;
 
+const replayable = (method: string, path: string) => method !== "GET" && QUEUEABLE.test(path);
+
+/** Queues a replayable write made offline and answers as if it went through, so the optimistic update stays. */
+async function queueOffline(method: string, path: string, body?: Record<string, unknown>): Promise<Response | null> {
+  if (!replayable(method, path)) return null;
+  await enqueueSyncRequest({ method, path, body, uid: firebaseAuth()?.currentUser?.uid });
+  return new Response(JSON.stringify({ ok: true, queued: true }), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
 async function req(method: string, path: string, body?: Record<string, unknown>): Promise<Response | null> {
   const t = await token();
   if (!t) return null;
@@ -39,20 +51,10 @@ async function req(method: string, path: string, body?: Record<string, unknown>)
       headers: { authorization: `Bearer ${t}`, ...(body ? { "content-type": "application/json" } : {}) },
       body: body ? JSON.stringify({ ...body, socketId: socketId() }) : undefined,
     });
-    // If we get a 5xx error, it might be a server outage, but not an offline scenario.
-    // For now, we only queue actual network failures (caught below).
+    // A 5xx is a server problem, not being offline — only network failures are queued.
     return res;
   } catch {
-    // Network failure (offline). Queue the mutation if it's a replayable write.
-    if (method !== "GET" && QUEUEABLE.test(path)) {
-      await enqueueSyncRequest({ method, path, body, uid: firebaseAuth()?.currentUser?.uid });
-      // Return a simulated success response so the store keeps its optimistic update
-      return new Response(JSON.stringify({ ok: true, queued: true }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-    return null;
+    return queueOffline(method, path, body);
   }
 }
 

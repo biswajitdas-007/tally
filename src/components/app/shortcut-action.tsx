@@ -4,6 +4,9 @@ import { useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useStore } from "@/store/useStore";
 
+type Shortcut = "add" | "settle";
+const isShortcut = (a: string | null): a is Shortcut => a === "add" || a === "settle";
+
 /**
  * Runs what an installed-app shortcut asked for (`/?action=add|settle`). Waits
  * for the user's data so "Settle up" sees real balances on a cold start, runs
@@ -16,7 +19,8 @@ export function ShortcutAction({ onAdd, onSettle }: { onAdd: () => void; onSettl
   const handled = useRef(false);
 
   useEffect(() => {
-    if (handled.current || !dataReady || (action !== "add" && action !== "settle")) return;
+    const ready = dataReady && !handled.current;
+    if (!ready || !isShortcut(action)) return;
     handled.current = true;
     if (action === "add") onAdd();
     else onSettle();
