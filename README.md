@@ -1,161 +1,195 @@
-# Tally — split expenses, settle up over UPI
+<div align="center">
+
+# Tally
+
+**Split shared expenses with friends and settle up over UPI.**
 
 [![CI](https://github.com/biswajitdas-007/tally/actions/workflows/ci.yml/badge.svg)](https://github.com/biswajitdas-007/tally/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/biswajitdas-007/tally/actions/workflows/codeql.yml/badge.svg)](https://github.com/biswajitdas-007/tally/actions/workflows/codeql.yml)
+[![Version](https://img.shields.io/badge/version-2.0.0-1c6b52.svg)](package.json)
 [![License: MIT](https://img.shields.io/badge/License-MIT-1c6b52.svg)](LICENSE)
-[![PRs welcome](https://img.shields.io/badge/PRs-welcome-1c6b52.svg)](CONTRIBUTING.md)
-[![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4-db61a2.svg?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/biswajitdas-007)
-[![Buy me a coffee](https://img.shields.io/badge/%E2%98%95_Buy_me_a_coffee-UPI-brass.svg?color=b8860b)](#support)
+[![Maintenance](https://img.shields.io/badge/maintenance-occasional-b8860b.svg)](#project-status)
 
-A production-grade PWA for splitting shared expenses with friends and settling up
-over UPI. Track who owes whom across trips, flats and dinners; the app computes
-minimal settle-up transactions, and you settle by copying the payee's UPI ID and
-paying in your own UPI app — Tally records the settlement (it never touches the
-money, so there's no gateway, KYC or licensing).
+[Live app](https://tally-eight-silk.vercel.app) · [Report a bug](https://github.com/biswajitdas-007/tally/issues) · [Security](SECURITY.md)
 
-> **Looking for budgets, accounts, loans or net worth?** Personal-finance tracking
-> moved to its own app, **Money Ledger**, in Tally 2.0. The two apps are fully
-> independent — separate accounts, databases and deployments.
+</div>
 
-> **A warm digital ledger** — pine-green identity, brass accents, tabular
-> numerals everywhere money appears. Designed mobile-first, works beautifully on
-> desktop, with independently designed light and dark themes.
+> [!NOTE]
+> **Project status:** Tally is feature-complete and is no longer actively
+> maintained on a regular schedule. The app stays online and the code remains
+> available under the MIT License, but issues and pull requests may not get a
+> quick response. New updates may still come later. See [Project status](#project-status).
+
+## Overview
+
+Tally is an installable web app (PWA) for keeping track of shared expenses —
+trips, flats, dinners — and settling up. It works out who owes whom, reduces the
+balances to the fewest possible payments, and lets you settle with any UPI app.
+
+Tally is a ledger, not a payment rail: it never moves money. You pay in your own
+UPI app and Tally records the settlement, so there's no payment gateway, KYC or
+licensing involved.
+
+> **Looking for budgets, accounts, loans or net worth?** Personal-finance
+> tracking moved to its own app, **Money Ledger**, in Tally 2.0. The two apps are
+> fully independent, with separate accounts, databases and deployments.
 
 ## Features
 
-- **Split-expense engine** — equal or exact splits, per-person balances,
-  greedy debt simplification for minimal settle-up.
-- **UPI settle-up** — copy a friend's UPI ID, pay in any UPI app, and mark it
-  settled. Tally is the ledger, not the payment rail — uniform on Android + iOS.
-- **Google sign-in** (via Firebase) + **email invites** so friends can join.
-- **Realtime** — group members see new expenses and settlements instantly (Pusher).
-- **Insights** — your share of splits: 6-month trend, category donut, spend by group, JSON export.
-- **PWA** — installable, offline support (service worker), app shortcuts,
-  maskable icons, web-push ready.
-- **Polish** — skeletons, micro-interactions, swipe-to-delete with undo,
-  optimistic UI, reduced-motion + keyboard + WCAG-AA support.
+| | |
+|---|---|
+| **Groups and 1-on-1 splits** | Split equally or by exact amounts, in groups or directly with a friend. |
+| **Minimal settle-up** | Balances are simplified to the fewest transfers needed to clear a group. |
+| **UPI settle-up** | Copy a friend's UPI ID or scan a QR code, pay in any UPI app, then mark it settled. |
+| **Repeating expenses** | Rent, subscriptions and other bills can repeat weekly or monthly. |
+| **Invites** | Invite friends by email or a shareable link; they join with Google sign-in. |
+| **Realtime sync** | Group members see new expenses and settlements instantly. |
+| **Reminders** | Settlement receipts by email, a monthly settle-up reminder and web push. |
+| **Insights** | Your share of spending: 6-month trend, category breakdown and spend by group. |
+| **Works offline** | Installable PWA; changes made offline are queued and sent when you're back online. |
+| **Accessible** | Mobile-first, light and dark themes, keyboard support and reduced motion. |
 
-## Stack
+## Tech stack
 
-Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS v4 ·
-shadcn/ui (Base UI) · Zustand · Framer Motion · Firebase Auth · MongoDB Atlas ·
-Pusher · Resend · lucide-react.
+| Area | Technology |
+|---|---|
+| Framework | Next.js 16 (App Router), React 19, TypeScript |
+| UI | Tailwind CSS v4, shadcn/ui (Base UI), Framer Motion, lucide-react |
+| State | Zustand, persisted to IndexedDB |
+| Auth | Firebase Authentication (Google); ID tokens verified server-side via Google's JWKS |
+| Data | MongoDB Atlas |
+| Realtime | Pusher Channels |
+| Email / push | Resend, Web Push (VAPID) |
+| Hosting | Vercel, with a daily Vercel Cron job |
+| Testing | Vitest |
 
-Data lives in **MongoDB Atlas**, scoped per user. API routes verify the
-caller's Firebase ID token (via Google's JWKS — no Admin SDK needed) before
-reading/writing, so a user can only touch their own data. The client loads state
-on sign-in and debounce-saves changes; nothing is stored in the browser.
+Every API route verifies the caller's Firebase ID token before reading or
+writing, so a user can only ever touch data they are part of.
 
 ## Getting started
 
+### Prerequisites
+
+- Node.js 20 or later
+- A [Firebase](https://console.firebase.google.com) project with a Web App and
+  the Google sign-in provider enabled
+- A [MongoDB Atlas](https://www.mongodb.com/atlas) cluster
+
+### Install and run
+
 ```bash
+git clone https://github.com/biswajitdas-007/tally.git
+cd tally
 npm install
-npm run dev            # http://localhost:3000
+cp .env.local.example .env.local   # then fill it in
+npm run dev                        # http://localhost:3000
 ```
 
-Sign-in is via **Google (Firebase Auth)** and data is stored in **MongoDB Atlas**.
-Both are wired through `.env.local` (git-ignored), so `npm run dev` boots straight
-to the Google sign-in screen. New users start with a clean slate — no seeded data
-— and build their groups by inviting friends. Their data syncs to their account.
+### Configuration
 
-> Deploying? Add your production domain to **Firebase → Authentication →
-> Settings → Authorized domains** so Google sign-in works there too.
+All configuration lives in `.env.local` (git-ignored). See
+[`.env.local.example`](.env.local.example) for the full list.
 
-### Optional integrations
+| Variables | Required | Purpose |
+|---|---|---|
+| `NEXT_PUBLIC_FIREBASE_*` | Yes | Google sign-in |
+| `MONGODB_URI` | Yes | Database |
+| `NEXT_PUBLIC_APP_URL` | Recommended | Public URL used in invite links and emails |
+| `RESEND_API_KEY`, `RESEND_FROM_EMAIL` | No | Invites, receipts and reminders by email. Without them, invites still produce a shareable link. |
+| `PUSHER_*`, `NEXT_PUBLIC_PUSHER_*` | No | Realtime sync. Without them, the app refreshes when it comes back into view. |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` | No | Web push (`npx web-push generate-vapid-keys`) |
+| `CRON_SECRET` | For cron | Protects `/api/cron/daily` (repeating expenses and reminders) |
+| `NEXT_PUBLIC_MONEY_LEDGER_URL` | No | Redirects old personal-finance links to Money Ledger |
 
-Copy `.env.local.example` → `.env.local` and fill in what you need:
+## Deployment
 
-- **Google login** — create a [Firebase](https://console.firebase.google.com)
-  project, add a Web App, enable the Google sign-in provider, and set the
-  `NEXT_PUBLIC_FIREBASE_*` vars. **Required for sign-in.**
-- **Email** (invites, settlement receipts, monthly settle-up reminders) — sent via
-  [Resend](https://resend.com). Set `RESEND_API_KEY` and `RESEND_FROM_EMAIL`.
-  Without them, invites are still recorded and a shareable link is shown.
-- **Realtime sync** — create a [Pusher](https://pusher.com) Channels app and set
-  the `PUSHER_*` / `NEXT_PUBLIC_PUSHER_*` vars. Without them, the app refreshes
-  when it comes back into view instead.
-- **Push notifications** — `npx web-push generate-vapid-keys`, then set the
-  `*_VAPID_*` vars.
+Tally is set up for [Vercel](https://vercel.com); only the `main` branch deploys.
 
-## Deploy to Vercel
+1. Import the repository in Vercel and keep **Production Branch** set to `main`.
+2. Add the environment variables under **Settings → Environment Variables**.
+3. In **MongoDB Atlas → Network Access**, allow Vercel's dynamic IPs
+   (`0.0.0.0/0`) or use the Atlas Vercel integration.
+4. In **Firebase → Authentication → Settings → Authorized domains**, add your
+   production domain.
 
-1. Push the repo to GitHub and import it in Vercel (or run `vercel`).
-2. In **Vercel → Project → Git**, disable preview deployments for branch pushes and keep **Production Branch** set to `main`.
-3. Add the env vars from `.env.local` in **Vercel → Settings → Environment
-   Variables** (`NEXT_PUBLIC_FIREBASE_*` and `MONGODB_URI` are required).
-4. In **MongoDB Atlas → Network Access**, allow `0.0.0.0/0` (Vercel functions use
-   dynamic IPs) or use the Atlas Vercel integration.
-5. In **Firebase → Authentication → Settings → Authorized domains**, add your
-   Vercel domain so Google sign-in works in production.
+The daily cron job is defined in [`vercel.json`](vercel.json).
 
-## Scripts
+## Development
 
 ```bash
 npm run dev            # dev server (Turbopack)
 npm run build          # production build
 npm run start          # serve the production build
-npm run lint           # eslint
-npm test               # vitest
-node scripts/gen-icons.mjs   # regenerate PWA icons from the tally mark
+npm run lint           # ESLint
+npm test               # Vitest
+npx tsc --noEmit       # type-check
 ```
 
 ### Split-ledger safety checks
 
-Read-only tooling that guards split history (groups, expenses, settlements,
-friends) during refactors. Snapshots contain personal data and are written to
-the git-ignored `.ledger/` folder.
+Read-only tooling that protects split history (groups, expenses, settlements
+and friends) during larger changes. Snapshots contain personal data and are
+written to the git-ignored `.ledger/` folder.
 
 ```bash
-npm run ledger:snapshot -- baseline          # read-only: dump split data + computed balances
-npm run ledger:verify -- .ledger/<file>.json # recompute balances with the current code
-npm run ledger:diff -- <before>.json <after>.json  # what changed between two snapshots
-npm run ledger:cleanup       # post-split cleanup; dry run unless --confirm --backup <dump>
+npm run ledger:snapshot -- baseline                # dump split data and computed balances
+npm run ledger:verify -- .ledger/<file>.json       # recompute balances with the current code
+npm run ledger:diff -- <before>.json <after>.json  # compare two snapshots
+npm run ledger:cleanup                             # post-split cleanup; dry run unless --confirm --backup <dump>
 ```
 
-## Project structure
+### Project structure
 
 ```
 src/
-  app/                 routes (home, groups, friends, direct, join, analytics, activity, account), manifest, api
-  components/
-    ui/                design-system primitives + shadcn components (bridged to our tokens)
-    charts/            bespoke SVG donut + bar chart
-    features/          add-expense, settle (UPI), invite, group, expense/balance rows
-    app/               shell: sidebar, bottom nav, top bar, login, install prompt
-  lib/                 types, balances engine, UPI helpers, categories, emails, db, firebase
-  store/               Zustand stores (data + ephemeral UI)
+├── app/            routes (home, groups, friends, direct, join, analytics, activity, account) and API
+├── components/
+│   ├── app/        app shell: navigation, top bar, sign-in, install prompt, sync
+│   ├── features/   add expense, settle up, invites, groups, expense and balance rows
+│   ├── charts/     SVG donut and bar charts
+│   └── ui/         design-system primitives
+├── lib/            balances engine, UPI helpers, repeats, emails, database access
+└── store/          Zustand stores
 ```
 
-Design tokens live in `src/app/globals.css`; shadcn's semantic tokens
-(`--primary`, `--border`, …) are bridged to the Tally palette so every component
-inherits the look and dark mode automatically.
+Design tokens live in `src/app/globals.css`.
 
-## Support
+## Project status
 
-Tally is free and open-source, built and maintained in the open. If it's useful to
-you, here are a few ways to support it:
+Tally 2.0 is the current release, and it is considered feature-complete.
 
-- ❤ **[Sponsor on GitHub](https://github.com/sponsors/biswajitdas-007)** — one-time or recurring.
-- ☕ **Buy me a coffee over UPI** — pay any amount in any UPI app: **`biswajit.007.private@okaxis`**
-- ⭐ **Star the repo** — it genuinely helps.
-
-Every bit keeps Tally updated and moving toward a native app with more features.
+- **Maintenance:** the project is not maintained on a regular schedule. Updates
+  may come later, but there is no fixed roadmap or release cadence.
+- **Issues:** bug reports are welcome and will be read, but responses may be slow.
+- **Security:** reported vulnerabilities are still taken seriously. Please follow
+  [SECURITY.md](SECURITY.md).
+- **Forks:** you are free to fork and build on Tally under the MIT License.
 
 ## Contributing
 
-Contributions are welcome! Please read **[CONTRIBUTING.md](CONTRIBUTING.md)** for
-the dev setup, our Git Flow branching model, and the PR checklist. In short:
-branch from `develop`, keep `npx tsc --noEmit`, `npm run lint`, and `npm run build`
-green, and open a PR against `develop`.
+Pull requests are welcome, though reviews may take a while given the status
+above. Please read [CONTRIBUTING.md](CONTRIBUTING.md) first. In short: branch from
+`develop`, keep type-check, lint, tests and build green, use lowercase
+[Conventional Commits](https://www.conventionalcommits.org), and open the PR
+against `develop`.
 
 This project follows the [Contributor Covenant](CODE_OF_CONDUCT.md).
 
 ## Security
 
-Found a vulnerability? **Do not open a public issue.** Report it privately via
-the repo's **Security → Report a vulnerability** tab. See **[SECURITY.md](SECURITY.md)**
-for scope and our disclosure process. No secrets live in this repo or its git
-history — everything sensitive is injected via environment variables.
+Please **do not open a public issue** for a vulnerability. Report it privately
+through the repository's **Security → Report a vulnerability** tab. See
+[SECURITY.md](SECURITY.md) for scope and the disclosure process. No secrets are
+stored in this repository; everything sensitive is provided through environment
+variables.
+
+## Support
+
+If Tally is useful to you:
+
+- [Sponsor on GitHub](https://github.com/sponsors/biswajitdas-007)
+- Send a tip over UPI: `biswajit.007.private@okaxis`
+- Star the repository
 
 ## License
 
