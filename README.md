@@ -70,7 +70,7 @@ writing, so a user can only ever touch data they are part of.
 
 ### Prerequisites
 
-- Node.js 20 or later
+- Node.js 22 (the version CI uses)
 - A [Firebase](https://console.firebase.google.com) project with a Web App and
   the Google sign-in provider enabled
 - A [MongoDB Atlas](https://www.mongodb.com/atlas) cluster
