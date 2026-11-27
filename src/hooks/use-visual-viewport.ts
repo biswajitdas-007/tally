@@ -30,10 +30,7 @@ export function useVisualViewport(active: boolean): ViewportBox {
   const [box, setBox] = useState<ViewportBox>(NONE);
 
   useEffect(() => {
-    if (!active) {
-      setBox(NONE);
-      return;
-    }
+    if (!active) return;
     const vv = window.visualViewport;
     if (!vv) return;
 
@@ -51,8 +48,10 @@ export function useVisualViewport(active: boolean): ViewportBox {
     return () => {
       vv.removeEventListener("resize", read);
       vv.removeEventListener("scroll", read);
+      // Forget the last reading so a later activation never starts from stale numbers.
+      setBox(NONE);
     };
   }, [active]);
 
-  return box;
+  return active ? box : NONE;
 }

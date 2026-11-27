@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 /**
  * Longest we'll wait for an exit animation before letting go anyway. Animations
@@ -17,32 +17,23 @@ const EXIT_TIMEOUT_MS = 500;
  * Holding on until AnimatePresence says it's done keeps the close smooth.
  */
 export function usePresence(open: boolean): [present: boolean, onExitComplete: () => void] {
-  const [lingering, setLingering] = useState(false);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [lingering, setLingering] = useState(open);
+  const [prevOpen, setPrevOpen] = useState(open);
+
+  // Opening: start lingering in the same render (no effect, no extra frame).
+  if (open !== prevOpen) {
+    setPrevOpen(open);
+    if (open) setLingering(true);
+  }
 
   useEffect(() => {
-    if (timer.current) {
-      clearTimeout(timer.current);
-      timer.current = null;
-    }
-    if (open) {
-      setLingering(true);
-      return;
-    }
+    if (open) return;
     // Closing: give the animation a moment, but never wait forever.
-    timer.current = setTimeout(() => setLingering(false), EXIT_TIMEOUT_MS);
-    return () => {
-      if (timer.current) clearTimeout(timer.current);
-    };
+    const timer = setTimeout(() => setLingering(false), EXIT_TIMEOUT_MS);
+    return () => clearTimeout(timer);
   }, [open]);
 
-  const done = useCallback(() => {
-    if (timer.current) {
-      clearTimeout(timer.current);
-      timer.current = null;
-    }
-    setLingering(false);
-  }, []);
+  const done = useCallback(() => setLingering(false), []);
 
   return [open || lingering, done];
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
@@ -10,6 +10,7 @@ import {
 import { useUI } from "@/store/useUI";
 import { useScrollLock } from "@/hooks/use-scroll-lock";
 import { usePresence } from "@/hooks/use-presence";
+import { useMounted } from "@/hooks/use-mounted";
 import { cn } from "@/lib/utils";
 
 interface Cmd {
@@ -21,38 +22,11 @@ interface Cmd {
   run: () => void;
 }
 
-/**
- * Cmd/Ctrl-K palette. Everything the app can do from one keystroke, which
- * matters most on desktop where there's no thumb-reachable + button.
- */
-export function CommandPalette() {
+/** Every action the palette offers, grouped for display. */
+function useCommands(): Cmd[] {
   const router = useRouter();
   const ui = useUI();
-  const [mounted, setMounted] = useState(false);
-  const [open, setOpen] = useState(false);
-  const [q, setQ] = useState("");
-  const [active, setActive] = useState(0);
-  const listRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => setMounted(true), []);
-  const [present, onExitComplete] = usePresence(open);
-  useScrollLock(present);
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        setOpen((v) => !v);
-        setQ("");
-        setActive(0);
-      }
-      if (e.key === "Escape") setOpen(false);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
-
-  const commands = useMemo<Cmd[]>(() => {
+  return useMemo<Cmd[]>(() => {
     const go = (href: string) => () => router.push(href);
     return [
       { id: "expense", label: "Add a split expense", hint: "Split with friends", icon: Plus, group: "Add", run: () => ui.openAdd() },
@@ -67,14 +41,50 @@ export function CommandPalette() {
       { id: "profile", label: "Account", hint: "Profile and settings", icon: User, group: "Go to", run: go("/account") },
     ];
   }, [router, ui]);
+}
 
+/** Query + highlighted row; a new query always starts from the first result. */
+function useCommandSearch(commands: Cmd[]) {
+  const [q, setQ] = useState("");
+  const [active, setActive] = useState(0);
   const results = useMemo(() => {
     const needle = q.trim().toLowerCase();
     if (!needle) return commands;
     return commands.filter((c) => `${c.label} ${c.hint} ${c.group}`.toLowerCase().includes(needle));
   }, [commands, q]);
+  const search = useCallback((value: string) => {
+    setQ(value);
+    setActive(0);
+  }, []);
+  return { q, search, results, active, setActive };
+}
 
-  useEffect(() => setActive(0), [q]);
+/**
+ * Cmd/Ctrl-K palette. Everything the app can do from one keystroke, which
+ * matters most on desktop where there's no thumb-reachable + button.
+ */
+export function CommandPalette() {
+  const mounted = useMounted();
+  const [open, setOpen] = useState(false);
+  const commands = useCommands();
+  const { q, search, results, active, setActive } = useCommandSearch(commands);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  const [present, onExitComplete] = usePresence(open);
+  useScrollLock(present);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setOpen((v) => !v);
+        search("");
+      }
+      if (e.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [search]);
 
   useEffect(() => {
     listRef.current?.querySelector<HTMLElement>(`[data-i="${active}"]`)?.scrollIntoView({ block: "nearest" });
@@ -102,8 +112,6 @@ export function CommandPalette() {
     }
   }
 
-  let lastGroup = "";
-
   return createPortal(
     <AnimatePresence onExitComplete={onExitComplete}>
       {open && (
@@ -129,7 +137,7 @@ export function CommandPalette() {
               <input
                 autoFocus
                 value={q}
-                onChange={(e) => setQ(e.target.value)}
+                onChange={(e) => search(e.target.value)}
                 onKeyDown={onKeyDown}
                 placeholder="What do you want to do?"
                 className="h-13 flex-1 bg-transparent py-4 text-[0.95rem] outline-none placeholder:text-text-3"
@@ -145,8 +153,8 @@ export function CommandPalette() {
               )}
               {results.map((c, i) => {
                 const Icon = c.icon;
-                const header = c.group !== lastGroup ? c.group : null;
-                lastGroup = c.group;
+                // Label the first command of each group.
+                const header = results[i - 1]?.group !== c.group ? c.group : null;
                 return (
                   <div key={c.id}>
                     {header && (

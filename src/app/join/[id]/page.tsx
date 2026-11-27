@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Loader2, PartyPopper, Link as LinkIcon } from "lucide-react";
@@ -28,21 +28,9 @@ function refusal(res: { self?: boolean } | null): string | null {
   return res.self ? "That's your own invite link" : null;
 }
 
-export default function JoinPage() {
-  const params = useParams<{ id: string }>();
-  const id = params.id;
-  const router = useRouter();
-  const { loginWithGoogle } = useAuth();
-  const { toast } = useToast();
-
-  const currentUserId = useStore((s) => s.currentUserId);
-  const dataReady = useStore((s) => s.dataReady);
-  const refetch = useStore((s) => s.refetch);
-
+/** The invite behind this link, or its loading / not-found state. */
+function useInvite(id: string): InviteInfo | "loading" | "notfound" {
   const [info, setInfo] = useState<InviteInfo | "loading" | "notfound">("loading");
-  const [signingIn, setSigningIn] = useState(false);
-  const [phase, setPhase] = useState<"idle" | "joining" | "done">("idle");
-
   useEffect(() => {
     let active = true;
     fetchInvite(id).then((d) => active && setInfo(d ?? "notfound"));
@@ -50,11 +38,20 @@ export default function JoinPage() {
       active = false;
     };
   }, [id]);
+  return info;
+}
+
+/** Accepts the invite exactly once (even under StrictMode) as soon as `canJoin`, then routes into the app. */
+function useAutoJoin(id: string, canJoin: boolean): "idle" | "done" {
+  const router = useRouter();
+  const { toast } = useToast();
+  const refetch = useStore((s) => s.refetch);
+  const [phase, setPhase] = useState<"idle" | "done">("idle");
+  const started = useRef(false);
 
   useEffect(() => {
-    if (info === "loading" || info === "notfound") return;
-    if (!currentUserId || !dataReady || phase !== "idle") return;
-    setPhase("joining");
+    if (!canJoin || started.current) return;
+    started.current = true;
     (async () => {
       const res = await acceptInvite(id);
       const refused = refusal(res);
@@ -69,7 +66,28 @@ export default function JoinPage() {
       toast({ message: groupId ? "You've joined the group" : "You're in 🎉" });
       setTimeout(() => router.replace(groupId ? `/groups/${groupId}` : "/"), 700);
     })();
-  }, [info, currentUserId, dataReady, phase, id, refetch, router, toast]);
+  }, [canJoin, id, refetch, router, toast]);
+
+  return phase;
+}
+
+export default function JoinPage() {
+  const params = useParams<{ id: string }>();
+  const id = params.id;
+  const router = useRouter();
+  const { loginWithGoogle } = useAuth();
+  const { toast } = useToast();
+
+  const currentUserId = useStore((s) => s.currentUserId);
+  const dataReady = useStore((s) => s.dataReady);
+
+  const info = useInvite(id);
+  const [signingIn, setSigningIn] = useState(false);
+
+  // Join automatically once the invite is valid and the signed-in user's data is loaded.
+  const canJoin = info !== "loading" && info !== "notfound" && !!currentUserId && dataReady;
+  const phase = useAutoJoin(id, canJoin);
+  const joining = canJoin || phase === "done";
 
   async function handleGoogle() {
     try {
@@ -112,7 +130,7 @@ export default function JoinPage() {
 
         {info !== "loading" && info !== "notfound" && (
           <div className="rounded-[22px] border border-border bg-surface p-6 text-center shadow-[var(--shadow-md)]">
-            {phase !== "idle" ? (
+            {joining ? (
               <div className="flex flex-col items-center gap-3 py-6">
                 {phase === "done" ? (
                   <PartyPopper className="h-8 w-8 text-brand" />
