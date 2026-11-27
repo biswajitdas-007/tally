@@ -135,13 +135,13 @@ export interface EmailRow {
 
 /** Label/value rows separated by hairlines (receipts, summaries). */
 export function emailRows(rows: EmailRow[]): string {
-  const cell = (extra: string) => `padding:12px 0;border-top:1px solid ${c.border};font-size:14px;${extra}`;
+  const cell = `padding:12px 0;border-top:1px solid ${c.border};font-size:14px;`;
+  const labelStyle = `${cell}color:${c.muted};`;
   const body = rows
-    .map(
-      (r) =>
-        `<tr><td style="${cell(`color:${c.muted};`)}">${r.label}</td>` +
-        `<td style="${cell(`font-weight:700;color:${r.color ?? c.ink};text-align:right;`)}">${r.value}</td></tr>`,
-    )
+    .map((r) => {
+      const valueStyle = `${cell}font-weight:700;color:${r.color ?? c.ink};text-align:right;`;
+      return `<tr><td style="${labelStyle}">${r.label}</td><td style="${valueStyle}">${r.value}</td></tr>`;
+    })
     .join("");
   return `<table role="presentation" width="100%" style="border-collapse:collapse;margin-top:6px;">${body}</table>`;
 }

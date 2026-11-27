@@ -42,6 +42,8 @@ export function inviteEmailHtml(o: {
   groupIcon: string; // already HTML-escaped ("" when none)
   link: string;
 }): string {
+  const iconPrefix = o.groupIcon ? `${o.groupIcon}&nbsp; ` : "";
+  const groupChip = o.groupName ? iconPrefix + o.groupName : undefined;
   const closer = o.groupName
     ? `Join ${o.inviter} and your balances stay square, automatically.`
     : `Join ${o.inviter}'s circle and your balances stay square, automatically.`;
@@ -50,7 +52,7 @@ export function inviteEmailHtml(o: {
     badge: o.initial,
     eyebrow: "You're invited",
     title: `${o.inviter} wants to tally up with you`,
-    chip: o.groupName ? `${o.groupIcon ? `${o.groupIcon}&nbsp; ` : ""}${o.groupName}` : undefined,
+    chip: groupChip,
     body:
       emailParagraph(
         `Tally is the easiest way to split expenses with friends and settle up over UPI — no spreadsheets, no awkward &ldquo;you still owe me&rdquo; texts. ${closer}`,

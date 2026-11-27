@@ -43,13 +43,15 @@ export async function sendSettlementEmail(
   const eyebrow = isReceiver ? "Payment received" : "Payment sent";
   const heroAmount = isReceiver ? `+ ${amount}` : amount;
   const heroSub = isReceiver ? `from ${payer}` : `to ${receiver}`;
-  const lead = isReceiver
-    ? `Hi ${first}, ${emailStrong(payer)} just settled up with you.${
-        info.groupName ? ` It's recorded in your ${emailStrong(escapeHtml(info.groupName))} ledger.` : ""
-      }`
-    : `Hi ${first}, your payment to ${emailStrong(receiver)} is recorded${
-        info.groupName ? ` in ${emailStrong(escapeHtml(info.groupName))}` : ""
-      }. You're all square on this one.`;
+  const groupName = info.groupName ? emailStrong(escapeHtml(info.groupName)) : "";
+  let lead: string;
+  if (isReceiver) {
+    const where = groupName ? ` It's recorded in your ${groupName} ledger.` : "";
+    lead = `Hi ${first}, ${emailStrong(payer)} just settled up with you.${where}`;
+  } else {
+    const where = groupName ? ` in ${groupName}` : "";
+    lead = `Hi ${first}, your payment to ${emailStrong(receiver)} is recorded${where}. You're all square on this one.`;
+  }
 
   const rows: EmailRow[] = [
     { label: "Paid by", value: isReceiver ? payer : "You" },
