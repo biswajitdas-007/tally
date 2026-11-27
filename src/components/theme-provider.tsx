@@ -96,7 +96,7 @@ function readSystemDark() {
 
 function applyTheme(resolved: "light" | "dark") {
   const root = document.documentElement;
-  root.setAttribute("data-theme", resolved);
+  root.dataset.theme = resolved;
   root.style.colorScheme = resolved;
 }
 
