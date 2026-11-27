@@ -3,6 +3,8 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { idbStorage } from "@/lib/idb-storage";
+import { isPreviewSession } from "@/lib/preview";
+import { previewState } from "@/lib/preview-data";
 import type { CategoryKey, Expense, Group, ID, Person, Split, PendingInvite } from "@/lib/types";
 import type { ServerState } from "@/lib/api";
 import * as api from "@/lib/api";
@@ -243,6 +245,13 @@ export const useStore = create<State>()(
   },
 }
 ));
+
+// Dev preview session: swap in sample data before the first render. The literal
+// NODE_ENV check lets production builds drop this branch, and with it the
+// otherwise-unused sample data.
+if (process.env.NODE_ENV !== "production" && isPreviewSession()) {
+  useStore.setState(previewState());
+}
 
 // Selectors
 export const useMe = () => useStore((s) => s.me);

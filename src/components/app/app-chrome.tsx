@@ -42,6 +42,26 @@ function LoadError() {
   );
 }
 
+/** Routes that render on their own, before (and without) the sign-in gate. */
+function isUngated(pathname: string | null): boolean {
+  if (!pathname) return false;
+  // The join flow renders its own sign-in UI.
+  if (pathname.startsWith("/join")) return true;
+  // Dev tools (the preview switch). `page.dev.tsx` routes don't exist in
+  // production builds at all (see next.config.ts).
+  return process.env.NODE_ENV !== "production" && pathname.startsWith("/dev");
+}
+
+type Gate = "splash" | "login" | "error" | "ready";
+
+/** Where the signed-in gate stands: still loading, needs sign-in, failed, or ready. */
+function gateState(s: { authReady: boolean; dataReady: boolean; loadError: boolean; currentUserId: string | null }): Gate {
+  if (isFirebaseConfigured && !s.authReady) return "splash";
+  if (!s.currentUserId) return "login";
+  if (s.loadError) return "error";
+  return s.dataReady ? "ready" : "splash"; // otherwise still loading data from the server
+}
+
 export function AppChrome({ children }: { children: React.ReactNode }) {
   const mounted = useMounted();
   const pathname = usePathname();
@@ -51,15 +71,12 @@ export function AppChrome({ children }: { children: React.ReactNode }) {
   const currentUserId = useStore((s) => s.currentUserId);
 
   if (!mounted) return <Splash />;
+  if (isUngated(pathname)) return <>{children}</>;
 
-  // The join flow renders its own sign-in UI, outside the app shell/gate.
-  if (pathname?.startsWith("/join")) return <>{children}</>;
-
-  const waitingForAuth = isFirebaseConfigured && !authReady;
-  if (waitingForAuth) return <Splash />;
-  if (!currentUserId) return <LoginScreen />;
-  if (loadError) return <LoadError />;
-  if (!dataReady) return <Splash />; // loading data from the server
+  const gate = gateState({ authReady, dataReady, loadError, currentUserId });
+  if (gate === "splash") return <Splash />;
+  if (gate === "login") return <LoginScreen />;
+  if (gate === "error") return <LoadError />;
 
   // The report is printed, so it renders on its own. Keeping it outside the
   // shell means the nav, prompts, toasts and sheets simply aren't on the page

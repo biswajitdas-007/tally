@@ -9,6 +9,7 @@ import {
 } from "firebase/auth";
 import { firebaseAuth, firebaseAuthReady, googleProvider, isFirebaseConfigured } from "@/lib/firebase";
 import { useStore } from "@/store/useStore";
+import { isPreviewSession, stopPreviewSession } from "@/lib/preview";
 
 export function useAuth() {
   const storeSignOut = useStore((s) => s.signOut);
@@ -30,6 +31,8 @@ export function useAuth() {
   }, []);
 
   const loginWithGoogle = useCallback(async () => {
+    // Never sign a real account in from a dev preview session.
+    if (isPreviewSession()) throw new Error("preview-session");
     // Wait for persistence to be configured before sign-in.
     const auth = await firebaseAuthReady();
     if (!auth) throw new Error("firebase-not-configured");
@@ -60,6 +63,13 @@ export function useAuth() {
   }, []);
 
   const logout = useCallback(async () => {
+    // A dev preview session is signed in as sample data. Signing out just ends
+    // it; it must never touch the browser's real Firebase session.
+    if (isPreviewSession()) {
+      stopPreviewSession();
+      window.location.assign(new URL("/", window.location.origin).href);
+      return;
+    }
     const auth = firebaseAuth();
     if (auth) await fbSignOut(auth).catch(() => {});
     storeSignOut();
