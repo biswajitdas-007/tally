@@ -40,7 +40,9 @@
   --brand-soft-2: #fbd3e1;
   --brand-on-soft: #b80f48;
 
-  /* Accent set — the logo's tally strokes. `-soft` fills, `-on-soft` text on them. */
+  /* Accent set — the logo's tally strokes. Bare colours are for fills, icons and
+     decoration only (sky/mint/sun fail AA as text on white): put text in `-on-soft`
+     on a `-soft` fill. */
   --violet: #5b3ff0;
   --violet-soft: #eeeafe;
   --violet-on-soft: #4127d6;
@@ -537,6 +539,14 @@ input[type="number"]::-webkit-inner-spin-button {
   stroke-dasharray: 1;
   stroke-dashoffset: 1;
   animation: tally-draw 2.6s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+/* With reduced motion the global rule below cuts animations to nothing, which
+   would leave every stroke undrawn: show the finished mark instead. */
+@media (prefers-reduced-motion: reduce) {
+  .tally-stroke {
+    animation: none !important;
+    stroke-dashoffset: 0;
+  }
 }
 
 .ledger-grid {

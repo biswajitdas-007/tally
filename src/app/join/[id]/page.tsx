@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Loader2, PartyPopper, Link as LinkIcon } from "lucide-react";
-import { TallyMark } from "@/components/app/logo";
+import { TallyLogo } from "@/components/app/logo";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/components/ui/toast";
@@ -104,8 +104,7 @@ export default function JoinPage() {
       <div className="pointer-events-none absolute -top-40 left-1/2 h-80 w-[36rem] -translate-x-1/2 rounded-full bg-brand-soft blur-[90px] opacity-70" />
       <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} className="relative z-10 w-full max-w-sm">
         <div className="mb-6 flex items-center justify-center gap-2.5">
-          <TallyMark size={34} />
-          <span className="font-display text-xl font-bold tracking-[-0.03em]">Tally</span>
+          <TallyLogo size={34} />
         </div>
 
         {info === "loading" && (

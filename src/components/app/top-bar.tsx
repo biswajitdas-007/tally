@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Bell, Menu } from "lucide-react";
-import { TallyMark } from "./logo";
+import { TallyLogo } from "./logo";
 import { Avatar } from "@/components/ui/avatar";
 import { useMe } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
@@ -22,8 +22,7 @@ export function TopBar() {
           <Menu className="h-[21px] w-[21px]" />
         </button>
         <Link href="/" className="flex items-center gap-2">
-          <TallyMark size={26} />
-          <span className="font-display text-lg font-bold tracking-[-0.03em]">Tally</span>
+          <TallyLogo size={26} />
         </Link>
         <div className="ml-auto flex items-center gap-0.5">
           <Link
