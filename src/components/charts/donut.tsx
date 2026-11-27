@@ -25,16 +25,16 @@ export function Donut({
   const c = 2 * Math.PI * r;
   const gap = 0.012 * c; // small breathing gap between slices
 
-  let start = 0;
+  const fracs = data.map((d) => d.value / total);
+  // Where each slice begins, as a fraction of the full turn.
+  const starts = fracs.map((_, i) => fracs.slice(0, i).reduce((a, f) => a + f, 0));
 
   return (
     <div className="relative inline-flex shrink-0 items-center justify-center" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90">
         {data.map((d, i) => {
-          const frac = d.value / total;
-          const seg = Math.max(frac * c - gap, 0.001);
-          const rotation = start * 360;
-          start += frac;
+          const seg = Math.max(fracs[i] * c - gap, 0.001);
+          const rotation = starts[i] * 360;
           return (
             <g key={d.label} transform={`rotate(${rotation} ${cx} ${cx})`}>
               <motion.circle

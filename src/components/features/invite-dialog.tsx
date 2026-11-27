@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Mail, Copy, Share2, CircleCheckBig, Link as LinkIcon } from "lucide-react";
 import { Sheet } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { useUI } from "@/store/useUI";
 import { useToast } from "@/components/ui/toast";
 import { sendInvite } from "@/lib/api";
 import { uid } from "@/lib/utils";
+import { useOpenEdge } from "@/hooks/use-open-edge";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -27,13 +28,12 @@ export function InviteDialog() {
   const [sentLink, setSentLink] = useState<string | null>(null);
   const [emailSent, setEmailSent] = useState(false);
 
-  useEffect(() => {
-    if (open) {
-      setEmail("");
-      setSentLink(null);
-      setEmailSent(false);
-    }
-  }, [open]);
+  // Each time the dialog opens, start from an empty form.
+  useOpenEdge(open, () => {
+    setEmail("");
+    setSentLink(null);
+    setEmailSent(false);
+  });
 
   const group = groups.find((g) => g.id === groupId);
   const valid = EMAIL_RE.test(email);

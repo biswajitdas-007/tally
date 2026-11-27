@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
@@ -9,6 +9,7 @@ import { useIsDesktop } from "@/hooks/use-media-query";
 import { useScrollLock } from "@/hooks/use-scroll-lock";
 import { useVisualViewport } from "@/hooks/use-visual-viewport";
 import { usePresence } from "@/hooks/use-presence";
+import { useMounted } from "@/hooks/use-mounted";
 
 export function Sheet({
   open,
@@ -27,14 +28,13 @@ export function Sheet({
   className?: string;
   dismissable?: boolean;
 }) {
-  const [mounted, setMounted] = useState(false);
+  const mounted = useMounted();
   const isDesktop = useIsDesktop();
   const vp = useVisualViewport(open && !isDesktop);
   const keyboard = vp.keyboard;
   // Hold the page still until the sheet has finished sliding away.
   const [present, onExitComplete] = usePresence(open);
 
-  useEffect(() => setMounted(true), []);
   useScrollLock(present);
 
   useEffect(() => {

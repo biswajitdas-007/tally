@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Check, UserPlus } from "lucide-react";
 import { Sheet } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { useStore, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
+import { useOpenEdge } from "@/hooks/use-open-edge";
 import type { ID } from "@/lib/types";
 
 const EMOJIS = ["🏠", "🏝️", "🍜", "🎉", "✈️", "🏋️", "💼", "🛒", "🎬", "☕", "⚽", "🎓"];
@@ -36,14 +37,13 @@ export function CreateGroupSheet() {
   const [color, setColor] = useState(COLORS[0]);
   const [members, setMembers] = useState<ID[]>([]);
 
-  useEffect(() => {
-    if (open) {
-      setName("");
-      setIcon(EMOJIS[0]);
-      setColor(COLORS[0]);
-      setMembers([]);
-    }
-  }, [open]);
+  // Start every new group from a clean form.
+  useOpenEdge(open, () => {
+    setName("");
+    setIcon(EMOJIS[0]);
+    setColor(COLORS[0]);
+    setMembers([]);
+  });
 
   const myId = useMyId() ?? "";
   const friends = people.filter((p) => p.id !== myId);

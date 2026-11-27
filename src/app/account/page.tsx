@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { LogOut, ShieldCheck, Bell, Wallet, Check, BellRing, Contact, ChevronRight, Download, Trash2 } from "lucide-react";
 import { PageHeader } from "@/components/app/page-header";
@@ -49,10 +49,16 @@ export default function AccountPage() {
     toast({ message: "Your data is downloading" });
   }
 
-  const [upi, setUpi] = useState("");
-  useEffect(() => setUpi(me?.upiId ?? ""), [me?.upiId]);
+  // Draft of the UPI field; re-seeded whenever the saved value changes (e.g. after sync).
+  const savedUpi = me?.upiId ?? "";
+  const [upi, setUpi] = useState(savedUpi);
+  const [seededFrom, setSeededFrom] = useState(savedUpi);
+  if (savedUpi !== seededFrom) {
+    setSeededFrom(savedUpi);
+    setUpi(savedUpi);
+  }
 
-  const upiChanged = upi.trim() !== (me?.upiId ?? "");
+  const upiChanged = upi.trim() !== savedUpi;
 
   async function toggleNotifications(v: boolean) {
     if (v) {

@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useStore } from "@/store/useStore";
+import { useMounted } from "@/hooks/use-mounted";
 import { isFirebaseConfigured } from "@/lib/firebase";
 import { AppShell } from "./app-shell";
 import { LoginScreen } from "./login-screen";
@@ -43,14 +43,12 @@ function LoadError() {
 }
 
 export function AppChrome({ children }: { children: React.ReactNode }) {
-  const [mounted, setMounted] = useState(false);
+  const mounted = useMounted();
   const pathname = usePathname();
   const authReady = useStore((s) => s.authReady);
   const dataReady = useStore((s) => s.dataReady);
   const loadError = useStore((s) => s.loadError);
   const currentUserId = useStore((s) => s.currentUserId);
-
-  useEffect(() => setMounted(true), []);
 
   if (!mounted) return <Splash />;
 

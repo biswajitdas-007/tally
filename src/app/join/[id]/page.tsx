@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Loader2, PartyPopper, Link as LinkIcon } from "lucide-react";
@@ -41,7 +41,8 @@ export default function JoinPage() {
 
   const [info, setInfo] = useState<InviteInfo | "loading" | "notfound">("loading");
   const [signingIn, setSigningIn] = useState(false);
-  const [phase, setPhase] = useState<"idle" | "joining" | "done">("idle");
+  const [phase, setPhase] = useState<"idle" | "done">("idle");
+  const started = useRef(false);
 
   useEffect(() => {
     let active = true;
@@ -51,10 +52,13 @@ export default function JoinPage() {
     };
   }, [id]);
 
+  // Join automatically once the invite is valid and the signed-in user's data is loaded.
+  const canJoin = info !== "loading" && info !== "notfound" && !!currentUserId && dataReady;
+  const joining = canJoin || phase === "done";
+
   useEffect(() => {
-    if (info === "loading" || info === "notfound") return;
-    if (!currentUserId || !dataReady || phase !== "idle") return;
-    setPhase("joining");
+    if (!canJoin || started.current) return;
+    started.current = true;
     (async () => {
       const res = await acceptInvite(id);
       const refused = refusal(res);
@@ -69,7 +73,7 @@ export default function JoinPage() {
       toast({ message: groupId ? "You've joined the group" : "You're in 🎉" });
       setTimeout(() => router.replace(groupId ? `/groups/${groupId}` : "/"), 700);
     })();
-  }, [info, currentUserId, dataReady, phase, id, refetch, router, toast]);
+  }, [canJoin, id, refetch, router, toast]);
 
   async function handleGoogle() {
     try {
@@ -112,7 +116,7 @@ export default function JoinPage() {
 
         {info !== "loading" && info !== "notfound" && (
           <div className="rounded-[22px] border border-border bg-surface p-6 text-center shadow-[var(--shadow-md)]">
-            {phase !== "idle" ? (
+            {joining ? (
               <div className="flex flex-col items-center gap-3 py-6">
                 {phase === "done" ? (
                   <PartyPopper className="h-8 w-8 text-brand" />

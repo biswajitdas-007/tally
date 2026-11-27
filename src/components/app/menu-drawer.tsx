@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { useMounted } from "@/hooks/use-mounted";
 import { useScrollLock } from "@/hooks/use-scroll-lock";
 import { usePresence } from "@/hooks/use-presence";
 import { createPortal } from "react-dom";
@@ -43,8 +44,7 @@ export function MenuDrawer() {
   const { logout } = useAuth();
   const { choice, setChoice } = useTheme();
 
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useMounted();
 
   const [present, onExitComplete] = usePresence(open);
   useScrollLock(present);

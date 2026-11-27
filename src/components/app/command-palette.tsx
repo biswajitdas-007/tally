@@ -10,6 +10,7 @@ import {
 import { useUI } from "@/store/useUI";
 import { useScrollLock } from "@/hooks/use-scroll-lock";
 import { usePresence } from "@/hooks/use-presence";
+import { useMounted } from "@/hooks/use-mounted";
 import { cn } from "@/lib/utils";
 
 interface Cmd {
@@ -28,13 +29,12 @@ interface Cmd {
 export function CommandPalette() {
   const router = useRouter();
   const ui = useUI();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useMounted();
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const [active, setActive] = useState(0);
   const listRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => setMounted(true), []);
   const [present, onExitComplete] = usePresence(open);
   useScrollLock(present);
 
@@ -73,8 +73,6 @@ export function CommandPalette() {
     if (!needle) return commands;
     return commands.filter((c) => `${c.label} ${c.hint} ${c.group}`.toLowerCase().includes(needle));
   }, [commands, q]);
-
-  useEffect(() => setActive(0), [q]);
 
   useEffect(() => {
     listRef.current?.querySelector<HTMLElement>(`[data-i="${active}"]`)?.scrollIntoView({ block: "nearest" });
@@ -129,7 +127,10 @@ export function CommandPalette() {
               <input
                 autoFocus
                 value={q}
-                onChange={(e) => setQ(e.target.value)}
+                onChange={(e) => {
+                  setQ(e.target.value);
+                  setActive(0);
+                }}
                 onKeyDown={onKeyDown}
                 placeholder="What do you want to do?"
                 className="h-13 flex-1 bg-transparent py-4 text-[0.95rem] outline-none placeholder:text-text-3"

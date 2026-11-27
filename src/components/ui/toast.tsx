@@ -1,10 +1,11 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { Check, Info, TriangleAlert, Undo2 } from "lucide-react";
 import { uid } from "@/lib/utils";
+import { useMounted } from "@/hooks/use-mounted";
 
 type Tone = "success" | "error" | "info";
 
@@ -30,10 +31,8 @@ const accents: Record<Tone, string> = {
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<ToastItem[]>([]);
-  const [mounted, setMounted] = useState(false);
+  const mounted = useMounted();
   const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
-
-  useEffect(() => setMounted(true), []);
 
   const remove = useCallback((id: string) => {
     setItems((list) => list.filter((t) => t.id !== id));
