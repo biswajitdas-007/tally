@@ -1,21 +1,27 @@
 import type { Metadata, Viewport } from "next";
-import { Bricolage_Grotesque, Manrope } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { themeScript } from "@/components/theme-provider";
 import { Providers } from "./providers";
 
-const display = Bricolage_Grotesque({
-  subsets: ["latin"],
-  variable: "--font-display",
+// Self-hosted (see ./fonts/README.md) so builds never depend on Google Fonts.
+const instrumentSans = localFont({
+  src: "./fonts/instrument-sans-variable.woff2",
+  variable: "--font-sans",
+  weight: "400 700",
   display: "swap",
-  weight: ["500", "600", "700", "800"],
 });
 
-const sans = Manrope({
-  subsets: ["latin"],
-  variable: "--font-sans",
+const instrumentSerif = localFont({
+  src: [
+    { path: "./fonts/instrument-serif-regular.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/instrument-serif-italic.woff2", weight: "400", style: "italic" },
+  ],
+  variable: "--font-serif",
   display: "swap",
-  weight: ["400", "500", "600", "700"],
+  // Only used for headline accents; not worth delaying first paint for.
+  preload: false,
+  adjustFontFallback: "Times New Roman",
 });
 
 export const metadata: Metadata = {
@@ -43,8 +49,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f3f5f1" },
-    { media: "(prefers-color-scheme: dark)", color: "#0c110e" },
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0e0b1f" },
   ],
   width: "device-width",
   initialScale: 1,
@@ -60,7 +66,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       lang="en"
       data-theme="light"
       suppressHydrationWarning
-      className={`${display.variable} ${sans.variable}`}
+      className={`${instrumentSans.variable} ${instrumentSerif.variable}`}
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />

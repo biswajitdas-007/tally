@@ -2,6 +2,7 @@ import type { Collection } from "mongodb";
 import { getDb } from "./mongodb";
 import type { Expense, Group, Person, PendingInvite } from "./types";
 import type { PushSubscription } from "web-push";
+import { DEFAULT_AVATAR_COLOR, PLACEHOLDER_AVATAR_COLOR } from "./utils";
 
 /* ---------- server document shapes ---------- */
 
@@ -98,7 +99,7 @@ export async function upsertUser(
         photoURL: profile.photoURL,
         updatedAt: new Date(),
       },
-      $setOnInsert: { avatarColor: "#1c6b52" },
+      $setOnInsert: { avatarColor: DEFAULT_AVATAR_COLOR },
     },
     { upsert: true },
   );
@@ -113,7 +114,7 @@ function toPerson(u: UserDoc, isYou: boolean): Person {
     email: u.email,
     photoURL: u.photoURL,
     upiId: u.upiId,
-    avatarColor: u.avatarColor ?? "#1c6b52",
+    avatarColor: u.avatarColor ?? DEFAULT_AVATAR_COLOR,
     isYou,
   };
 }
@@ -205,7 +206,7 @@ export async function buildState(uid: string): Promise<ClientState> {
   if (!byId.has(uid)) byId.set(uid, toPerson(meDoc, true));
   for (const [id, p] of placeholders) if (!byId.has(id)) byId.set(id, p);
   for (const c of meDoc.contacts ?? []) if (!byId.has(c.id)) byId.set(c.id, c);
-  for (const id of realIds) if (!byId.has(id)) byId.set(id, { id, name: "Someone", avatarColor: "#7b8a80" });
+  for (const id of realIds) if (!byId.has(id)) byId.set(id, { id, name: "Someone", avatarColor: PLACEHOLDER_AVATAR_COLOR });
 
   const groupIds = groupDocs.map((g) => g._id);
   const pendingInvitesDocs = await invites.find({

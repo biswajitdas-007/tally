@@ -6,87 +6,106 @@
 
 /* ============================================================
    Tally — Design Tokens
-   "A warm digital ledger" · pine-green identity, brass accents
-   Light and dark are designed independently (not inverted).
+   Ink + magenta identity with a four-colour accent set (violet, sky,
+   mint, sun) taken from the logo's tally strokes. Light and dark are
+   tuned separately so text keeps WCAG AA contrast in both.
    shadcn tokens (--background, --primary, …) are bridged to ours
    so every shadcn/Base-UI component inherits the Tally palette.
    ============================================================ */
 
 :root {
   /* Surfaces & background (light) */
-  --bg: #f3f5f1;
-  --bg-subtle: #ecefe9;
+  --bg: #ffffff;
+  --bg-subtle: #faf9fd;
   --surface: #ffffff;
-  --surface-2: #f8faf6;
-  --surface-inset: #eef1ec;
-  --scrim: rgba(16, 26, 21, 0.44);
+  --surface-2: #f7f6fb;
+  --surface-inset: #f2f1f7;
+  --scrim: rgba(23, 18, 58, 0.44);
 
   /* Lines */
-  --border: #e5e8e0;
-  --border-strong: #d4d9cd;
+  --border: #eceaf4;
+  --border-strong: #d9d5ea;
 
   /* Text */
-  --text: #15201a;
-  --text-2: #58645c;
-  --text-3: #8b958c;
+  --text: #17123a;
+  --text-2: #5a5677;
+  --text-3: #6e6a88;
   --text-on-brand: #ffffff;
 
-  /* Brand — pine */
-  --brand: #1c6b52;
-  --brand-hover: #175a44;
-  --brand-active: #124636;
-  --brand-soft: #e1f0e9;
-  --brand-soft-2: #d1e8de;
-  --brand-on-soft: #12523e;
+  /* Brand — magenta */
+  --brand: #e3165b;
+  --brand-hover: #d0124f;
+  --brand-active: #b80f48;
+  --brand-soft: #fde7ef;
+  --brand-soft-2: #fbd3e1;
+  --brand-on-soft: #b80f48;
 
-  /* Accent — brass */
-  --brass: #a9793a;
-  --brass-soft: #f3e8d5;
-  --brass-on-soft: #7c561f;
+  /* Accent set — the logo's tally strokes. `-soft` fills, `-on-soft` text on them. */
+  --violet: #5b3ff0;
+  --violet-soft: #eeeafe;
+  --violet-on-soft: #4127d6;
+  --sky: #0b8fe0;
+  --sky-soft: #e3f2fc;
+  --sky-on-soft: #0a6aa8;
+  --mint: #12a16b;
+  --mint-soft: #e3f6ee;
+  --mint-on-soft: #0b7a50;
+  --sun: #ffb020;
+  --sun-soft: #fff3dc;
+  --sun-on-soft: #8a5a00;
+
+  /* Legacy accent name, kept so existing components keep working; points at violet. */
+  --brass: var(--violet);
+  --brass-soft: var(--violet-soft);
+  --brass-on-soft: var(--violet-on-soft);
 
   /* Semantics */
-  --positive: #128a63;
-  --positive-soft: #dcf1e8;
-  --negative: #d84a37;
-  --negative-soft: #fbe5e0;
-  --warning: #c1821a;
-  --warning-soft: #f7ead0;
-  --info: #2f68d1;
-  --info-soft: #e2eafb;
+  --positive: #0b7a50;
+  --positive-soft: #e3f6ee;
+  --negative: #b80f48;
+  --negative-soft: #fde7ef;
+  --warning: #9a5b00;
+  --warning-soft: #fff3dc;
+  --info: #0a6aa8;
+  --info-soft: #e3f2fc;
 
   /* Focus */
-  --ring: #1c6b52;
+  --ring: #e3165b;
 
   /* Category hues (charts / tags) */
   --cat-food: #e2673b;
-  --cat-rent: #4c6ef0;
-  --cat-travel: #12a0a0;
-  --cat-shopping: #b452c9;
-  --cat-bills: #d99a1c;
+  --cat-grocery: #4d9a1f;
+  --cat-rent: #3450d6;
+  --cat-travel: #0b8fa0;
+  --cat-shopping: #a43fc0;
+  --cat-bills: #d98400;
   --cat-fun: #e0518f;
-  --cat-health: #2fa15a;
+  --cat-health: #12a16b;
   --cat-alcohol: #be185d;
-  --cat-other: #7b8a80;
+  --cat-other: #6e6a88;
 
-  /* Elevation */
-  --shadow-xs: 0 1px 2px rgba(20, 32, 26, 0.06);
-  --shadow-sm: 0 1px 3px rgba(20, 32, 26, 0.07), 0 1px 2px rgba(20, 32, 26, 0.04);
-  --shadow-md: 0 4px 14px -4px rgba(20, 32, 26, 0.12), 0 2px 6px -2px rgba(20, 32, 26, 0.06);
-  --shadow-lg: 0 18px 40px -12px rgba(20, 32, 26, 0.22), 0 6px 14px -8px rgba(20, 32, 26, 0.1);
-  --shadow-brand: 0 10px 26px -8px rgba(28, 107, 82, 0.45);
+  /* Elevation (ink-tinted) */
+  --shadow-xs: 0 1px 2px rgba(23, 18, 58, 0.06);
+  --shadow-sm: 0 1px 3px rgba(23, 18, 58, 0.07), 0 1px 2px rgba(23, 18, 58, 0.04);
+  --shadow-md: 0 6px 18px -6px rgba(23, 18, 58, 0.14), 0 2px 6px -2px rgba(23, 18, 58, 0.06);
+  --shadow-lg: 0 20px 44px -14px rgba(23, 18, 58, 0.24), 0 6px 14px -8px rgba(23, 18, 58, 0.1);
+  --shadow-brand: 0 10px 24px -8px rgba(227, 22, 91, 0.45);
 
-  /* Radii */
-  --radius-sm: 10px;
-  --radius-md: 14px;
-  --radius-lg: 18px;
+  /* Radii — generous, friendly curves */
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 20px;
   --radius-xl: 24px;
-  --radius-2xl: 30px;
-  --radius: 0.875rem;
+  --radius-2xl: 28px;
+  --radius: 1rem;
 
   /* Motion */
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   color-scheme: light;
+
+  /* Headings share the UI face; the serif is only for accents (.font-accent). */
+  --font-display: var(--font-sans);
 
   /* shadcn bridge → our tokens */
   --background: var(--bg);
@@ -117,60 +136,71 @@
 }
 
 [data-theme="dark"] {
-  --bg: #0c110e;
-  --bg-subtle: #090d0b;
-  --surface: #141b17;
-  --surface-2: #1a231e;
-  --surface-inset: #10160f;
-  --scrim: rgba(0, 0, 0, 0.6);
+  --bg: #0e0b1f;
+  --bg-subtle: #0a0818;
+  --surface: #17132e;
+  --surface-2: #1d1838;
+  --surface-inset: #120f26;
+  --scrim: rgba(4, 2, 12, 0.66);
 
-  --border: #26302a;
-  --border-strong: #35413a;
+  --border: #2a2547;
+  --border-strong: #3a3460;
 
-  --text: #e9f1ec;
-  --text-2: #97a59d;
-  --text-3: #67746c;
-  --text-on-brand: #061109;
+  --text: #f4f3fa;
+  --text-2: #b4b0cc;
+  --text-3: #8d89a8;
+  /* Ink on magenta: white fails AA on the lighter dark-mode brand. */
+  --text-on-brand: #17123a;
 
-  --brand: #45b18b;
-  --brand-hover: #56bf9a;
-  --brand-active: #6bcbaa;
-  --brand-soft: #14352a;
-  --brand-soft-2: #1b4536;
-  --brand-on-soft: #86dabd;
+  --brand: #f2397a;
+  --brand-hover: #f5558d;
+  --brand-active: #f870a0;
+  --brand-soft: #3a1430;
+  --brand-soft-2: #4d1a3e;
+  --brand-on-soft: #ff9ebe;
 
-  --brass: #d3a15e;
-  --brass-soft: #2c2416;
-  --brass-on-soft: #e6bd80;
+  --violet: #9d88ff;
+  --violet-soft: #241c4d;
+  --violet-on-soft: #c2b5ff;
+  --sky: #4cb6f5;
+  --sky-soft: #0f2a40;
+  --sky-on-soft: #8fd2fa;
+  --mint: #3fd69a;
+  --mint-soft: #10302a;
+  --mint-on-soft: #7be8bd;
+  --sun: #ffc062;
+  --sun-soft: #33270f;
+  --sun-on-soft: #ffd89a;
 
-  --positive: #34c893;
-  --positive-soft: #123329;
-  --negative: #ff6e58;
-  --negative-soft: #3a1c18;
-  --warning: #e0a63c;
-  --warning-soft: #322810;
-  --info: #5f92f0;
-  --info-soft: #172440;
+  --positive: #3fd69a;
+  --positive-soft: #10302a;
+  --negative: #ff7aa3;
+  --negative-soft: #3a1430;
+  --warning: #ffc062;
+  --warning-soft: #33270f;
+  --info: #6cc2f7;
+  --info-soft: #0f2a40;
 
-  --ring: #45b18b;
+  --ring: #f2397a;
 
-  --cat-food: #f07e52;
-  --cat-rent: #7c93f6;
-  --cat-travel: #35c2c2;
-  --cat-shopping: #cd77e0;
-  --cat-bills: #ecb63f;
-  --cat-fun: #f172a8;
-  --cat-health: #4cc47c;
-  --cat-alcohol: #db2777;
-  --cat-other: #96a49a;
+  --cat-food: #f48a5e;
+  --cat-grocery: #8bd45a;
+  --cat-rent: #8a9cf8;
+  --cat-travel: #4cc9d6;
+  --cat-shopping: #d083e6;
+  --cat-bills: #f5b74a;
+  --cat-fun: #f580b0;
+  --cat-health: #3fd69a;
+  --cat-alcohol: #f06292;
+  --cat-other: #8d89a8;
 
-  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
-  --shadow-md: 0 6px 18px -6px rgba(0, 0, 0, 0.6);
-  --shadow-lg: 0 22px 46px -14px rgba(0, 0, 0, 0.7);
-  --shadow-brand: 0 12px 30px -10px rgba(69, 177, 139, 0.4);
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.45);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.55);
+  --shadow-md: 0 6px 18px -6px rgba(0, 0, 0, 0.65);
+  --shadow-lg: 0 22px 46px -14px rgba(0, 0, 0, 0.75);
+  --shadow-brand: 0 12px 30px -10px rgba(242, 57, 122, 0.45);
 
-  --destructive-foreground: #1a0d0a;
+  --destructive-foreground: #17123a;
   color-scheme: dark;
 }
 
@@ -194,6 +224,19 @@
   --color-brand-soft: var(--brand-soft);
   --color-brand-soft-2: var(--brand-soft-2);
   --color-brand-on-soft: var(--brand-on-soft);
+
+  --color-violet: var(--violet);
+  --color-violet-soft: var(--violet-soft);
+  --color-violet-on-soft: var(--violet-on-soft);
+  --color-sky: var(--sky);
+  --color-sky-soft: var(--sky-soft);
+  --color-sky-on-soft: var(--sky-on-soft);
+  --color-mint: var(--mint);
+  --color-mint-soft: var(--mint-soft);
+  --color-mint-on-soft: var(--mint-on-soft);
+  --color-sun: var(--sun);
+  --color-sun-soft: var(--sun-soft);
+  --color-sun-on-soft: var(--sun-on-soft);
 
   --color-brass: var(--brass);
   --color-brass-soft: var(--brass-soft);
@@ -249,6 +292,7 @@
 
   --font-display: var(--font-display);
   --font-sans: var(--font-sans);
+  --font-serif: var(--font-serif);
 
   --shadow-xs: var(--shadow-xs);
   --shadow-sm: var(--shadow-sm);
@@ -318,7 +362,15 @@ select:focus-visible {
 
 .font-display {
   font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
+}
+
+/* Editorial accent: one word or phrase in a heading set in Instrument Serif italic. */
+.font-accent {
+  font-family: var(--font-serif), ui-serif, Georgia, serif;
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.01em;
 }
 
 .glass {

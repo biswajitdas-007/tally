@@ -2,7 +2,8 @@
 export async function celebrate() {
   if (typeof window === "undefined") return;
   const confetti = (await import("canvas-confetti")).default;
-  const colors = ["#1c6b52", "#45b18b", "#a9793a", "#e0b467", "#12996b"];
+  // The logo's tally strokes plus the magenta tick.
+  const colors = ["#e3165b", "#5b3ff0", "#0b8fe0", "#12a16b", "#ffb020"];
   confetti({
     particleCount: 90,
     spread: 78,

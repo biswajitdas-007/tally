@@ -39,18 +39,27 @@ export function initials(name: string): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-/** Deterministic avatar palette — warm, cohesive, works in both themes. */
+/** The colour an avatar falls back to when none is stored (brand violet). */
+export const DEFAULT_AVATAR_COLOR = "#5b3ff0";
+
+/** Neutral colour for someone we no longer have a profile for (white initials stay AA). */
+export const PLACEHOLDER_AVATAR_COLOR = "#6e6a88";
+
+/**
+ * Deterministic avatar palette, drawn from the brand accents. Every colour keeps
+ * white initials at WCAG AA contrast (at least 4.5:1).
+ */
 export const AVATAR_COLORS = [
-  "#1c6b52",
-  "#4c6ef0",
-  "#e2673b",
-  "#b452c9",
-  "#12a0a0",
-  "#d99a1c",
-  "#e0518f",
-  "#5a7d3a",
-  "#8257d6",
-  "#c25b3e",
+  DEFAULT_AVATAR_COLOR,
+  "#b80f48",
+  "#0a74b8",
+  "#0b7a50",
+  "#c2410c",
+  "#7c3aed",
+  "#0f766e",
+  "#a16207",
+  "#be185d",
+  "#4338ca",
 ] as const;
 
 export function avatarColor(seed: string): string {

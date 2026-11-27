@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { cn, initials } from "@/lib/utils";
+import { cn, DEFAULT_AVATAR_COLOR, initials } from "@/lib/utils";
 import type { Person } from "@/lib/types";
 
 const sizeMap = {
@@ -29,7 +29,7 @@ export function Avatar({
 }) {
   const [broken, setBroken] = useState(false);
   const label = person?.name ?? name ?? "?";
-  const bg = person?.avatarColor ?? color ?? "#1c6b52";
+  const bg = person?.avatarColor ?? color ?? DEFAULT_AVATAR_COLOR;
   const photo = person?.photoURL;
   const showPhoto = Boolean(photo) && !broken;
 
