@@ -1,6 +1,7 @@
 import { getDb, isDbConfigured } from "@/lib/mongodb";
 import { verifyUser } from "@/lib/auth-server";
 import { sendEmail } from "@/lib/email";
+import { emailButton, emailLayout, emailList, emailNote, emailParagraph } from "@/lib/email-layout";
 import type { GroupDoc, UserDoc } from "@/lib/db";
 import { badRequest, escapeHtml, forbidden, isStr, json, serverError, unauthorized } from "@/lib/api-helpers";
 
@@ -41,47 +42,28 @@ export function inviteEmailHtml(o: {
   groupIcon: string; // already HTML-escaped ("" when none)
   link: string;
 }): string {
-  const chip = o.groupName
-    ? `<div style="display:inline-block;margin-top:15px;background:rgba(255,255,255,.15);border-radius:999px;padding:7px 15px;font-size:13px;font-weight:600;">${o.groupIcon ? `${o.groupIcon}&nbsp; ` : ""}${o.groupName}</div>`
-    : "";
   const closer = o.groupName
     ? `Join ${o.inviter} and your balances stay square, automatically.`
     : `Join ${o.inviter}'s circle and your balances stay square, automatically.`;
-  return `
-<div style="margin:0;padding:0;background:#eef2ec;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-  <div style="max-width:520px;margin:0 auto;padding:28px 18px;">
-    <div style="text-align:center;padding-bottom:20px;">
-      <span style="font-size:20px;font-weight:800;letter-spacing:-.03em;color:#1c6b52;">Tally</span>
-    </div>
-    <div style="background:#ffffff;border-radius:20px;overflow:hidden;box-shadow:0 10px 30px -14px rgba(20,32,26,.25);">
-      <div style="background:linear-gradient(152deg,#22795d 0%,#155741 100%);padding:30px 26px 26px;color:#ffffff;text-align:center;">
-        <div style="width:54px;height:54px;margin:0 auto 14px;border-radius:50%;background:rgba(255,255,255,.16);text-align:center;line-height:54px;font-size:21px;font-weight:800;letter-spacing:-.02em;">${o.initial}</div>
-        <div style="font-size:12.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;opacity:.72;">You're invited</div>
-        <div style="font-size:23px;font-weight:800;letter-spacing:-.02em;margin-top:8px;line-height:1.28;">${o.inviter} wants to tally up with you</div>
-        ${chip}
-      </div>
-      <div style="padding:26px;">
-        <p style="margin:0 0 18px;font-size:15px;line-height:1.55;color:#3d4c44;">
-          Tally is the easiest way to split expenses with friends and settle up over UPI — no spreadsheets, no awkward &ldquo;you still owe me&rdquo; texts. ${closer}
-        </p>
-        <table role="presentation" width="100%" style="border-collapse:collapse;">
-          <tr><td style="padding:7px 0;font-size:14.5px;color:#3d4c44;"><span style="display:inline-block;width:30px;">🧮</span> Split any bill fairly, down to the rupee</td></tr>
-          <tr><td style="padding:7px 0;font-size:14.5px;color:#3d4c44;"><span style="display:inline-block;width:30px;">⚡</span> Settle up in one tap over UPI</td></tr>
-          <tr><td style="padding:7px 0;font-size:14.5px;color:#3d4c44;"><span style="display:inline-block;width:30px;">🔄</span> Balances sync across everyone, live</td></tr>
-        </table>
-        <div style="text-align:center;margin:26px 0 6px;">
-          <a href="${o.link}" style="display:inline-block;background:#1c6b52;color:#ffffff;padding:14px 34px;border-radius:12px;text-decoration:none;font-weight:700;font-size:15px;">Join on Tally</a>
-        </div>
-        <p style="margin:8px 0 0;text-align:center;font-size:12.5px;color:#8b958c;">Sign in with Google — no password to remember.</p>
-      </div>
-    </div>
-    <p style="text-align:center;font-size:12px;color:#8b958c;margin-top:18px;line-height:1.6;">
-      Button not working? Paste this link:<br>
-      <span style="color:#6a7a70;word-break:break-all;">${o.link}</span>
-    </p>
-    <p style="text-align:center;font-size:12px;color:#a3aca3;margin-top:14px;">Tally · your money, quietly kept in order<br><span style="opacity:0.7">This is a system generated email, please do not reply.</span></p>
-  </div>
-</div>`;
+  return emailLayout({
+    align: "center",
+    badge: o.initial,
+    eyebrow: "You're invited",
+    title: `${o.inviter} wants to tally up with you`,
+    chip: o.groupName ? `${o.groupIcon ? `${o.groupIcon}&nbsp; ` : ""}${o.groupName}` : undefined,
+    body:
+      emailParagraph(
+        `Tally is the easiest way to split expenses with friends and settle up over UPI — no spreadsheets, no awkward &ldquo;you still owe me&rdquo; texts. ${closer}`,
+      ) +
+      emailList([
+        { icon: "🧮", text: "Split any bill fairly, down to the rupee" },
+        { icon: "⚡", text: "Settle up in one tap over UPI" },
+        { icon: "🔄", text: "Balances sync across everyone, live" },
+      ]) +
+      emailButton(o.link, "Join on Tally") +
+      emailNote("Sign in with Google — no password to remember.", "center"),
+    footer: `Button not working? Paste this link:<br><span style="word-break:break-all;">${escapeHtml(o.link)}</span>`,
+  });
 }
 
 type Db = Awaited<ReturnType<typeof getDb>>;
