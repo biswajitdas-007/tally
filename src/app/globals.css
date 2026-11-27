@@ -40,7 +40,9 @@
   --brand-soft-2: #fbd3e1;
   --brand-on-soft: #b80f48;
 
-  /* Accent set — the logo's tally strokes. `-soft` fills, `-on-soft` text on them. */
+  /* Accent set — the logo's tally strokes. Bare colours are for fills, icons and
+     decoration only (sky/mint/sun fail AA as text on white): put text in `-on-soft`
+     on a `-soft` fill. */
   --violet: #5b3ff0;
   --violet-soft: #eeeafe;
   --violet-on-soft: #4127d6;

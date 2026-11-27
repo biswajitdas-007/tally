@@ -6,7 +6,7 @@ import { ShieldCheck, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/components/ui/toast";
-import { TallyMark } from "./logo";
+import { TallyLogo } from "./logo";
 
 function GoogleGlyph() {
   return (
@@ -60,8 +60,7 @@ export function LoginScreen() {
         className="relative z-10 mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-10"
       >
         <motion.div variants={item} className="mb-8 flex items-center gap-2.5">
-          <TallyMark size={38} />
-          <span className="font-display text-xl font-bold tracking-[-0.03em]">Tally</span>
+          <TallyLogo size={36} />
         </motion.div>
 
         <motion.h1

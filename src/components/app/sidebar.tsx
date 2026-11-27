@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NAV_ITEMS } from "./nav-items";
-import { TallyMark } from "./logo";
+import { TallyLogo } from "./logo";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
 import { ThemeToggle } from "./theme-toggle";
@@ -26,8 +26,7 @@ export function Sidebar() {
   return (
     <aside className="sticky top-0 hidden h-dvh w-[248px] shrink-0 flex-col border-r border-border bg-surface/60 px-3.5 py-5 md:flex">
       <Link href="/" className="mb-7 flex items-center gap-2.5 px-2">
-        <TallyMark size={34} />
-        <span className="font-display text-lg font-bold tracking-[-0.03em]">Tally</span>
+        <TallyLogo size={32} />
       </Link>
 
       <Button size="lg" fullWidth className="mb-5 justify-start gap-2.5 px-3.5" onClick={() => openAdd()}>

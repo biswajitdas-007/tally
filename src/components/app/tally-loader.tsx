@@ -1,6 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
+import { BRAND_COLORS, MARK_BAR, MARK_BARS, MARK_TICK, MARK_TICK_GAP, MARK_VIEWBOX } from "@/lib/brand";
+
+const BAR_HALF = MARK_BAR.width / 2;
 
 const MESSAGES = [
   "Splitting the bill, not the friendship 🤝",
@@ -15,8 +18,9 @@ const MESSAGES = [
   "Balancing the books 📒",
 ];
 
-/** Branded loader: the tally marks draw in one-by-one, with a rotating message. */
+/** Branded loader: the four tally strokes draw in one by one, then the settle tick, with a rotating message. */
 export function TallyLoader({ size = 78 }: { size?: number }) {
+  const maskId = `tally-loader-gap-${useId().replace(/[^\w-]/g, "")}`;
   const [i, setI] = useState(0);
   useEffect(() => {
     // The first line is always the same one so the server and the client render
@@ -33,31 +37,55 @@ export function TallyLoader({ size = 78 }: { size?: number }) {
 
   return (
     <div className="flex flex-col items-center gap-5">
-      <svg width={size} height={size} viewBox="0 0 48 48" fill="none" role="img" aria-label="Loading Tally">
+      <svg
+        width={size}
+        height={size}
+        viewBox={`0 0 ${MARK_VIEWBOX} ${MARK_VIEWBOX}`}
+        fill="none"
+        role="img"
+        aria-label="Loading Tally"
+      >
         <defs>
-          <linearGradient id="tl-bg" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
-            <stop stopColor="#238063" />
-            <stop offset="1" stopColor="#155741" />
-          </linearGradient>
+          <mask id={maskId} maskUnits="userSpaceOnUse" x="0" y="0" width={MARK_VIEWBOX} height={MARK_VIEWBOX}>
+            <rect width={MARK_VIEWBOX} height={MARK_VIEWBOX} fill="white" />
+            {/* The gap draws in with the tick, so the strokes aren't notched before it arrives. */}
+            <polyline
+              className="tally-stroke"
+              pathLength={1}
+              style={{ animationDelay: "0.66s" }}
+              points={MARK_TICK.points}
+              stroke="black"
+              strokeWidth={MARK_TICK_GAP}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </mask>
         </defs>
-        <rect width="48" height="48" rx="14" fill="url(#tl-bg)" />
-        <g stroke="#eef3ea" strokeWidth="3.1" strokeLinecap="round">
-          <line className="tally-stroke" pathLength={1} style={{ animationDelay: "0s" }} x1="16" y1="15" x2="16" y2="33" />
-          <line className="tally-stroke" pathLength={1} style={{ animationDelay: "0.16s" }} x1="21.3" y1="15" x2="21.3" y2="33" />
-          <line className="tally-stroke" pathLength={1} style={{ animationDelay: "0.32s" }} x1="26.6" y1="15" x2="26.6" y2="33" />
-          <line className="tally-stroke" pathLength={1} style={{ animationDelay: "0.48s" }} x1="31.9" y1="15" x2="31.9" y2="33" />
+        {/* Each stroke is a round-capped line the width of a bar, so it can draw itself in. */}
+        <g mask={`url(#${maskId})`} strokeWidth={MARK_BAR.width} strokeLinecap="round">
+          {MARK_BARS.map((bar, i) => (
+            <line
+              key={bar.x}
+              className="tally-stroke"
+              pathLength={1}
+              style={{ animationDelay: `${i * 0.16}s` }}
+              x1={bar.x + BAR_HALF}
+              y1={MARK_BAR.y + BAR_HALF}
+              x2={bar.x + BAR_HALF}
+              y2={MARK_BAR.y + MARK_BAR.height - BAR_HALF}
+              stroke={bar.color}
+            />
+          ))}
         </g>
-        <line
+        <polyline
           className="tally-stroke"
           pathLength={1}
           style={{ animationDelay: "0.66s" }}
-          x1="13"
-          y1="34.5"
-          x2="35"
-          y2="13.5"
-          stroke="#e0b467"
-          strokeWidth="3.2"
+          points={MARK_TICK.points}
+          stroke={BRAND_COLORS.magenta}
+          strokeWidth={MARK_TICK.width}
           strokeLinecap="round"
+          strokeLinejoin="round"
         />
       </svg>
       <div className="flex min-h-[2.4rem] items-start justify-center px-6 text-center">
