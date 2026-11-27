@@ -24,8 +24,21 @@ const instrumentSerif = localFont({
   adjustFontFallback: "Times New Roman",
 });
 
+/**
+ * Origin for absolute metadata URLs (e.g. og:image). Prefers the configured app
+ * URL, then the production domain; per-deployment *.vercel.app hosts sit behind
+ * deployment protection, so link-preview crawlers can't fetch images from them.
+ */
+function siteOrigin(): string {
+  const configured = process.env.NEXT_PUBLIC_APP_URL;
+  if (configured && /^https?:\/\//.test(configured)) return configured.replace(/\/$/, "");
+  const host =
+    process.env.VERCEL_ENV === "production" ? process.env.VERCEL_PROJECT_PRODUCTION_URL : process.env.VERCEL_URL;
+  return host ? `https://${host}` : "http://localhost:3000";
+}
+
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000"),
+  metadataBase: new URL(siteOrigin()),
   title: { default: "Tally — Split expenses, settle up over UPI", template: "%s · Tally" },
   description:
     "Split bills with friends, track who owes whom, and settle up instantly over UPI. A warm, fast expense app for India.",
@@ -41,7 +54,7 @@ export const metadata: Metadata = {
     description: "Split expenses with friends, track who owes whom, and settle up over UPI.",
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: "Tally",
     description: "Split expenses with friends, track who owes whom, and settle up over UPI.",
   },

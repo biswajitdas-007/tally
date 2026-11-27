@@ -51,7 +51,7 @@ export function InstallPrompt() {
           exit={{ opacity: 0, y: 20 }}
           className="fixed inset-x-4 bottom-[calc(var(--safe-bottom)+80px)] z-40 mx-auto flex max-w-sm items-center gap-3 rounded-[18px] border border-border bg-surface p-3 shadow-[var(--shadow-lg)] md:inset-x-auto md:bottom-6 md:right-6"
         >
-          <TallyMark size={40} />
+          <TallyMark size={40} variant="tile" title={null} />
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold text-text">Install Tally</p>
             <p className="text-[0.78rem] text-text-2">Add to your home screen for instant access.</p>
