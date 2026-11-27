@@ -2,6 +2,7 @@ import { firebaseAuth } from "@/lib/firebase";
 import { socketId } from "@/lib/pusher-client";
 import type { Expense, Group, Person, PendingInvite } from "@/lib/types";
 import { enqueueSyncRequest } from "./sync-queue";
+import { isPreviewSession } from "./preview";
 
 export interface ServerState {
   me: Person | null;
@@ -13,6 +14,9 @@ export interface ServerState {
 }
 
 export async function token(): Promise<string | null> {
+  // No token means no request and no offline queueing: a dev preview session
+  // must never reach the real API, even if this browser is signed in.
+  if (isPreviewSession()) return null;
   const user = firebaseAuth()?.currentUser;
   if (!user) return null;
   try {
@@ -138,6 +142,7 @@ export async function deleteFriend(
 }
 
 export async function fetchInvite(id: string): Promise<InviteInfo | null> {
+  if (isPreviewSession()) return null;
   try {
     const res = await fetch(`/api/invite/${id}`, { cache: "no-store" });
     if (!res.ok) return null;

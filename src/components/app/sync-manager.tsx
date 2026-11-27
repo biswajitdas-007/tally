@@ -6,6 +6,7 @@ import * as api from "@/lib/api";
 import { getPusherClient, isPusherConfigured } from "@/lib/pusher-client";
 import { belongsTo, getSyncQueue, removeSyncRequest, type SyncRequest } from "@/lib/sync-queue";
 import { firebaseAuth } from "@/lib/firebase";
+import { isPreviewSession } from "@/lib/preview";
 
 type Outcome = "done" | "retry";
 
@@ -48,7 +49,8 @@ export function SyncManager() {
 
   // Initial load — retry on failure, NEVER show an empty (savable) app.
   useEffect(() => {
-    if (!currentUserId) return;
+    // A dev preview session runs on sample data: no loading, no realtime.
+    if (!currentUserId || isPreviewSession()) return;
     let active = true;
     let attempt = 0;
     setLoadError(false);
@@ -84,7 +86,8 @@ export function SyncManager() {
 
   // Realtime: subscribe to my private channel; refetch on any "sync" nudge + on refocus.
   useEffect(() => {
-    if (!currentUserId) return;
+    // A dev preview session runs on sample data: no loading, no realtime.
+    if (!currentUserId || isPreviewSession()) return;
     let timer: ReturnType<typeof setTimeout>;
     const debouncedRefetch = () => {
       clearTimeout(timer);

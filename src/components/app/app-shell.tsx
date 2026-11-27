@@ -19,6 +19,7 @@ import { CommandPalette } from "./command-palette";
 import { InstallPrompt } from "./install-prompt";
 import { PushAutoEnable } from "./push-auto";
 import { NotificationPrompt } from "./notification-prompt";
+import { PreviewBadge } from "./preview-badge";
 
 /**
  * Routes that reflow into two columns on wide screens (see PageGrid) and so
@@ -52,6 +53,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <BottomNav />
       <MenuDrawer />
+      <PreviewBadge />
 
       {/* Global surfaces */}
       <AddExpenseSheet />

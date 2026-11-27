@@ -54,6 +54,9 @@ export function AppChrome({ children }: { children: React.ReactNode }) {
 
   // The join flow renders its own sign-in UI, outside the app shell/gate.
   if (pathname?.startsWith("/join")) return <>{children}</>;
+  // Dev tools (the preview switch) sit outside the gate. `page.dev.tsx` routes
+  // don't exist in production builds at all (see next.config.ts).
+  if (process.env.NODE_ENV !== "production" && pathname?.startsWith("/dev")) return <>{children}</>;
 
   const waitingForAuth = isFirebaseConfigured && !authReady;
   if (waitingForAuth) return <Splash />;

@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { firebaseAuth, isFirebaseConfigured } from "@/lib/firebase";
 import { useStore } from "@/store/useStore";
+import { isPreviewSession } from "@/lib/preview";
 
 /** Firebase is the source of truth for auth: sets the current uid or signs out. */
 export function AuthListener() {
@@ -12,7 +13,8 @@ export function AuthListener() {
   const setAuthReady = useStore((s) => s.setAuthReady);
 
   useEffect(() => {
-    if (!isFirebaseConfigured) {
+    // Preview sessions are signed in as the sample user; Firebase isn't consulted.
+    if (!isFirebaseConfigured || isPreviewSession()) {
       setAuthReady();
       return;
     }
