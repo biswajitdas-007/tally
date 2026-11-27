@@ -28,22 +28,9 @@ function refusal(res: { self?: boolean } | null): string | null {
   return res.self ? "That's your own invite link" : null;
 }
 
-export default function JoinPage() {
-  const params = useParams<{ id: string }>();
-  const id = params.id;
-  const router = useRouter();
-  const { loginWithGoogle } = useAuth();
-  const { toast } = useToast();
-
-  const currentUserId = useStore((s) => s.currentUserId);
-  const dataReady = useStore((s) => s.dataReady);
-  const refetch = useStore((s) => s.refetch);
-
+/** The invite behind this link, or its loading / not-found state. */
+function useInvite(id: string): InviteInfo | "loading" | "notfound" {
   const [info, setInfo] = useState<InviteInfo | "loading" | "notfound">("loading");
-  const [signingIn, setSigningIn] = useState(false);
-  const [phase, setPhase] = useState<"idle" | "done">("idle");
-  const started = useRef(false);
-
   useEffect(() => {
     let active = true;
     fetchInvite(id).then((d) => active && setInfo(d ?? "notfound"));
@@ -51,10 +38,16 @@ export default function JoinPage() {
       active = false;
     };
   }, [id]);
+  return info;
+}
 
-  // Join automatically once the invite is valid and the signed-in user's data is loaded.
-  const canJoin = info !== "loading" && info !== "notfound" && !!currentUserId && dataReady;
-  const joining = canJoin || phase === "done";
+/** Accepts the invite exactly once (even under StrictMode) as soon as `canJoin`, then routes into the app. */
+function useAutoJoin(id: string, canJoin: boolean): "idle" | "done" {
+  const router = useRouter();
+  const { toast } = useToast();
+  const refetch = useStore((s) => s.refetch);
+  const [phase, setPhase] = useState<"idle" | "done">("idle");
+  const started = useRef(false);
 
   useEffect(() => {
     if (!canJoin || started.current) return;
@@ -74,6 +67,27 @@ export default function JoinPage() {
       setTimeout(() => router.replace(groupId ? `/groups/${groupId}` : "/"), 700);
     })();
   }, [canJoin, id, refetch, router, toast]);
+
+  return phase;
+}
+
+export default function JoinPage() {
+  const params = useParams<{ id: string }>();
+  const id = params.id;
+  const router = useRouter();
+  const { loginWithGoogle } = useAuth();
+  const { toast } = useToast();
+
+  const currentUserId = useStore((s) => s.currentUserId);
+  const dataReady = useStore((s) => s.dataReady);
+
+  const info = useInvite(id);
+  const [signingIn, setSigningIn] = useState(false);
+
+  // Join automatically once the invite is valid and the signed-in user's data is loaded.
+  const canJoin = info !== "loading" && info !== "notfound" && !!currentUserId && dataReady;
+  const phase = useAutoJoin(id, canJoin);
+  const joining = canJoin || phase === "done";
 
   async function handleGoogle() {
     try {
