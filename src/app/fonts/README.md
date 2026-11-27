@@ -18,10 +18,10 @@ pyftsubset sans.ttf --unicodes="U+0000-00FF,U+0100-024F,U+0131,U+0152-0153,U+02B
 
 `og/` holds static TTF subsets (Sans Bold, Serif Italic; printable Latin only) for the Open Graph image, because `ImageResponse` can't read woff2. They carry no OpenType layout features: the image renderer mis-applies GPOS kerning around spaces.
 
-
 ```sh
 fonttools varLib.instancer "InstrumentSans[wdth,wght].ttf" wdth=100 wght=700 -o sans-700.ttf
 pyftsubset sans-700.ttf --unicodes="U+0020-007E,U+00A0-00FF,U+2013-2014,U+2018-201D,U+2022,U+2026,U+20AC,U+2122" --layout-features='' --no-layout-closure --output-file=og/instrument-sans-bold.ttf
+pyftsubset InstrumentSerif-Italic.ttf --unicodes="U+0020-007E,U+00A0-00FF,U+2013-2014,U+2018-201D,U+2022,U+2026,U+20AC,U+2122" --layout-features='' --no-layout-closure --output-file=og/instrument-serif-italic.ttf
 ```
 
 Neither family has a ₹ glyph; it falls back to the system font, like other UI text.
