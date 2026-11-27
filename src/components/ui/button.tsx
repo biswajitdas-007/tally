@@ -16,7 +16,7 @@ export const buttonVariants = cva(
         outline:
           "bg-surface text-text border border-border shadow-[var(--shadow-xs)] hover:bg-surface-2 hover:border-border-strong",
         ghost: "text-text-2 hover:bg-surface-inset hover:text-text",
-        destructive: "bg-negative text-white shadow-[var(--shadow-sm)] hover:brightness-105",
+        destructive: "bg-negative text-destructive-foreground shadow-[var(--shadow-sm)] hover:brightness-105",
         dangerSoft: "bg-negative-soft text-negative hover:brightness-105",
         brass: "bg-brass-soft text-brass-on-soft hover:brightness-[0.98]",
         link: "text-brand underline-offset-4 hover:underline",

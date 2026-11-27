@@ -4,6 +4,7 @@ import { addContact, collections, upsertUser } from "@/lib/db";
 import { notifyChange } from "@/lib/notify";
 import { sendWelcomeEmail } from "@/lib/email";
 import type { Person } from "@/lib/types";
+import { DEFAULT_AVATAR_COLOR } from "@/lib/utils";
 import type { Collection } from "mongodb";
 import type { UserDoc } from "@/lib/db";
 
@@ -73,7 +74,7 @@ async function handleDirectFriendship(
       email: meDoc.email,
       photoURL: meDoc.photoURL,
       upiId: meDoc.upiId,
-      avatarColor: meDoc.avatarColor ?? "#1c6b52",
+      avatarColor: meDoc.avatarColor ?? DEFAULT_AVATAR_COLOR,
     };
     const inviterPerson: Person = {
       id: inviterDoc._id,
@@ -81,7 +82,7 @@ async function handleDirectFriendship(
       email: inviterDoc.email,
       photoURL: inviterDoc.photoURL,
       upiId: inviterDoc.upiId,
-      avatarColor: inviterDoc.avatarColor ?? "#1c6b52",
+      avatarColor: inviterDoc.avatarColor ?? DEFAULT_AVATAR_COLOR,
     };
     await addContact(users, inviterUid, mePerson);
     await addContact(users, userUid, inviterPerson);
@@ -112,7 +113,7 @@ async function handleGroupJoin(
     name: user.name || inv.email || "Someone",
     email: user.email,
     photoURL: user.picture,
-    avatarColor: "#1c6b52",
+    avatarColor: DEFAULT_AVATAR_COLOR,
     pending: false,
   };
   
