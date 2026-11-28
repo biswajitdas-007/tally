@@ -395,6 +395,13 @@ select:focus-visible {
   /* Clear of the island, with room to breathe rather than tucked against it. */
   --overlay-top: max(calc(var(--safe-top) + 12px), 24px);
   --overlay-bottom: max(var(--safe-bottom), 16px);
+  /* Toasts clear the mobile bottom nav, which shows below the md breakpoint. */
+  --toast-bottom: calc(var(--safe-bottom) + 96px);
+}
+@media (min-width: 48rem) {
+  :root {
+    --toast-bottom: 24px;
+  }
 }
 
 .pb-safe {

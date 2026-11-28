@@ -1,104 +1,39 @@
 "use client";
 
-import { createContext, useCallback, useContext, useRef, useState } from "react";
-import { createPortal } from "react-dom";
-import { AnimatePresence, motion } from "framer-motion";
-import { Check, Info, TriangleAlert, Undo2 } from "lucide-react";
-import { uid } from "@/lib/utils";
-import { useMounted } from "@/hooks/use-mounted";
+import { toast as sonner } from "sonner";
+import { Undo2 } from "lucide-react";
 
 type Tone = "success" | "error" | "info";
 
-interface ToastItem {
-  id: string;
+export interface ToastOptions {
   message: string;
-  tone: Tone;
+  tone?: Tone;
+  /** One quick action, e.g. Undo. The toast closes when it's pressed. */
   action?: { label: string; onClick: () => void };
+  duration?: number;
 }
 
-interface ToastContextValue {
-  toast: (opts: { message: string; tone?: Tone; action?: ToastItem["action"]; duration?: number }) => void;
-}
+const show = { success: sonner.success, error: sonner.error, info: sonner.info } as const;
 
-const ToastContext = createContext<ToastContextValue | null>(null);
-
-const icons = { success: Check, error: TriangleAlert, info: Info };
-const accents: Record<Tone, string> = {
-  success: "var(--positive)",
-  error: "var(--negative)",
-  info: "var(--info)",
-};
-
-export function ToastProvider({ children }: { children: React.ReactNode }) {
-  const [items, setItems] = useState<ToastItem[]>([]);
-  const mounted = useMounted();
-  const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
-
-  const remove = useCallback((id: string) => {
-    setItems((list) => list.filter((t) => t.id !== id));
-    clearTimeout(timers.current[id]);
-  }, []);
-
-  const toast = useCallback<ToastContextValue["toast"]>(
-    ({ message, tone = "success", action, duration = 4000 }) => {
-      const id = uid("t_");
-      setItems((list) => [...list.slice(-2), { id, message, tone, action }]);
-      timers.current[id] = setTimeout(() => remove(id), duration);
+/** Shows a toast through Sonner (rendered by <Toaster /> in the app providers). */
+export function showToast({ message, tone = "success", action, duration = 4000 }: ToastOptions) {
+  return show[tone](message, {
+    duration,
+    action: action && {
+      label: (
+        <span className="inline-flex items-center gap-1">
+          <Undo2 aria-hidden className="size-3.5" />
+          {action.label}
+        </span>
+      ),
+      onClick: action.onClick,
     },
-    [remove],
-  );
-
-  return (
-    <ToastContext.Provider value={{ toast }}>
-      {children}
-      {mounted &&
-        createPortal(
-          <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[60] flex flex-col items-center gap-2 px-4 pb-[calc(var(--safe-bottom)+84px)] md:pb-6">
-            <AnimatePresence>
-              {items.map((t) => {
-                const Icon = icons[t.tone];
-                return (
-                  <motion.div
-                    key={t.id}
-                    layout
-                    initial={{ opacity: 0, y: 24, scale: 0.9 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 12, scale: 0.95 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                    className="pointer-events-auto flex w-full max-w-sm items-center gap-3 rounded-[16px] border border-border bg-surface px-4 py-3 shadow-[var(--shadow-lg)]"
-                  >
-                    <span
-                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
-                      style={{ background: `color-mix(in srgb, ${accents[t.tone]} 16%, transparent)`, color: accents[t.tone] }}
-                    >
-                      <Icon className="h-4 w-4" strokeWidth={2.5} />
-                    </span>
-                    <p className="flex-1 text-sm font-medium text-text">{t.message}</p>
-                    {t.action && (
-                      <button
-                        onClick={() => {
-                          t.action!.onClick();
-                          remove(t.id);
-                        }}
-                        className="flex shrink-0 items-center gap-1 rounded-full bg-brand-soft px-3 py-1 text-[0.8rem] font-semibold text-brand-on-soft transition-colors hover:bg-brand-soft-2"
-                      >
-                        <Undo2 className="h-3.5 w-3.5" />
-                        {t.action.label}
-                      </button>
-                    )}
-                  </motion.div>
-                );
-              })}
-            </AnimatePresence>
-          </div>,
-          document.body,
-        )}
-    </ToastContext.Provider>
-  );
+  });
 }
 
+const api = { toast: showToast };
+
+/** Same API the app has always used: `const { toast } = useToast(); toast({ message })`. */
 export function useToast() {
-  const ctx = useContext(ToastContext);
-  if (!ctx) throw new Error("useToast must be used within ToastProvider");
-  return ctx;
+  return api;
 }
