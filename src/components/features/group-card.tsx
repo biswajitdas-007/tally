@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useGroupSummary } from "@/hooks/use-group-summary";
 import { AvatarStack } from "@/components/ui/avatar";
 import { formatINR, cn } from "@/lib/utils";
+import { groupTint } from "@/lib/group-colour";
 import type { Group } from "@/lib/types";
 
 export function GroupCard({ group }: Readonly<{ group: Group }>) {
@@ -16,7 +17,7 @@ export function GroupCard({ group }: Readonly<{ group: Group }>) {
     >
       <div
         className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] text-2xl"
-        style={{ background: `color-mix(in srgb, ${group.color} 16%, transparent)` }}
+        style={{ background: groupTint(group.color) }}
       >
         {group.icon}
       </div>

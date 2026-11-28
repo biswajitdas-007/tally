@@ -39,11 +39,20 @@ function Amount({ value, label, tone }: Readonly<{ value: number; label: string;
   );
 }
 
+/** What the second line adds after "X paid ₹Y": the group, the date, or nothing (under a day heading). */
+export type ExpenseRowDetail = "group" | "date" | "none";
+
+function settlementSub(date: string, mine: boolean, detail: ExpenseRowDetail): string {
+  const parts = detail === "none" ? ["Settlement"] : [formatDate(date), "Settlement"];
+  if (!mine) parts.push("tap to view");
+  return parts.join(" · ");
+}
+
 export function ExpenseRow({
   expense,
-  showGroup = false,
+  detail = "date",
   className,
-}: Readonly<{ expense: Expense; showGroup?: boolean; className?: string }>) {
+}: Readonly<{ expense: Expense; detail?: ExpenseRowDetail; className?: string }>) {
   const people = useStore((s) => s.people);
   const groups = useStore((s) => s.groups);
   const openEdit = useUI((s) => s.openEdit);
@@ -68,7 +77,7 @@ export function ExpenseRow({
         </span>
         <Lines
           title={`${payer} paid ${payee}`}
-          sub={`${formatDate(expense.date)} · Settlement${mine ? "" : " · tap to view"}`}
+          sub={settlementSub(expense.date, mine, detail)}
         />
         <Amount value={expense.amount} label="settled" />
       </Button>
@@ -78,7 +87,8 @@ export function ExpenseRow({
   const share = myShare(expense, myId ?? "");
   const iPaid = expense.paidBy === myId;
   const impact = iPaid ? expense.amount - share : -share;
-  const where = showGroup && group ? group.name : formatDate(expense.date);
+  const paid = `${iPaid ? "You" : nameOf(expense.paidBy)} paid ${formatINR(expense.amount)}`;
+  const where = detail === "group" && group ? group.name : formatDate(expense.date);
 
   return (
     <Button
@@ -89,7 +99,7 @@ export function ExpenseRow({
       <CategoryIcon category={expense.category} size={44} />
       <Lines
         title={expense.description}
-        sub={`${iPaid ? "You" : nameOf(expense.paidBy)} paid ${formatINR(expense.amount)} · ${where}`}
+        sub={detail === "none" ? paid : `${paid} · ${where}`}
       />
       <Amount
         value={Math.abs(impact)}
