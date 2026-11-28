@@ -24,6 +24,14 @@ describe("upiPayUri", () => {
     expect(params(uri)).toEqual({ pa: "rahul@okhdfcbank", pn: "Rahul", am: "1250.50", cu: "INR", tn: "Goa trip" });
   });
 
+  it("never splits an emoji when trimming a long field", () => {
+    // 49 characters, then emoji (each a UTF-16 surrogate pair): a UTF-16 slice at
+    // 50 would keep half of the first one, and encodeURIComponent throws on it.
+    const note = `Tally - ${"x".repeat(41)}😀😀`;
+    const uri = upiPayUri({ vpa: "me@ybl", amount: 10, note })!;
+    expect(params(uri).tn).toBe(`Tally - ${"x".repeat(41)}😀`);
+  });
+
   it("always writes the amount to two decimals", () => {
     expect(params(upiPayUri({ vpa: "me@ybl", amount: 40 })!).am).toBe("40.00");
     expect(params(upiPayUri({ vpa: "me@ybl", amount: 40.567 })!).am).toBe("40.57");
