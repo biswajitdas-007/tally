@@ -1,15 +1,17 @@
 "use client";
 
 import { Suspense, useMemo } from "react";
-import Link from "next/link";
-import { Plus, ArrowLeftRight, Users, UserPlus, ChevronRight, Receipt } from "lucide-react";
+import { ArrowLeftRight, ChevronRight, Receipt } from "lucide-react";
 import { BalanceHero } from "@/components/features/balance-hero";
-import { GroupCard } from "@/components/features/group-card";
+import { QuickActions } from "@/components/features/quick-actions";
+import { GroupTile, NewGroupTile } from "@/components/features/group-tile";
 import { ExpenseRow } from "@/components/features/expense-row";
 import { SplitOverviewCard } from "@/components/features/split-overview-card";
-import { Card, SectionHeader } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageGrid, PageCol } from "@/components/app/page-grid";
+import { SectionTitle } from "@/components/app/section-title";
 import { MoneyMovedBanner } from "@/components/app/money-moved-banner";
 import { ShortcutAction } from "@/components/app/shortcut-action";
 import { useStore, useMe, useMyId } from "@/store/useStore";
@@ -25,30 +27,25 @@ function greeting() {
   return "Good evening";
 }
 
-function QuickAction({
-  icon: Icon,
-  label,
-  onClick,
-  tint,
-}: {
-  icon: typeof Plus;
-  label: string;
-  onClick: () => void;
-  tint: string;
-}) {
+function WhoOwesWhom() {
   return (
-    <button
-      onClick={onClick}
-      className="flex flex-1 flex-col items-center gap-1.5 rounded-[16px] border border-border bg-surface py-3 transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-sm)]"
+    <Button
+      variant="outline"
+      onClick={() => useUI.getState().openWhoOwesWhom()}
+      className="h-auto w-full justify-start gap-3 rounded-[24px] border-[1.5px] px-4 py-3.5 text-left font-normal tracking-normal whitespace-normal shadow-none active:scale-100"
     >
       <span
-        className="flex h-9 w-9 items-center justify-center rounded-full"
-        style={{ background: `color-mix(in srgb, ${tint} 15%, transparent)`, color: tint }}
+        aria-hidden
+        className="flex size-[42px] shrink-0 items-center justify-center rounded-[14px] bg-violet-soft text-violet-on-soft"
       >
-        <Icon className="h-[18px] w-[18px]" />
+        <ArrowLeftRight className="size-5" strokeWidth={1.7} />
       </span>
-      <span className="text-[0.72rem] font-semibold text-text-2">{label}</span>
-    </button>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[0.9375rem] font-bold text-text">Who owes whom</span>
+        <span className="block text-[0.8125rem] text-text-2">See all your outstanding balances</span>
+      </span>
+      <ChevronRight className="size-5 text-text-3" strokeWidth={1.7} aria-hidden />
+    </Button>
   );
 }
 
@@ -66,35 +63,13 @@ export default function HomePage() {
   const debts = useMemo(() => scopedDebts(expenses, myId ?? ""), [expenses, myId]);
   const splits = useMemo(() => splitOverview(expenses, myId ?? ""), [expenses, myId]);
   const recent = useMemo(() => recentActivity(expenses, 7), [expenses]);
-  const topGroups = groups.slice(0, 3);
+  const topGroups = groups.slice(0, 6);
 
   function quickSettle() {
     const debt = debts.find((b) => b.total < 0);
     if (debt) openSettle({ personId: debt.personId, amount: debt.total });
     else toast({ message: "You're all settled up 🎉", tone: "info" });
   }
-
-  const debtButton = (
-    <section>
-      <button 
-        onClick={() => useUI.getState().openWhoOwesWhom()}
-        className="flex w-full items-center justify-between rounded-[16px] border border-border bg-surface p-4 shadow-[var(--shadow-xs)] transition-all hover:-translate-y-0.5 hover:border-border-strong hover:shadow-[var(--shadow-md)]"
-      >
-        <div className="flex items-center gap-3.5">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand">
-            <ArrowLeftRight className="h-5 w-5" />
-          </span>
-          <div className="min-w-0 flex-1 text-left">
-            <p className="text-[0.9rem] font-semibold text-text">Who owes whom</p>
-            <p className="text-[0.76rem] leading-snug text-text-3">
-              See all your outstanding balances.
-            </p>
-          </div>
-        </div>
-        <ChevronRight className="h-5 w-5 shrink-0 text-text-3" />
-      </button>
-    </section>
-  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -104,76 +79,48 @@ export default function HomePage() {
       </Suspense>
 
       <div>
-        <p className="text-sm text-text-2">{greeting()},</p>
-        <h1 className="font-display text-2xl font-bold tracking-[-0.02em] text-text">
-          {me?.name?.split(" ")[0] ?? "there"}
+        <p className="text-[0.9375rem] font-semibold text-text-2">{greeting()},</p>
+        <h1 className="text-[2.125rem] leading-[1.1] font-semibold tracking-[-0.035em] text-text">
+          Hi, <span className="font-accent tracking-[-0.01em]">{me?.name?.split(" ")[0] ?? "there"}</span>
         </h1>
       </div>
 
       <PageGrid>
         <PageCol>
           <BalanceHero />
-
-          <div className="flex gap-2.5">
-            <QuickAction icon={Plus} label="Add" tint="var(--brand)" onClick={() => openAdd()} />
-            <QuickAction icon={ArrowLeftRight} label="Settle" tint="var(--info)" onClick={quickSettle} />
-            <QuickAction icon={Users} label="Group" tint="var(--cat-fun)" onClick={openCreateGroup} />
-            <QuickAction icon={UserPlus} label="Invite" tint="var(--brass)" onClick={() => openInvite(null)} />
-          </div>
-
-          {/* Splits, broken into the two kinds people actually think in */}
-          <section>
-            <SectionHeader title="Your splits" />
-            <SplitOverviewCard direct={splits.direct} group={splits.group} />
-          </section>
-
+          <QuickActions
+            onAdd={() => openAdd()}
+            onSettle={quickSettle}
+            onCreateGroup={openCreateGroup}
+            onInvite={() => openInvite(null)}
+          />
+          <SplitOverviewCard direct={splits.direct} group={splits.group} />
           <MoneyMovedBanner />
         </PageCol>
 
         <PageCol>
-          {debtButton}
+          <WhoOwesWhom />
 
-          {/* Groups */}
-          <section>
-            <SectionHeader
-              title="Your groups"
-              action={
-                <Link href="/groups" className="flex items-center gap-0.5 text-[0.78rem] font-semibold text-brand">
-                  See all <ChevronRight className="h-3.5 w-3.5" />
-                </Link>
-              }
-            />
-            <div className="flex flex-col gap-2.5">
+          <section aria-labelledby="home-groups">
+            <SectionTitle id="home-groups" title="Your groups" href="/groups" />
+            {/* Bleeds to the screen edge so the next tile peeks in as a scroll hint; the
+                padding keeps focus rings and the hover lift inside the scroller. */}
+            <div className="-mx-4 -my-1.5 flex snap-x scroll-px-4 gap-3 overflow-x-auto px-4 py-1.5 md:-mx-1.5 md:scroll-px-1.5 md:px-1.5">
               {topGroups.map((g) => (
-                <GroupCard key={g.id} group={g} />
+                <GroupTile key={g.id} group={g} />
               ))}
-              <button
-                onClick={openCreateGroup}
-                className="flex items-center justify-center gap-2 rounded-[16px] border border-dashed border-border-strong py-3 text-[0.85rem] font-semibold text-text-2 transition-colors hover:bg-surface-inset"
-              >
-                <Plus className="h-4 w-4" /> New group
-              </button>
+              <NewGroupTile onClick={openCreateGroup} />
             </div>
           </section>
 
-          {/* Recent activity */}
-          <section>
-            <SectionHeader
-              title="Recent activity"
-              action={
-                <Link href="/activity" className="flex items-center gap-0.5 text-[0.78rem] font-semibold text-brand">
-                  See all <ChevronRight className="h-3.5 w-3.5" />
-                </Link>
-              }
-            />
+          <section aria-labelledby="home-recent">
+            <SectionTitle id="home-recent" title="Recent activity" href="/activity" />
             {recent.length > 0 ? (
-              <Card className="overflow-hidden">
-                <div className="divide-y divide-border">
-                  {recent.map((e) => (
-                    <ExpenseRow key={e.id} expense={e} showGroup />
-                  ))}
-                </div>
-              </Card>
+              <div className="-mx-4 flex flex-col md:-mx-2">
+                {recent.map((e) => (
+                  <ExpenseRow key={e.id} expense={e} showGroup className="rounded-[16px] py-2 md:px-2" />
+                ))}
+              </div>
             ) : (
               <Card>
                 <EmptyState
@@ -184,7 +131,6 @@ export default function HomePage() {
               </Card>
             )}
           </section>
-
         </PageCol>
       </PageGrid>
     </div>

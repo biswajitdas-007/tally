@@ -86,6 +86,20 @@
   --cat-alcohol: #be185d;
   --cat-other: #6e6a88;
 
+  /* Home balance card: an ink panel in both themes. */
+  --hero: #17123a;
+  --hero-2: #251f4d;
+  --hero-border: transparent;
+  --hero-muted: #c9c5e6;
+  --hero-positive: #7be8bd;
+  --hero-negative: #ff9ebe;
+
+  /* Group tiles fill with the group's colour. Light mode shades it toward ink
+     so white text keeps AA (≥4.6:1 on every --cat-* colour at 30%); dark mode
+     keeps the lighter colour and writes ink on it (≥5.3:1). */
+  --tile-shade: 30%;
+  --on-tile: #ffffff;
+
   /* Elevation (ink-tinted) */
   --shadow-xs: 0 1px 2px rgba(23, 18, 58, 0.06);
   --shadow-sm: 0 1px 3px rgba(23, 18, 58, 0.07), 0 1px 2px rgba(23, 18, 58, 0.04);
@@ -196,6 +210,13 @@
   --cat-alcohol: #f06292;
   --cat-other: #8d89a8;
 
+  --hero: #1f1942;
+  --hero-2: #2c2558;
+  --hero-border: #3a3460;
+
+  --tile-shade: 0%;
+  --on-tile: #17123a;
+
   --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.45);
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.55);
   --shadow-md: 0 6px 18px -6px rgba(0, 0, 0, 0.65);
@@ -226,6 +247,14 @@
   --color-brand-soft: var(--brand-soft);
   --color-brand-soft-2: var(--brand-soft-2);
   --color-brand-on-soft: var(--brand-on-soft);
+
+  --color-hero: var(--hero);
+  --color-hero-2: var(--hero-2);
+  --color-hero-border: var(--hero-border);
+  --color-hero-muted: var(--hero-muted);
+  --color-hero-positive: var(--hero-positive);
+  --color-hero-negative: var(--hero-negative);
+  --color-on-tile: var(--on-tile);
 
   --color-violet: var(--violet);
   --color-violet-soft: var(--violet-soft);
