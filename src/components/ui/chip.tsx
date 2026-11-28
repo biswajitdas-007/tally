@@ -16,15 +16,17 @@ export function CategoryIcon({
   const Icon = meta.icon;
   return (
     <div
-      className={cn("inline-flex shrink-0 items-center justify-center rounded-[13px]", className)}
+      aria-hidden
+      className={cn("inline-flex shrink-0 items-center justify-center", className)}
       style={{
         width: size,
         height: size,
+        borderRadius: Math.round(size * 0.32),
         background: `color-mix(in srgb, ${meta.color} 15%, transparent)`,
         color: meta.color,
       }}
     >
-      <Icon size={size * 0.5} strokeWidth={2} />
+      <Icon size={Math.round(size * 0.46)} strokeWidth={1.7} />
     </div>
   );
 }

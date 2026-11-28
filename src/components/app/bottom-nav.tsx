@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { BOTTOM_NAV } from "./nav-items";
 import { useUI } from "@/store/useUI";
@@ -31,15 +32,14 @@ export function BottomNav() {
           ))}
 
           <div className="flex w-16 shrink-0 justify-center">
-            <motion.button
-              whileTap={{ scale: 0.88 }}
+            <Button
+              size="icon"
               onClick={() => openAdd()}
               aria-label="Add expense"
-              className="-mt-8 flex items-center justify-center rounded-full bg-brand text-on-brand shadow-[var(--shadow-brand)] ring-[5px] ring-[var(--bg)]"
-              style={{ height: 58, width: 58 }}
+              className="-mt-8 size-[60px] rounded-[22px] ring-[5px] ring-[var(--bg)] active:scale-90"
             >
-              <Plus className="h-6 w-6" strokeWidth={2.4} />
-            </motion.button>
+              <Plus className="size-[26px]" strokeWidth={2.2} aria-hidden />
+            </Button>
           </div>
 
           {right.map((item) => (
@@ -78,11 +78,11 @@ function NavButton({
           />
         )}
         <Icon
-          className={cn("relative h-[21px] w-[21px] transition-colors", active ? "text-brand" : "text-text-3")}
-          strokeWidth={active ? 2.4 : 2}
+          className={cn("relative h-[21px] w-[21px] transition-colors", active ? "text-brand-on-soft" : "text-text-3")}
+          strokeWidth={active ? 1.9 : 1.7}
         />
       </span>
-      <span className={cn("text-[0.62rem] font-semibold transition-colors", active ? "text-brand" : "text-text-3")}>
+      <span className={cn("text-[0.6875rem] font-semibold transition-colors", active ? "text-brand-on-soft" : "text-text-3")}>
         {item.label}
       </span>
     </Link>

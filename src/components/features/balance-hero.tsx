@@ -2,12 +2,41 @@
 
 import { useMemo } from "react";
 import { motion } from "framer-motion";
-import { ArrowDownLeft, ArrowUpRight, Check } from "lucide-react";
+import { Check } from "lucide-react";
 import { useStore, useMyId } from "@/store/useStore";
 import { scopedDebts, scopedTotals } from "@/lib/balances";
 import { AnimatedAmount } from "@/components/ui/animated-number";
-import { formatINR } from "@/lib/utils";
+import { TallyMark } from "@/components/app/logo";
+import { formatINR, cn } from "@/lib/utils";
 
+function headline(settled: boolean, net: number): string {
+  if (settled) return "You're all settled";
+  return net > 0 ? "You are owed overall" : "You owe overall";
+}
+
+function Figure({ label, value, tone }: Readonly<{ label: string; value: number; tone: "positive" | "negative" }>) {
+  return (
+    <div className="rounded-[18px] bg-hero-2 px-3.5 py-3">
+      <p className="flex items-center gap-1.5 text-xs font-semibold text-hero-muted">
+        <span
+          aria-hidden
+          className={cn("h-2 w-2 rounded-full", tone === "positive" ? "bg-hero-positive" : "bg-hero-negative")}
+        />
+        {label}
+      </p>
+      <p
+        className={cn(
+          "mt-1 text-lg font-semibold tracking-[-0.02em] tnum",
+          tone === "positive" ? "text-hero-positive" : "text-hero-negative",
+        )}
+      >
+        {formatINR(value, { decimals: false })}
+      </p>
+    </div>
+  );
+}
+
+/** The Home balance card: net position across everyone, then the two sides of it. */
 export function BalanceHero() {
   const expenses = useStore((s) => s.expenses);
   const myId = useMyId();
@@ -16,61 +45,36 @@ export function BalanceHero() {
     [expenses, myId],
   );
   const settled = Math.abs(net) < 0.5;
-  const positive = net >= 0;
 
   return (
-    <motion.div
+    <motion.section
+      aria-label="Your balance"
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ type: "spring", stiffness: 240, damping: 26 }}
-      className="relative overflow-hidden rounded-[24px] p-5 text-white shadow-[var(--shadow-lg)]"
-      style={{ background: "linear-gradient(152deg, #22795d 0%, #185a44 46%, #0f3f2e 100%)" }}
+      className="relative overflow-hidden rounded-[28px] border border-hero-border bg-hero p-[22px] text-white shadow-[var(--shadow-lg)]"
     >
-      {/* Ledger texture + glow */}
-      <div
-        className="pointer-events-none absolute inset-0 opacity-[0.14]"
-        style={{
-          backgroundImage:
-            "repeating-linear-gradient(90deg, rgba(255,255,255,0.6) 0 1px, transparent 1px 27px)",
-          maskImage: "linear-gradient(to bottom, transparent, #000 30%, #000 70%, transparent)",
-        }}
+      <TallyMark
+        size={150}
+        title={null}
+        className="pointer-events-none absolute -top-[18px] -right-[22px] opacity-[0.22]"
       />
-      <div className="pointer-events-none absolute -right-16 -top-20 h-52 w-52 rounded-full bg-white/10 blur-2xl" />
 
       <div className="relative">
-        <p className="text-[0.72rem] font-semibold uppercase tracking-[0.1em] text-white/60">
-          {settled ? "You're all settled" : positive ? "You are owed overall" : "You owe overall"}
-        </p>
-
+        <p className="text-sm font-semibold text-hero-muted">{headline(settled, net)}</p>
         <div className="mt-1 flex items-baseline gap-2">
           <AnimatedAmount
             value={settled ? 0 : Math.abs(net)}
-            className="font-display text-[2.75rem] font-bold leading-none tracking-[-0.03em] tnum"
+            className="text-[2.75rem] leading-none font-semibold tracking-[-0.04em] tnum"
           />
-          {settled && <Check className="h-7 w-7 text-white/80" strokeWidth={2.5} />}
+          {settled && <Check className="h-7 w-7 text-hero-positive" strokeWidth={2} aria-hidden />}
         </div>
 
-        <div className="mt-5 grid grid-cols-2 gap-2.5">
-          <div className="rounded-[14px] bg-white/10 p-3 ring-1 ring-white/10 backdrop-blur-sm">
-            <div className="flex items-center gap-1.5 text-white/70">
-              <ArrowDownLeft className="h-3.5 w-3.5" />
-              <span className="text-[0.72rem] font-medium">Owed to you</span>
-            </div>
-            <p className="mt-1 font-display text-xl font-bold tracking-tight tnum" style={{ color: "#a6f2cf" }}>
-              {formatINR(owedToYou)}
-            </p>
-          </div>
-          <div className="rounded-[14px] bg-white/10 p-3 ring-1 ring-white/10 backdrop-blur-sm">
-            <div className="flex items-center gap-1.5 text-white/70">
-              <ArrowUpRight className="h-3.5 w-3.5" />
-              <span className="text-[0.72rem] font-medium">You owe</span>
-            </div>
-            <p className="mt-1 font-display text-xl font-bold tracking-tight tnum" style={{ color: "#ffb7a6" }}>
-              {formatINR(youOwe)}
-            </p>
-          </div>
+        <div className="mt-[18px] grid grid-cols-2 gap-2.5">
+          <Figure label="Owed to you" value={owedToYou} tone="positive" />
+          <Figure label="You owe" value={youOwe} tone="negative" />
         </div>
       </div>
-    </motion.div>
+    </motion.section>
   );
 }

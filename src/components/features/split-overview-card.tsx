@@ -1,51 +1,44 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeftRight, Users, ChevronRight } from "lucide-react";
-import { Card } from "@/components/ui/card";
+import { User, Users, type LucideIcon } from "lucide-react";
 import { formatINR, cn } from "@/lib/utils";
 import type { SplitSide } from "@/lib/balances";
+
+function plural(n: number, one: string, many: string): string {
+  return `${n} ${n === 1 ? one : many}`;
+}
+
+function amountTone(square: boolean, net: number): string {
+  if (square) return "text-text-3";
+  return net > 0 ? "text-positive" : "text-negative";
+}
 
 function Side({
   href,
   icon: Icon,
+  tint,
   label,
   sub,
   side,
-}: {
-  href: string;
-  icon: typeof Users;
-  label: string;
-  sub: string;
-  side: SplitSide;
-}) {
+}: Readonly<{ href: string; icon: LucideIcon; tint: string; label: string; sub: string; side: SplitSide }>) {
   const square = Math.abs(side.net) < 0.5;
   return (
     <Link
       href={href}
       className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-surface-2 active:bg-surface-inset"
     >
-      <span
-        className={cn(
-          "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
-          square ? "bg-surface-inset text-text-3" : side.net > 0 ? "bg-positive-soft text-positive" : "bg-negative-soft text-negative",
-        )}
-      >
-        <Icon className="h-[18px] w-[18px]" />
+      <span aria-hidden className={cn("flex size-[42px] shrink-0 items-center justify-center rounded-[14px]", tint)}>
+        <Icon className="size-5" strokeWidth={1.7} />
       </span>
-      <div className="min-w-0 flex-1">
-        <p className="text-[0.9rem] font-medium text-text">{label}</p>
-        <p className="truncate text-[0.76rem] text-text-3">{square ? sub : side.net > 0 ? "owed to you" : "you owe"}</p>
-      </div>
-      <span
-        className={cn(
-          "shrink-0 tnum text-[0.95rem] font-semibold",
-          square ? "text-text-3" : side.net > 0 ? "text-positive" : "text-negative",
-        )}
-      >
-        {square ? "Settled" : formatINR(Math.abs(side.net))}
+      <span className="min-w-0 flex-1">
+        <span className="block text-[0.9375rem] font-bold text-text">{label}</span>
+        <span className="block truncate text-[0.8125rem] text-text-2">{sub}</span>
       </span>
-      <ChevronRight className="h-4 w-4 shrink-0 text-text-3" />
+      <span className={cn("shrink-0 text-[0.9375rem] font-semibold tnum", amountTone(square, side.net))}>
+        {square ? "Settled" : formatINR(side.net, { decimals: false, signed: true })}
+        {!square && <span className="sr-only">{side.net > 0 ? " owed to you" : " you owe"}</span>}
+      </span>
     </Link>
   );
 }
@@ -55,25 +48,28 @@ function Side({
  * what's outstanding inside groups. Each settles separately, so they're worth
  * seeing apart rather than rolled into a single figure.
  */
-export function SplitOverviewCard({ direct, group }: { direct: SplitSide; group: SplitSide }) {
+export function SplitOverviewCard({ direct, group }: Readonly<{ direct: SplitSide; group: SplitSide }>) {
   return (
-    <Card className="overflow-hidden">
-      <div className="divide-y divide-border">
-        <Side
-          href="/direct"
-          icon={ArrowLeftRight}
-          label="Personal splits"
-          sub={direct.people > 0 ? `${direct.people} ${direct.people === 1 ? "person" : "people"}` : "Nothing one-on-one yet"}
-          side={direct}
-        />
-        <Side
-          href="/groups"
-          icon={Users}
-          label="Group splits"
-          sub={group.groups > 0 ? `${group.groups} ${group.groups === 1 ? "group" : "groups"}` : "No group expenses yet"}
-          side={group}
-        />
-      </div>
-    </Card>
+    <section
+      aria-label="Your splits"
+      className="divide-y-[1.5px] divide-border overflow-hidden rounded-[24px] border-[1.5px] border-border bg-surface"
+    >
+      <Side
+        href="/direct"
+        icon={User}
+        tint="bg-brand-soft text-brand-on-soft"
+        label="Personal splits"
+        sub={direct.people > 0 ? plural(direct.people, "person", "people") : "Nothing one-on-one yet"}
+        side={direct}
+      />
+      <Side
+        href="/groups"
+        icon={Users}
+        tint="bg-sky-soft text-sky-on-soft"
+        label="Group splits"
+        sub={group.groups > 0 ? plural(group.groups, "group", "groups") : "No group expenses yet"}
+        side={group}
+      />
+    </section>
   );
 }
