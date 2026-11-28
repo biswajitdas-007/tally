@@ -1,51 +1,42 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
 
+/**
+ * Single-choice segmented control (filters, theme, split method), built on the
+ * shadcn ToggleGroup. One option is always selected: pressing the active one
+ * again keeps it rather than clearing the choice.
+ */
 export function Segmented<T extends string>({
   value,
   onChange,
   options,
   className,
+  "aria-label": ariaLabel,
 }: {
   value: T;
   onChange: (v: T) => void;
   options: { value: T; label: string }[];
   className?: string;
+  "aria-label"?: string;
 }) {
   return (
-    <div
-      role="tablist"
-      className={cn(
-        "inline-flex items-center gap-0.5 rounded-[14px] bg-surface-inset p-1",
-        className,
-      )}
+    <ToggleGroup
+      variant="segment"
+      value={[value]}
+      onValueChange={(next) => {
+        const picked = next[0] as T | undefined;
+        if (picked !== undefined && picked !== value) onChange(picked);
+      }}
+      aria-label={ariaLabel}
+      className={cn("inline-flex gap-0.5 rounded-[14px] bg-surface-inset p-0.5", className)}
     >
-      {options.map((opt) => {
-        const active = opt.value === value;
-        return (
-          <button
-            key={opt.value}
-            role="tab"
-            aria-selected={active}
-            onClick={() => onChange(opt.value)}
-            className={cn(
-              "relative flex-1 whitespace-nowrap rounded-[10px] px-3.5 py-1.5 text-[0.8125rem] font-semibold transition-colors",
-              active ? "text-text" : "text-text-3 hover:text-text-2",
-            )}
-          >
-            {active && (
-              <motion.span
-                layoutId="segmented-active"
-                className="absolute inset-0 rounded-[10px] bg-surface shadow-[var(--shadow-xs)]"
-                transition={{ type: "spring", stiffness: 400, damping: 32 }}
-              />
-            )}
-            <span className="relative">{opt.label}</span>
-          </button>
-        );
-      })}
-    </div>
+      {options.map((opt) => (
+        <ToggleGroupItem key={opt.value} value={opt.value} className="flex-1 text-[0.8125rem]">
+          {opt.label}
+        </ToggleGroupItem>
+      ))}
+    </ToggleGroup>
   );
 }

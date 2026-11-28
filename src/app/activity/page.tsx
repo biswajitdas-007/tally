@@ -55,6 +55,7 @@ export default function ActivityPage() {
       </div>
 
       <Segmented
+        aria-label="Filter activity"
         value={filter}
         onChange={setFilter}
         className="w-full"

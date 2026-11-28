@@ -306,55 +306,58 @@
 }
 
 /* ============================================================ Base */
-* {
-  border-color: var(--border);
-}
+/* In the base layer so Tailwind utilities (border colours, outline-none,
+   focus rings, radii) can override these defaults. */
+@layer base {
+  * {
+    border-color: var(--border);
+  }
 
-html {
-  -webkit-text-size-adjust: 100%;
-  text-rendering: optimizeLegibility;
-}
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
 
-body {
-  background-color: var(--bg);
-  color: var(--text);
-  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  overscroll-behavior-y: none;
-}
+  body {
+    background-color: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overscroll-behavior-y: none;
+  }
 
-button,
-[role="button"] {
-  cursor: pointer;
-}
+  button,
+  [role="button"] {
+    cursor: pointer;
+  }
 
-button:disabled,
-[disabled] {
-  cursor: not-allowed;
-}
+  button:disabled,
+  [disabled] {
+    cursor: not-allowed;
+  }
 
-::selection {
-  background: var(--brand-soft-2);
-  color: var(--brand-on-soft);
-}
+  ::selection {
+    background: var(--brand-soft-2);
+    color: var(--brand-on-soft);
+  }
 
-:focus-visible {
-  outline: 2px solid var(--ring);
-  outline-offset: 2px;
-  border-radius: 4px;
-}
-:focus:not(:focus-visible) {
-  outline: none;
-}
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
 
-/* Text fields manage their own focus styling (soft ring) — no harsh outline. */
-input:focus,
-input:focus-visible,
-textarea:focus,
-textarea:focus-visible,
-select:focus-visible {
-  outline: none;
+  /* Text fields manage their own focus styling (soft ring) — no harsh outline. */
+  input:focus,
+  input:focus-visible,
+  textarea:focus,
+  textarea:focus-visible,
+  select:focus-visible {
+    outline: none;
+  }
 }
 
 .tnum {
