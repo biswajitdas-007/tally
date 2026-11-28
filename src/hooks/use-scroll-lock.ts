@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useLayoutEffect } from "react";
 
 let locks = 0;
 let savedY = 0;
@@ -14,10 +14,11 @@ let savedY = 0;
  * the offset back on close holds the position exactly.
  *
  * Locks are counted, so a sheet opened from another sheet doesn't release the
- * page early.
+ * page early. It runs as a layout effect so it always lands before Base UI's own
+ * (deferred) modal lock, which then sees the page is pinned and stands aside.
  */
 export function useScrollLock(active: boolean): void {
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!active) return;
 
     if (locks === 0) {
