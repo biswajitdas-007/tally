@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { TallyLogo } from "@/components/app/logo";
 import { ThemeToggle } from "@/components/app/theme-toggle";
 import { buttonVariants } from "@/components/ui/button";
@@ -28,9 +29,9 @@ export function LandingHeader() {
           ))}
         </nav>
         <ThemeToggle className="size-11" />
-        <a href="#start" className={cn(buttonVariants(), "rounded-full px-5 text-[0.95rem]")}>
-          Get started
-        </a>
+        <Link href="/signin" className={cn(buttonVariants(), "rounded-full px-5 text-[0.95rem]")}>
+          Sign in
+        </Link>
       </div>
     </header>
   );

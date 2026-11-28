@@ -45,8 +45,8 @@ function LoadError() {
 /** Routes that render on their own, before (and without) the sign-in gate. */
 function isUngated(pathname: string | null): boolean {
   if (!pathname) return false;
-  // The join flow renders its own sign-in UI.
-  if (pathname.startsWith("/join")) return true;
+  // The join flow and the sign-in page render their own sign-in UI.
+  if (pathname.startsWith("/join") || pathname === "/signin") return true;
   // Dev tools (the preview switch); the proxy 404s /dev/* in production.
   return process.env.NODE_ENV !== "production" && (pathname === "/dev" || pathname.startsWith("/dev/"));
 }
