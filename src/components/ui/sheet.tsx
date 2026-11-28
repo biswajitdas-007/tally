@@ -131,10 +131,11 @@ export function Sheet({
               >
                 <SheetHeader title={title} description={description} dismissable={dismissable} isDesktop={isDesktop} />
                 <div
-                  className={cn(
-                    "min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pt-2",
-                    keyboard ? "pb-4" : "pb-[max(var(--safe-bottom),20px)]",
-                  )}
+                  // With a <SheetFooter>, scroll padding keeps a focused field from
+                  // ending up underneath it.
+                  className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pt-2 pb-[var(--sheet-pb)] has-[[data-slot=sheet-footer]]:scroll-pb-28"
+                  // The bottom padding is a variable so <SheetFooter> can sit flush over it.
+                  style={{ "--sheet-pb": keyboard ? "1rem" : "max(var(--safe-bottom), 20px)" } as React.CSSProperties}
                 >
                   {children}
                 </div>
@@ -178,5 +179,24 @@ function SheetHeader({
         </div>
       )}
     </>
+  );
+}
+
+/**
+ * A bar pinned to the bottom of a sheet's scroll area (primary actions). It
+ * cancels the area's bottom padding so nothing scrolls into a gap beneath it,
+ * and carries that padding itself to clear the home indicator.
+ */
+export function SheetFooter({ children, className }: Readonly<{ children: React.ReactNode; className?: string }>) {
+  return (
+    <div
+      data-slot="sheet-footer"
+      className={cn(
+        "sticky -bottom-[var(--sheet-pb)] -mx-5 -mb-[var(--sheet-pb)] border-t border-border bg-surface px-5 pt-3 pb-[var(--sheet-pb)]",
+        className,
+      )}
+    >
+      {children}
+    </div>
   );
 }
