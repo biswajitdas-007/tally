@@ -1,10 +1,15 @@
-import { forwardRef } from "react";
+import { Button as ButtonPrimitive } from "@base-ui/react/button";
 import { cva, type VariantProps } from "class-variance-authority";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+/**
+ * shadcn Button (base-nova, Base UI primitive) with Tally's variants and sizes.
+ * Pass `render={<Link href="…" />}` (with `nativeButton={false}`) to style a
+ * link as a button.
+ */
 export const buttonVariants = cva(
-  "relative inline-flex select-none items-center justify-center font-semibold tracking-[-0.01em] whitespace-nowrap transition-all active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 focus-visible:ring-4 focus-visible:ring-[color-mix(in_srgb,var(--brand)_28%,transparent)] [&_svg]:pointer-events-none [&_svg]:shrink-0",
+  "relative inline-flex cursor-pointer select-none items-center justify-center font-semibold tracking-[-0.01em] whitespace-nowrap transition-all active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 data-disabled:pointer-events-none data-disabled:opacity-50 focus-visible:ring-4 focus-visible:ring-[color-mix(in_srgb,var(--brand)_28%,transparent)] [&_svg]:pointer-events-none [&_svg]:shrink-0",
   {
     variants: {
       variant: {
@@ -35,26 +40,25 @@ export const buttonVariants = cva(
 );
 
 export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+  extends Omit<ButtonPrimitive.Props, "className">,
     VariantProps<typeof buttonVariants> {
+  className?: string;
+  /** Shows a spinner and disables the button while an action is in flight. */
   loading?: boolean;
   fullWidth?: boolean;
 }
 
-export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
-  { className, variant, size, loading, fullWidth, disabled, children, ...props },
-  ref,
-) {
+export function Button({ className, variant, size, loading, fullWidth, disabled, children, ...props }: ButtonProps) {
   return (
-    <button
-      ref={ref}
+    <ButtonPrimitive
       data-slot="button"
       disabled={disabled || loading}
+      aria-busy={loading || undefined}
       className={cn(buttonVariants({ variant, size }), fullWidth && "w-full", className)}
       {...props}
     >
       {loading && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
       {children}
-    </button>
+    </ButtonPrimitive>
   );
-});
+}
