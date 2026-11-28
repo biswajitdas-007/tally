@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useGroupSummary } from "@/hooks/use-group-summary";
 import { AvatarStack } from "@/components/ui/avatar";
+import { GroupIcon } from "@/components/ui/group-icon";
 import { NetFigure } from "@/components/features/net-figure";
 import { groupFill } from "@/lib/group-colour";
 import type { Group } from "@/lib/types";
@@ -18,10 +19,10 @@ export function GroupCard({ group }: Readonly<{ group: Group }>) {
     >
       <span
         aria-hidden
-        className="flex size-[50px] shrink-0 items-center justify-center rounded-[16px] text-2xl"
+        className="flex size-[50px] shrink-0 items-center justify-center rounded-[16px] text-on-tile"
         style={{ background: groupFill(group.color) }}
       >
-        {group.icon}
+        <GroupIcon icon={group.icon} className="size-6" />
       </span>
       <span className="flex min-w-0 flex-1 flex-col gap-1.5">
         <span className="truncate text-base font-bold text-text">{group.name}</span>

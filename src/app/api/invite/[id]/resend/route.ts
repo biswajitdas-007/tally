@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { groupIconEmoji } from "@/lib/group-icons";
 import { verifyUser } from "@/lib/auth-server";
 import { collections } from "@/lib/db";
 import { sendEmail } from "@/lib/email";
@@ -50,7 +51,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     
     const safeName = escapeHtml(inv.inviterName);
     const safeGroup = inv.groupName ? escapeHtml(inv.groupName) : "";
-    const safeIcon = inv.groupIcon ? escapeHtml(inv.groupIcon) : "";
+    const safeIcon = inv.groupIcon ? escapeHtml(groupIconEmoji(inv.groupIcon)) : "";
     const initial = escapeHtml((inv.inviterName.trim().charAt(0) || "T").toUpperCase());
 
     const sent = await sendEmail({

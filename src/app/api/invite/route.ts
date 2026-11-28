@@ -1,4 +1,5 @@
 import { getDb, isDbConfigured } from "@/lib/mongodb";
+import { groupIconEmoji } from "@/lib/group-icons";
 import { verifyUser } from "@/lib/auth-server";
 import { sendEmail } from "@/lib/email";
 import { emailButton, emailLayout, emailList, emailNote, emailParagraph } from "@/lib/email-layout";
@@ -163,7 +164,7 @@ export async function POST(req: Request) {
     // Escape everything user-controlled before it lands in the email HTML.
     const safeName = escapeHtml(inviterName);
     const safeGroup = groupName ? escapeHtml(groupName) : "";
-    const safeIcon = groupIcon ? escapeHtml(groupIcon) : "";
+    const safeIcon = groupIcon ? escapeHtml(groupIconEmoji(groupIcon)) : "";
     const initial = escapeHtml((inviterName.trim().charAt(0) || "T").toUpperCase());
 
     const sent = await sendEmail({

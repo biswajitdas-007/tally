@@ -2,7 +2,8 @@
 
 import { Suspense, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { TrendingDown, TrendingUp, ChartPie } from "lucide-react";
+import { TrendingDown, TrendingUp, ChartPie, User } from "lucide-react";
+import { GroupIcon } from "@/components/ui/group-icon";
 import { PageHeader } from "@/components/app/page-header";
 import { PageGrid, PageCol } from "@/components/app/page-grid";
 import { Card } from "@/components/ui/card";
@@ -74,7 +75,9 @@ function Analytics() {
     return [...map.entries()]
       .map(([k, v]) => ({
         name: k === "personal" ? "Personal / 1-on-1" : groups.find((g) => g.id === k)?.name ?? "—",
-        icon: k === "personal" ? "👤" : groups.find((g) => g.id === k)?.icon ?? "•",
+        id: k,
+        personal: k === "personal",
+        icon: groups.find((g) => g.id === k)?.icon ?? null,
         amount: v,
       }))
       .filter((g) => g.amount > 0.5)
@@ -165,9 +168,13 @@ function Analytics() {
               <p className="mb-3 text-[0.72rem] font-semibold uppercase tracking-wide text-text-3">Split spending by group (all time)</p>
               <div className="flex flex-col gap-3.5">
                 {byGroup.map((g) => (
-                  <div key={g.name}>
+                  <div key={g.id}>
                     <div className="mb-1.5 flex items-center gap-2">
-                      <span>{g.icon}</span>
+                      {g.personal ? (
+                        <User className="size-4 shrink-0 text-text-2" strokeWidth={1.8} aria-hidden />
+                      ) : (
+                        <GroupIcon icon={g.icon} className="size-4 text-text-2" />
+                      )}
                       <span className="flex-1 text-[0.85rem] font-medium text-text">{g.name}</span>
                       <span className="text-[0.85rem] font-semibold text-text tnum">{formatINR(g.amount)}</span>
                     </div>

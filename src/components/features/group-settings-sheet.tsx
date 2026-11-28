@@ -10,7 +10,8 @@ import { useToast } from "@/components/ui/toast";
 import { Trash2, UserPlus, Info } from "lucide-react";
 import { useState } from "react";
 import { resendInviteApi } from "@/lib/api";
-import { groupTint } from "@/lib/group-colour";
+import { groupFill } from "@/lib/group-colour";
+import { GroupIcon } from "@/components/ui/group-icon";
 
 export function GroupSettingsSheet() {
   const { toast } = useToast();
@@ -81,10 +82,11 @@ export function GroupSettingsSheet() {
       <div className="flex flex-col gap-5 pb-6 pt-1">
         <div className="flex items-center gap-4">
           <div
-            className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[16px] text-3xl"
-            style={{ background: groupTint(group.color) }}
+            aria-hidden
+            className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[16px] text-on-tile"
+            style={{ background: groupFill(group.color) }}
           >
-            {group.icon}
+            <GroupIcon icon={group.icon} className="size-8" />
           </div>
           <div>
             <h2 className="font-display text-xl font-bold tracking-[-0.02em]">{group.name}</h2>

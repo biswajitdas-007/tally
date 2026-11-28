@@ -1,6 +1,7 @@
 import { formatINR } from "./utils";
 import { escapeHtml } from "./api-helpers";
 import { sendEmail } from "./email";
+import { groupIconEmoji } from "./group-icons";
 import { EMAIL_COLORS, emailLabel, emailLayout, emailNote, emailParagraph, emailPersonRows, emailRows, emailStrong } from "./email-layout";
 
 export interface SettledInfo {
@@ -23,7 +24,7 @@ export async function sendSettledEmail(to: string, recipientName: string, info: 
 
   const first = escapeHtml((recipientName || "there").split(" ")[0]);
   const group = escapeHtml(info.groupName);
-  const groupWithIcon = `${info.groupIcon ? escapeHtml(info.groupIcon) + " " : ""}${group}`;
+  const groupWithIcon = `${info.groupIcon ? escapeHtml(groupIconEmoji(info.groupIcon)) + " " : ""}${group}`;
 
   const html = emailLayout({
     eyebrow: "All settled up 🎉",

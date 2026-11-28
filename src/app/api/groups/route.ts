@@ -1,4 +1,5 @@
 import { verifyUser } from "@/lib/auth-server";
+import { groupIconKey } from "@/lib/group-icons";
 import { addContact, collections, knownUids, realUids, type GroupDoc } from "@/lib/db";
 import { notifyChange } from "@/lib/notify";
 import type { Person } from "@/lib/types";
@@ -36,7 +37,7 @@ export async function POST(req: Request) {
     const doc: GroupDoc = {
       _id: b.id as string,
       name: (b.name as string).slice(0, 80),
-      icon: isStr(b.icon) ? (b.icon as string).slice(0, 16) : "👥",
+      icon: groupIconKey(isStr(b.icon) ? (b.icon as string) : null),
       color: isStr(b.color) ? (b.color as string).slice(0, 40) : "var(--cat-rent)",
       members,
       memberUids,

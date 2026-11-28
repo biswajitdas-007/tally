@@ -89,6 +89,13 @@ describe("settlement receipt", () => {
     expect(html).not.toContain("reply to this email");
   });
 
+  it("shows a group's icon key as its emoji, never the raw key", async () => {
+    await sendSettlementEmail("a@b.test", "Aarav", "received", { ...info, groupIcon: "trip" });
+    const { html } = lastSent();
+    expect(html).toContain("🏝️ Flat &lt;4B&gt;");
+    expect(html).not.toContain("trip Flat");
+  });
+
   it("leaves the group out for a direct settlement the receiver gets", async () => {
     await sendSettlementEmail("a@b.test", "Aarav", "received", { ...info, groupName: null });
     expect(lastSent().html).not.toContain("It's recorded in your");

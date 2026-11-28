@@ -5,6 +5,7 @@ import { ArrowLeftRight, ChevronLeft, Info, MoreHorizontal, Plus, Receipt, Trash
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { AvatarStack } from "@/components/ui/avatar";
+import { GroupIcon } from "@/components/ui/group-icon";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
   DropdownMenu,
@@ -81,9 +82,10 @@ export function GroupHeader({
       <div className="relative mt-3 flex items-center gap-3.5">
         <span
           aria-hidden
-          className="flex size-[60px] shrink-0 items-center justify-center rounded-[20px] bg-surface text-3xl"
+          className="flex size-[60px] shrink-0 items-center justify-center rounded-[20px] bg-surface"
+          style={{ color: groupFill(group.color) }}
         >
-          {group.icon}
+          <GroupIcon icon={group.icon} className="size-7" />
         </span>
         <div className="min-w-0">
           <h1 className="truncate text-[1.875rem] leading-[1.1] font-semibold tracking-[-0.035em]">

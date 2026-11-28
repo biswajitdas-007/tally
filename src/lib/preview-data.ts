@@ -37,9 +37,9 @@ export function previewPeople(): Person[] {
 }
 
 export const PREVIEW_GROUPS: Group[] = [
-  { id: "preview_goa", name: "Goa trip", icon: "🏝️", color: "var(--cat-travel)", memberIds: [ME, RIYA, KABIR, MEERA], createdAt: "2026-10-02T09:00:00.000Z" },
-  { id: "preview_flat", name: "Flat 4B", icon: "🏠", color: "var(--cat-rent)", memberIds: [ME, RIYA, SANA], createdAt: "2026-06-01T09:00:00.000Z" },
-  { id: "preview_dinners", name: "Friday dinners", icon: "🍜", color: "var(--cat-food)", memberIds: [ME, KABIR, MEERA, SANA], createdAt: "2026-08-15T09:00:00.000Z" },
+  { id: "preview_goa", name: "Goa trip", icon: "trip", color: "var(--cat-travel)", memberIds: [ME, RIYA, KABIR, MEERA], createdAt: "2026-10-02T09:00:00.000Z" },
+  { id: "preview_flat", name: "Flat 4B", icon: "home", color: "var(--cat-rent)", memberIds: [ME, RIYA, SANA], createdAt: "2026-06-01T09:00:00.000Z" },
+  { id: "preview_dinners", name: "Friday dinners", icon: "food", color: "var(--cat-food)", memberIds: [ME, KABIR, MEERA, SANA], createdAt: "2026-08-15T09:00:00.000Z" },
 ];
 
 /** Equal split of `amount` across `ids`, with any rounding paise on the first person. */
