@@ -20,6 +20,7 @@ export const buttonVariants = cva(
           "bg-surface text-text border border-border shadow-[var(--shadow-xs)] hover:bg-surface-2 hover:border-border-strong",
         outline:
           "bg-surface text-text border border-border shadow-[var(--shadow-xs)] hover:bg-surface-2 hover:border-border-strong",
+        ink: "bg-text text-surface shadow-[var(--shadow-xs)] hover:bg-text/90",
         ghost: "text-text-2 hover:bg-surface-inset hover:text-text",
         destructive: "bg-negative text-destructive-foreground shadow-[var(--shadow-sm)] hover:brightness-105",
         dangerSoft: "bg-negative-soft text-negative hover:brightness-105",

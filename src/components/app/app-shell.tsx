@@ -10,7 +10,7 @@ import { AddExpenseSheet } from "@/components/features/add-expense-sheet";
 import { ExpenseDetailSheet } from "@/components/features/expense-detail-sheet";
 import { GroupSettingsSheet } from "@/components/features/group-settings-sheet";
 import { DeleteGroupDialog } from "@/components/features/delete-group-dialog";
-import { SettleSheet } from "@/components/features/settle-sheet";
+import { SettleSheet } from "@/components/features/settle/settle-sheet";
 import { InviteDialog } from "@/components/features/invite-dialog";
 import { CreateGroupSheet } from "@/components/features/create-group-sheet";
 import { SupportSheet } from "@/components/features/support-sheet";

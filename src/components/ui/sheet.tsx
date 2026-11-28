@@ -112,7 +112,10 @@ export function Sheet({
                   // Height is capped against whatever space is left — the viewport
                   // already stops short of the keyboard — minus the top safe-area
                   // inset, so the sheet never rides up under the notch.
-                  "pointer-events-auto relative mt-auto flex outline-none w-full max-h-[calc(100%-var(--overlay-top))] flex-col overflow-hidden border border-border bg-surface shadow-[var(--shadow-lg)]",
+                  // The content stays mounted while it slides away; data-closed (Base
+                  // UI reads the live state from context, unlike the props AnimatePresence
+                  // replays here) stops a second tap on its primary action landing then.
+                  "pointer-events-auto data-closed:pointer-events-none relative mt-auto flex outline-none w-full max-h-[calc(100%-var(--overlay-top))] flex-col overflow-hidden border border-border bg-surface shadow-[var(--shadow-lg)]",
                   "rounded-t-[26px] md:mt-0 md:max-h-[88vh] md:max-w-[440px] md:rounded-[24px]",
                   className,
                 )}

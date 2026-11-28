@@ -37,6 +37,15 @@ const FIELD_MAX = 50;
 const encode = (v: string) => encodeURIComponent(v).replace(/[!'()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
 
 /**
+ * Trims a free-text field to FIELD_MAX characters, counting code points: a
+ * UTF-16 slice can split an emoji in half, and encodeURIComponent throws on
+ * the lone surrogate left behind.
+ */
+function clip(text: string): string {
+  return Array.from(text.trim()).slice(0, FIELD_MAX).join("");
+}
+
+/**
  * Builds the `upi://pay` URI that goes inside a QR, per NPCI's parameters.
  * Returns null when the VPA isn't valid — there is nothing useful to draw
  * without one, and a QR that resolves to a bad address is worse than no QR.
@@ -53,11 +62,11 @@ export function upiPayUri({ vpa, name, amount, note }: UpiPayment): string | nul
   // bare because that is how every UPI QR in the wild writes it — percent-
   // encoding it is technically correct and a gamble on the reader.
   const parts = [`pa=${pa}`];
-  const pn = name?.trim().slice(0, FIELD_MAX);
+  const pn = name && clip(name);
   if (pn) parts.push(`pn=${encode(pn)}`);
   if (typeof amount === "number" && Number.isFinite(amount) && amount > 0) parts.push(`am=${amount.toFixed(2)}`);
   parts.push("cu=INR");
-  const tn = note?.trim().slice(0, FIELD_MAX);
+  const tn = note && clip(note);
   if (tn) parts.push(`tn=${encode(tn)}`);
 
   return `upi://pay?${parts.join("&")}`;

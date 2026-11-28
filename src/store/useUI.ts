@@ -2,14 +2,9 @@
 
 import { create } from "zustand";
 import type { ID } from "@/lib/types";
+import type { SettleTarget } from "@/lib/settle";
 
-export interface SettleTarget {
-  /** The person on the other side of the balance. */
-  personId: ID;
-  /** Net amount: positive ⇒ they owe you, negative ⇒ you owe them. */
-  amount: number;
-  groupId?: ID | null;
-}
+export type { SettleTarget } from "@/lib/settle";
 
 interface UIState {
   addOpen: boolean;
@@ -21,7 +16,11 @@ interface UIState {
   openEdit: (expenseId: ID) => void;
   closeAdd: () => void;
 
+  settleOpen: boolean;
+  /** Kept after closing, so the sheet still has its content while it slides away. */
   settle: SettleTarget | null;
+  /** Bumped on every open, so the settle form starts fresh each time (it's keyed by it). */
+  settleSession: number;
   openSettle: (t: SettleTarget) => void;
   closeSettle: () => void;
 
@@ -71,9 +70,11 @@ export const useUI = create<UIState>((set) => ({
     set((s) => ({ addOpen: true, addEditId: expenseId, addGroupId: null, addSession: s.addSession + 1 })),
   closeAdd: () => set({ addOpen: false, addEditId: null }),
 
+  settleOpen: false,
   settle: null,
-  openSettle: (t) => set({ settle: t }),
-  closeSettle: () => set({ settle: null }),
+  settleSession: 0,
+  openSettle: (t) => set((s) => ({ settleOpen: true, settle: t, settleSession: s.settleSession + 1 })),
+  closeSettle: () => set({ settleOpen: false }),
 
   detailId: null,
   openDetail: (id) => set({ detailId: id }),

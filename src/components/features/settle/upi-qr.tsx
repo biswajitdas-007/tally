@@ -98,11 +98,11 @@ export function UpiQr({
         <canvas ref={canvasRef} className="block h-auto w-full" aria-label={`UPI QR code for ${formatINR(amount)} to ${payeeName}`} />
       </div>
       <div className="flex gap-2">
-        <Button variant="secondary" size="md" fullWidth onClick={save}>
+        <Button variant="brass" size="sm" fullWidth onClick={save} className="h-10 rounded-full">
           <Download className="h-4 w-4" /> Save
         </Button>
         {canShareFile && (
-          <Button variant="secondary" size="md" fullWidth onClick={share}>
+          <Button variant="brass" size="sm" fullWidth onClick={share} className="h-10 rounded-full">
             <Share2 className="h-4 w-4" /> Share
           </Button>
         )}
