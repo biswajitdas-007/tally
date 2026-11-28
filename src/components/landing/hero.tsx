@@ -25,9 +25,6 @@ export function Hero() {
     <section id="top" className="bg-sky-soft">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-12 px-5 pb-20 pt-12 md:px-6 md:pt-16">
         <div className="flex min-w-0 flex-[1.35_1_440px] flex-col gap-6">
-          <span className="self-start rounded-full bg-surface px-3.5 py-2 text-[0.8rem] font-semibold text-violet-on-soft shadow-[var(--shadow-xs)]">
-            Free · installable · works offline
-          </span>
           <h1 className="font-display text-[clamp(2.75rem,6.8vw,4.75rem)] font-bold leading-[0.98] tracking-[-0.045em] text-text">
             <span className="block sm:whitespace-nowrap">Split anything.</span>
             <span className="block sm:whitespace-nowrap">
