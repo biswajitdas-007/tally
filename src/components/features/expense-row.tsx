@@ -39,58 +39,68 @@ function Amount({ value, label, tone }: Readonly<{ value: number; label: string;
   );
 }
 
-export function ExpenseRow({
-  expense,
-  showGroup = false,
-  className,
-}: Readonly<{ expense: Expense; showGroup?: boolean; className?: string }>) {
+/** What the second line adds after "X paid ₹Y": the group, the date, or nothing (under a day heading). */
+export type ExpenseRowDetail = "group" | "date" | "none";
+
+function settlementSub(date: string, mine: boolean, detail: ExpenseRowDetail): string {
+  const parts = detail === "none" ? ["Settlement"] : [formatDate(date), "Settlement"];
+  if (!mine) parts.push("tap to view");
+  return parts.join(" · ");
+}
+
+function expenseSub(paid: string, detail: ExpenseRowDetail, date: string, groupName?: string): string {
+  if (detail === "none") return paid;
+  const where = detail === "group" && groupName ? groupName : formatDate(date);
+  return `${paid} · ${where}`;
+}
+
+/** First name for a person id, "You" for the current user. */
+function useNameOf() {
   const people = useStore((s) => s.people);
+  const myId = useMyId();
+  return (id: string) => (id === myId ? "You" : (people.find((p) => p.id === id)?.name.split(" ")[0] ?? "Someone"));
+}
+
+type RowProps = Readonly<{ expense: Expense; detail: ExpenseRowDetail; className?: string }>;
+
+function SettlementRow({ expense, detail, className }: RowProps) {
+  const openDetail = useUI((s) => s.openDetail);
+  const myId = useMyId();
+  const nameOf = useNameOf();
+  const title = `${nameOf(expense.paidBy)} paid ${nameOf(expense.splits[0]?.personId ?? "")}`;
+
+  return (
+    <Button variant="ghost" onClick={() => openDetail(expense.id)} className={cn(ROW, className)}>
+      <span
+        aria-hidden
+        className="flex size-11 shrink-0 items-center justify-center rounded-[14px] bg-violet-soft text-violet-on-soft"
+      >
+        <ArrowLeftRight className="size-5" strokeWidth={1.7} />
+      </span>
+      <Lines title={title} sub={settlementSub(expense.date, expense.createdBy === myId, detail)} />
+      <Amount value={expense.amount} label="settled" />
+    </Button>
+  );
+}
+
+function SpendRow({ expense, detail, className }: RowProps) {
   const groups = useStore((s) => s.groups);
   const openEdit = useUI((s) => s.openEdit);
   const openDetail = useUI((s) => s.openDetail);
   const myId = useMyId();
-  const mine = expense.createdBy === myId;
+  const nameOf = useNameOf();
 
-  const nameOf = (id: string) =>
-    id === myId ? "You" : (people.find((p) => p.id === id)?.name.split(" ")[0] ?? "Someone");
-  const group = groups.find((g) => g.id === expense.groupId);
-
-  if (expense.isSettlement) {
-    const payer = nameOf(expense.paidBy);
-    const payee = nameOf(expense.splits[0]?.personId ?? "");
-    return (
-      <Button variant="ghost" onClick={() => openDetail(expense.id)} className={cn(ROW, className)}>
-        <span
-          aria-hidden
-          className="flex size-11 shrink-0 items-center justify-center rounded-[14px] bg-violet-soft text-violet-on-soft"
-        >
-          <ArrowLeftRight className="size-5" strokeWidth={1.7} />
-        </span>
-        <Lines
-          title={`${payer} paid ${payee}`}
-          sub={`${formatDate(expense.date)} · Settlement${mine ? "" : " · tap to view"}`}
-        />
-        <Amount value={expense.amount} label="settled" />
-      </Button>
-    );
-  }
-
-  const share = myShare(expense, myId ?? "");
   const iPaid = expense.paidBy === myId;
+  const share = myShare(expense, myId ?? "");
   const impact = iPaid ? expense.amount - share : -share;
-  const where = showGroup && group ? group.name : formatDate(expense.date);
+  const paid = `${nameOf(expense.paidBy)} paid ${formatINR(expense.amount)}`;
+  const groupName = groups.find((g) => g.id === expense.groupId)?.name;
+  const open = () => (expense.createdBy === myId ? openEdit(expense.id) : openDetail(expense.id));
 
   return (
-    <Button
-      variant="ghost"
-      onClick={() => (mine ? openEdit(expense.id) : openDetail(expense.id))}
-      className={cn(ROW, className)}
-    >
+    <Button variant="ghost" onClick={open} className={cn(ROW, className)}>
       <CategoryIcon category={expense.category} size={44} />
-      <Lines
-        title={expense.description}
-        sub={`${iPaid ? "You" : nameOf(expense.paidBy)} paid ${formatINR(expense.amount)} · ${where}`}
-      />
+      <Lines title={expense.description} sub={expenseSub(paid, detail, expense.date, groupName)} />
       <Amount
         value={Math.abs(impact)}
         label={iPaid ? "you lent" : "you borrowed"}
@@ -98,4 +108,14 @@ export function ExpenseRow({
       />
     </Button>
   );
+}
+
+/** An expense or settlement in a list; tapping edits your own expenses and opens the rest. */
+export function ExpenseRow({
+  expense,
+  detail = "date",
+  className,
+}: Readonly<{ expense: Expense; detail?: ExpenseRowDetail; className?: string }>) {
+  const Row = expense.isSettlement ? SettlementRow : SpendRow;
+  return <Row expense={expense} detail={detail} className={className} />;
 }

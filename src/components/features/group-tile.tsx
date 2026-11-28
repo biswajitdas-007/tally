@@ -5,6 +5,7 @@ import { Plus } from "lucide-react";
 import { useGroupSummary } from "@/hooks/use-group-summary";
 import { Button } from "@/components/ui/button";
 import { formatINR, cn } from "@/lib/utils";
+import { groupFill } from "@/lib/group-colour";
 import type { Group } from "@/lib/types";
 
 const TILE = "flex h-[168px] w-[150px] shrink-0 snap-start flex-col rounded-[24px] p-4";
@@ -19,8 +20,8 @@ function balanceLabel(net: number): string {
 }
 
 /**
- * A group as a coloured tile for the Home rail. The fill is the group's colour,
- * shaded by --tile-shade so --on-tile text keeps AA contrast in both themes.
+ * A group as a coloured tile for the Home rail. The fill is the group's colour
+ * (see groupFill), so --on-tile text keeps AA contrast in both themes.
  */
 export function GroupTile({ group }: Readonly<{ group: Group }>) {
   const { members, net, settled } = useGroupSummary(group);
@@ -29,7 +30,7 @@ export function GroupTile({ group }: Readonly<{ group: Group }>) {
     <Link
       href={`/groups/${group.id}`}
       className={cn(TILE, "gap-1 text-on-tile transition-transform hover:-translate-y-0.5")}
-      style={{ background: `color-mix(in oklab, ${group.color}, #17123a var(--tile-shade))` }}
+      style={{ background: groupFill(group.color) }}
     >
       <span
         aria-hidden

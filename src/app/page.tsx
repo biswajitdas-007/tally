@@ -118,7 +118,7 @@ export default function HomePage() {
             {recent.length > 0 ? (
               <div className="-mx-4 flex flex-col md:-mx-2">
                 {recent.map((e) => (
-                  <ExpenseRow key={e.id} expense={e} showGroup className="rounded-[16px] py-2 md:px-2" />
+                  <ExpenseRow key={e.id} expense={e} detail="group" className="rounded-[16px] py-2 md:px-2" />
                 ))}
               </div>
             ) : (

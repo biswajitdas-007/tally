@@ -77,7 +77,7 @@ export default function ActivityPage() {
               <Card className="overflow-hidden">
                 <div className="divide-y divide-border">
                   {items.map((e) => (
-                    <ExpenseRow key={e.id} expense={e} showGroup />
+                    <ExpenseRow key={e.id} expense={e} detail="group" />
                   ))}
                 </div>
               </Card>

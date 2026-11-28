@@ -64,18 +64,21 @@ export function AvatarStack({
   people,
   size = "sm",
   max = 4,
-}: {
+  ringClassName,
+}: Readonly<{
   people: Person[];
   size?: keyof typeof sizeMap;
   max?: number;
-}) {
+  /** Ring colour override, to match a coloured background (defaults to the surface). */
+  ringClassName?: string;
+}>) {
   const shown = people.slice(0, max);
   const extra = people.length - shown.length;
   return (
     <div className="flex items-center">
       {shown.map((p, i) => (
         <div key={p.id} className={cn(i > 0 && "-ml-2.5")} style={{ zIndex: shown.length - i }}>
-          <Avatar person={p} size={size} ring />
+          <Avatar person={p} size={size} ring className={ringClassName} />
         </div>
       ))}
       {extra > 0 && (
@@ -83,6 +86,7 @@ export function AvatarStack({
           className={cn(
             "-ml-2.5 inline-flex items-center justify-center rounded-full bg-surface-inset font-semibold text-text-2 ring-2 ring-[var(--surface)]",
             sizeMap[size],
+            ringClassName,
           )}
         >
           +{extra}
