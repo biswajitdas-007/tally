@@ -5,7 +5,7 @@ import { useGoogleSignIn } from "@/hooks/use-google-sign-in";
 import { cn } from "@/lib/utils";
 
 /** Google's "G" mark, in its brand colours (required by Google's sign-in branding guidelines). */
-export function GoogleGlyph({ className }: { className?: string }) {
+export function GoogleGlyph({ className }: Readonly<{ className?: string }>) {
   return (
     <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden className={className}>
       <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62Z" />
@@ -22,7 +22,7 @@ export function GoogleSignInButton({
   variant = "primary",
   className,
   ...props
-}: Omit<ButtonProps, "onClick" | "loading">) {
+}: Readonly<Omit<ButtonProps, "onClick" | "loading">>) {
   const { signIn, signingIn } = useGoogleSignIn();
   return (
     <Button variant={variant} size="lg" loading={signingIn} onClick={signIn} className={cn("rounded-full", className)} {...props}>

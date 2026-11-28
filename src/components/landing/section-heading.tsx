@@ -5,11 +5,11 @@ export function SectionHeading({
   children,
   size = "md",
   className,
-}: {
+}: Readonly<{
   children: React.ReactNode;
   size?: "md" | "lg";
   className?: string;
-}) {
+}>) {
   return (
     <h2
       className={cn(

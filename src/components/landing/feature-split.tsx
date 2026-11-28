@@ -9,14 +9,14 @@ export function FeatureSplit({
   link,
   visual,
   reverse,
-}: {
+}: Readonly<{
   id: string;
   title: React.ReactNode;
   body: string;
   link: { href: string; label: string };
   visual: React.ReactNode;
   reverse?: boolean;
-}) {
+}>) {
   return (
     <section
       id={id}

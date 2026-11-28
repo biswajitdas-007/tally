@@ -38,7 +38,16 @@ export function SettlePreviewCard() {
   );
 }
 
-const QR_CELLS = "1011001011110101101110110010110110".split("").slice(0, 25);
+// A stylised 5×5 QR: the centre cell is the brand accent, then on/off dots.
+const QR_PATTERN = "1011001011110101101110110";
+const QR_CENTRE = 12;
+
+function qrCellColor(bit: string, index: number): string {
+  if (index === QR_CENTRE) return LANDING.magenta;
+  return bit === "1" ? LANDING.white : "transparent";
+}
+
+const QR_CELLS = [...QR_PATTERN].map((bit, i) => ({ id: `qr-${i}`, color: qrCellColor(bit, i) }));
 
 /** Illustrative UPI settle-up card. Decorative sample data. */
 export function UpiPreviewCard() {
@@ -56,12 +65,8 @@ export function UpiPreviewCard() {
           className="grid size-28 shrink-0 grid-cols-5 gap-1.5 rounded-[16px] p-3 dark:ring-1 dark:ring-white/15"
           style={{ backgroundColor: LANDING.ink }}
         >
-          {QR_CELLS.map((c, i) => (
-            <span
-              key={i}
-              className="rounded-[3px]"
-              style={{ backgroundColor: i === 12 ? LANDING.magenta : c === "1" ? LANDING.white : "transparent" }}
-            />
+          {QR_CELLS.map((cell) => (
+            <span key={cell.id} className="rounded-[3px]" style={{ backgroundColor: cell.color }} />
           ))}
         </div>
         <p className="text-sm leading-relaxed text-text-2">Or scan the QR in any UPI app — GPay, PhonePe, Paytm, your bank.</p>
