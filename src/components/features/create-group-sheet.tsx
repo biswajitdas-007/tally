@@ -10,10 +10,13 @@ import { useStore, useMyId } from "@/store/useStore";
 import { useUI } from "@/store/useUI";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
+import { groupFill } from "@/lib/group-colour";
+import { DEFAULT_GROUP_ICON, type GroupIconKey } from "@/lib/group-icons";
+import { GroupIcon } from "@/components/ui/group-icon";
+import { GroupIconPicker } from "@/components/features/group-icon-picker";
 import { useOpenEdge } from "@/hooks/use-open-edge";
 import type { ID } from "@/lib/types";
 
-const EMOJIS = ["🏠", "🏝️", "🍜", "🎉", "✈️", "🏋️", "💼", "🛒", "🎬", "☕", "⚽", "🎓"];
 const COLORS = [
   "var(--cat-rent)",
   "var(--cat-travel)",
@@ -33,14 +36,14 @@ export function CreateGroupSheet() {
   const { toast } = useToast();
 
   const [name, setName] = useState("");
-  const [icon, setIcon] = useState(EMOJIS[0]);
+  const [icon, setIcon] = useState<GroupIconKey>(DEFAULT_GROUP_ICON);
   const [color, setColor] = useState(COLORS[0]);
   const [members, setMembers] = useState<ID[]>([]);
 
   // Start every new group from a clean form.
   useOpenEdge(open, () => {
     setName("");
-    setIcon(EMOJIS[0]);
+    setIcon(DEFAULT_GROUP_ICON);
     setColor(COLORS[0]);
     setMembers([]);
   });
@@ -65,10 +68,11 @@ export function CreateGroupSheet() {
       <div className="flex flex-col gap-5 pt-1">
         <div className="flex items-center gap-3">
           <div
-            className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[16px] text-3xl"
-            style={{ background: `color-mix(in srgb, ${color} 18%, transparent)` }}
+            aria-hidden
+            className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[16px] text-on-tile"
+            style={{ background: groupFill(color) }}
           >
-            {icon}
+            <GroupIcon icon={icon} className="size-7" />
           </div>
           <Input
             value={name}
@@ -79,21 +83,10 @@ export function CreateGroupSheet() {
         </div>
 
         <div>
-          <p className="mb-2 px-0.5 text-[0.8rem] font-semibold text-text-2">Icon</p>
-          <div className="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5 py-1.5">
-            {EMOJIS.map((e) => (
-              <button
-                key={e}
-                onClick={() => setIcon(e)}
-                className={cn(
-                  "flex h-11 w-11 shrink-0 items-center justify-center rounded-[13px] text-xl transition-all",
-                  icon === e ? "bg-brand-soft ring-2 ring-brand ring-offset-1 ring-offset-[var(--surface)]" : "bg-surface-inset",
-                )}
-              >
-                {e}
-              </button>
-            ))}
-          </div>
+          <p id="group-icon-label" className="mb-2 px-0.5 text-[0.8rem] font-semibold text-text-2">
+            Icon
+          </p>
+          <GroupIconPicker value={icon} onChange={setIcon} labelledBy="group-icon-label" />
         </div>
 
         <div>

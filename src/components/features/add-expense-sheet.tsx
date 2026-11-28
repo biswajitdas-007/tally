@@ -1,13 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { CalendarDays, Check, Trash2, Repeat, StickyNote, Info } from "lucide-react";
+import { CalendarDays, Check, Trash2, Repeat, StickyNote, Info, Users } from "lucide-react";
 import { Sheet } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { Segmented } from "@/components/ui/segmented";
 import { Avatar } from "@/components/ui/avatar";
 import { CategoryIcon } from "@/components/ui/chip";
+import { GroupIcon } from "@/components/ui/group-icon";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CATEGORY_LIST } from "@/lib/categories";
@@ -245,7 +246,7 @@ export function AddExpenseSheet() {
           <p className="mb-2 px-0.5 text-[0.8rem] font-semibold text-text-2">Split within</p>
           {inGroup && ctxGroup ? (
             <div className="inline-flex items-center gap-2 rounded-full bg-brand-soft px-3.5 py-2 text-[0.85rem] font-semibold text-brand-on-soft">
-              <span>{ctxGroup.icon}</span>
+              <GroupIcon icon={ctxGroup.icon} className="size-4" />
               {ctxGroup.name}
             </div>
           ) : (
@@ -257,7 +258,7 @@ export function AddExpenseSheet() {
                   groupId === null ? "border-transparent bg-brand text-on-brand" : "border-border text-text-2",
                 )}
               >
-                👥 Friends
+                <Users className="size-4" strokeWidth={1.8} aria-hidden /> Friends
               </button>
               {sortedGroups.map((g) => (
                 <button
@@ -268,7 +269,7 @@ export function AddExpenseSheet() {
                     groupId === g.id ? "border-transparent bg-brand text-on-brand" : "border-border text-text-2",
                   )}
                 >
-                  <span>{g.icon}</span>
+                  <GroupIcon icon={g.icon} className="size-4" />
                   {g.name}
                 </button>
               ))}

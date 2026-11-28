@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import { useGroupSummary } from "@/hooks/use-group-summary";
 import { Button } from "@/components/ui/button";
+import { GroupIcon } from "@/components/ui/group-icon";
 import { SignedAmount } from "@/components/ui/signed-amount";
 import { cn } from "@/lib/utils";
 import { groupFill } from "@/lib/group-colour";
@@ -31,9 +32,9 @@ export function GroupTile({ group }: Readonly<{ group: Group }>) {
     >
       <span
         aria-hidden
-        className="flex size-9 items-center justify-center rounded-[12px] bg-[color-mix(in_srgb,var(--on-tile)_16%,transparent)] text-xl"
+        className="flex size-9 items-center justify-center rounded-[12px] bg-[color-mix(in_srgb,var(--on-tile)_16%,transparent)]"
       >
-        {group.icon}
+        <GroupIcon icon={group.icon} className="size-5" />
       </span>
       <span className="mt-auto truncate text-[1.0625rem] font-semibold">{group.name}</span>
       <span className="text-xs font-semibold">

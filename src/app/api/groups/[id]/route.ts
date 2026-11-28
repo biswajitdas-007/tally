@@ -1,4 +1,5 @@
 import { verifyUser } from "@/lib/auth-server";
+import { groupIconKey } from "@/lib/group-icons";
 import { collections, type GroupDoc } from "@/lib/db";
 import { notifyChange } from "@/lib/notify";
 import { badRequest, forbidden, isStr, json, serverError, unauthorized } from "@/lib/api-helpers";
@@ -21,7 +22,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
     const set: Partial<GroupDoc> = {};
     if (isStr(patch.name)) set.name = (patch.name as string).slice(0, 80);
-    if (isStr(patch.icon)) set.icon = (patch.icon as string).slice(0, 16);
+    if (isStr(patch.icon)) set.icon = groupIconKey(patch.icon as string);
     if (isStr(patch.color)) set.color = (patch.color as string).slice(0, 40);
     if (Array.isArray(patch.offlineIds)) set.offlineIds = patch.offlineIds.filter(isStr);
     if (Object.keys(set).length) await groups.updateOne({ _id: id }, { $set: set });

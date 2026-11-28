@@ -1,6 +1,7 @@
 import { formatINR } from "./utils";
 import { escapeHtml } from "./api-helpers";
 import { sendEmail } from "./email";
+import { groupIconEmoji } from "./group-icons";
 import { emailLayout, emailNote, emailParagraph, emailRows, emailStrong, type EmailRow } from "./email-layout";
 
 export interface SettlementInfo {
@@ -32,7 +33,7 @@ export async function sendSettlementEmail(
   const receiver = escapeHtml(info.receiverName);
   const amount = escapeHtml(formatINR(info.amount));
   const groupLabel = info.groupName
-    ? `${info.groupIcon ? escapeHtml(info.groupIcon) + " " : ""}${escapeHtml(info.groupName)}`
+    ? `${info.groupIcon ? escapeHtml(groupIconEmoji(info.groupIcon)) + " " : ""}${escapeHtml(info.groupName)}`
     : "Direct settlement";
   const when = (info.date ?? new Date()).toLocaleDateString("en-IN", {
     day: "numeric",

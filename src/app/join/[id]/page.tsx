@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Loader2, PartyPopper, Link as LinkIcon } from "lucide-react";
 import { TallyLogo } from "@/components/app/logo";
+import { GroupIcon } from "@/components/ui/group-icon";
 import { GoogleSignInButton } from "@/components/app/google-sign-in-button";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
@@ -119,8 +120,8 @@ export default function JoinPage() {
             ) : (
               <>
                 {info.groupIcon && (
-                  <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-[16px] bg-brand-soft text-3xl">
-                    {info.groupIcon}
+                  <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-[16px] bg-brand-soft text-brand-on-soft">
+                    <GroupIcon icon={info.groupIcon} className="size-7" />
                   </div>
                 )}
                 <p className="text-sm text-text-2">

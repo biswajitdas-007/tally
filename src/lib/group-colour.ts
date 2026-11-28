@@ -34,8 +34,3 @@ export function safeGroupColor(color: string | null | undefined): string {
 export function groupFill(color: string | null | undefined): string {
   return `color-mix(in oklab, ${safeGroupColor(color)}, #17123a var(--tile-shade))`;
 }
-
-/** A soft wash of the group's colour, for icon backgrounds on neutral surfaces. */
-export function groupTint(color: string | null | undefined, percent = 16): string {
-  return `color-mix(in srgb, ${safeGroupColor(color)} ${percent}%, transparent)`;
-}

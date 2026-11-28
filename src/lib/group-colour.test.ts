@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { FALLBACK_GROUP_COLOR, groupFill, groupTint, safeGroupColor } from "./group-colour";
+import { FALLBACK_GROUP_COLOR, groupFill, safeGroupColor } from "./group-colour";
 
 describe("safeGroupColor", () => {
   it("keeps the category tokens the picker stores", () => {
@@ -25,14 +25,9 @@ describe("safeGroupColor", () => {
   });
 });
 
-describe("group colour fills", () => {
+describe("groupFill", () => {
   it("shades the safe colour toward ink by --tile-shade", () => {
     expect(groupFill("var(--cat-rent)")).toBe("color-mix(in oklab, var(--cat-rent), #17123a var(--tile-shade))");
     expect(groupFill("expression(alert(1))")).toContain(FALLBACK_GROUP_COLOR);
-  });
-
-  it("tints the safe colour over transparent", () => {
-    expect(groupTint("var(--cat-fun)")).toBe("color-mix(in srgb, var(--cat-fun) 16%, transparent)");
-    expect(groupTint("bad", 18)).toBe(`color-mix(in srgb, ${FALLBACK_GROUP_COLOR} 18%, transparent)`);
   });
 });

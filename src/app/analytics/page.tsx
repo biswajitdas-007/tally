@@ -3,6 +3,8 @@
 import { Suspense, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { TrendingDown, TrendingUp, ChartPie } from "lucide-react";
+import { GroupSpendCard } from "@/components/features/group-spend-card";
+import { spendByGroup } from "@/lib/insights";
 import { PageHeader } from "@/components/app/page-header";
 import { PageGrid, PageCol } from "@/components/app/page-grid";
 import { Card } from "@/components/ui/card";
@@ -11,7 +13,7 @@ import { Donut } from "@/components/charts/donut";
 import { BarChart } from "@/components/charts/bar-chart";
 import { useStore, useMyId } from "@/store/useStore";
 import { CATEGORIES } from "@/lib/categories";
-import { categoryBreakdown, monthlySpend, myShare } from "@/lib/balances";
+import { categoryBreakdown, monthlySpend } from "@/lib/balances";
 import { monthFromParam, monthLabel as monthName } from "@/lib/months";
 import { formatINR, percentShares, monthLabel, cn } from "@/lib/utils";
 import { MonthNav } from "@/components/app/month-nav";
@@ -64,23 +66,7 @@ function Analytics() {
     color: CATEGORIES[b.category].color,
   }));
 
-  const byGroup = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const e of expenses) {
-      if (e.isSettlement) continue;
-      const key = e.groupId ?? "personal";
-      map.set(key, (map.get(key) ?? 0) + myShare(e, myId));
-    }
-    return [...map.entries()]
-      .map(([k, v]) => ({
-        name: k === "personal" ? "Personal / 1-on-1" : groups.find((g) => g.id === k)?.name ?? "—",
-        icon: k === "personal" ? "👤" : groups.find((g) => g.id === k)?.icon ?? "•",
-        amount: v,
-      }))
-      .filter((g) => g.amount > 0.5)
-      .sort((a, b) => b.amount - a.amount);
-  }, [expenses, groups, myId]);
-  const byGroupTotal = byGroup.reduce((a, g) => a + g.amount, 0) || 1;
+  const byGroup = useMemo(() => spendByGroup(expenses, groups, myId), [expenses, groups, myId]);
 
 
   return (
@@ -160,25 +146,7 @@ function Analytics() {
           </Card>
 
           {/* By group */}
-          {byGroup.length > 0 && (
-            <Card className="p-5">
-              <p className="mb-3 text-[0.72rem] font-semibold uppercase tracking-wide text-text-3">Split spending by group (all time)</p>
-              <div className="flex flex-col gap-3.5">
-                {byGroup.map((g) => (
-                  <div key={g.name}>
-                    <div className="mb-1.5 flex items-center gap-2">
-                      <span>{g.icon}</span>
-                      <span className="flex-1 text-[0.85rem] font-medium text-text">{g.name}</span>
-                      <span className="text-[0.85rem] font-semibold text-text tnum">{formatINR(g.amount)}</span>
-                    </div>
-                    <div className="h-2 overflow-hidden rounded-full bg-surface-inset">
-                      <div className="h-full rounded-full bg-brand transition-all" style={{ width: `${(g.amount / byGroupTotal) * 100}%` }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Card>
-          )}
+          {byGroup.length > 0 && <GroupSpendCard rows={byGroup} />}
         </PageCol>
       </PageGrid>
     </div>
