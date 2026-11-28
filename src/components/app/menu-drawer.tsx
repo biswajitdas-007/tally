@@ -109,6 +109,7 @@ export function MenuDrawer() {
                   <span className="text-[0.92rem] font-medium">Appearance</span>
                 </div>
                 <Segmented<ThemeChoice>
+                  aria-label="Theme"
                   value={choice}
                   onChange={setChoice}
                   className="w-full"

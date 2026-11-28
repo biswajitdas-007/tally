@@ -115,8 +115,8 @@ export function GroupSettingsSheet() {
                         </span>
                         <Switch
                           checked={!isOffline}
-                          onChange={(active) => handleToggleOffline(m.id, !active)}
-                          label="Toggle status"
+                          onCheckedChange={(active) => handleToggleOffline(m.id, !active)}
+                          aria-label="Active in this group"
                         />
                       </div>
                     ) : (

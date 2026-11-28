@@ -131,6 +131,7 @@ export default function AccountPage() {
         <p className="mb-2 px-1 text-[0.7rem] font-semibold uppercase tracking-[0.08em] text-text-3">Appearance</p>
         <Card className="p-4">
           <Segmented<ThemeChoice>
+            aria-label="Theme"
             value={choice}
             onChange={setChoice}
             className="w-full"
@@ -156,7 +157,7 @@ export default function AccountPage() {
                 {supported ? "New expenses, settlements and monthly reminders" : "Install the app to enable"}
               </p>
             </div>
-            <Switch checked={enabled} onChange={toggleNotifications} label="Notifications" />
+            <Switch checked={enabled} onCheckedChange={toggleNotifications} aria-label="Notifications" />
           </Row>
           <Row>
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-positive-soft text-positive">

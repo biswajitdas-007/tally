@@ -1,11 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
 import { ChevronLeft, Plus, ArrowLeftRight, Receipt } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Segmented } from "@/components/ui/segmented";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ExpenseRow } from "@/components/features/expense-row";
 import { PersonBalanceRow } from "@/components/features/person-balance-row";
@@ -18,8 +18,6 @@ export default function DirectPage() {
   const expenses = useStore((s) => s.expenses);
   const openAdd = useUI((s) => s.openAdd);
   const myId = useMyId() ?? "";
-
-  const [tab, setTab] = useState<"expenses" | "balances">("expenses");
 
   // The "direct" ledger — everything not attached to a group.
   const directExpenses = useMemo(
@@ -62,52 +60,53 @@ export default function DirectPage() {
         </Button>
       </Card>
 
-      <Segmented
-        value={tab}
-        onChange={setTab}
-        className="w-full"
-        options={[
-          { value: "expenses", label: `Expenses (${directExpenses.length})` },
-          { value: "balances", label: "Balances" },
-        ]}
-      />
+      <Tabs defaultValue="expenses">
+        <TabsList aria-label="Direct splits view" className="w-full">
+          <TabsTrigger value="expenses">Expenses ({directExpenses.length})</TabsTrigger>
+          <TabsTrigger value="balances">Balances</TabsTrigger>
+        </TabsList>
 
-      {tab === "expenses" ? (
-        directExpenses.length > 0 ? (
-          <Card className="overflow-hidden">
-            <div className="divide-y divide-border">
-              {directExpenses.map((e) => (
-                <ExpenseRow key={e.id} expense={e} />
-              ))}
-            </div>
-          </Card>
-        ) : (
-          <Card>
-            <EmptyState
-              icon={Receipt}
-              title="No direct splits yet"
-              description="Add a one-off expense with a friend that isn't part of a group."
-              action={
-                <Button onClick={() => openAdd(null)}>
-                  <Plus className="h-4 w-4" /> Add expense
-                </Button>
-              }
-            />
-          </Card>
-        )
-      ) : myBalances.length > 0 ? (
-        <Card className="overflow-hidden">
-          <div className="divide-y divide-border">
-            {myBalances.map((b) => (
-              <PersonBalanceRow key={b.personId} personId={b.personId} amount={b.amount} groupId={null} />
-            ))}
-          </div>
-        </Card>
-      ) : (
-        <Card>
-          <EmptyState icon={ArrowLeftRight} title="All settled" description="No outstanding direct balances." />
-        </Card>
-      )}
+        <TabsContent value="expenses">
+          {directExpenses.length > 0 ? (
+            <Card className="overflow-hidden">
+              <div className="divide-y divide-border">
+                {directExpenses.map((e) => (
+                  <ExpenseRow key={e.id} expense={e} />
+                ))}
+              </div>
+            </Card>
+          ) : (
+            <Card>
+              <EmptyState
+                icon={Receipt}
+                title="No direct splits yet"
+                description="Add a one-off expense with a friend that isn't part of a group."
+                action={
+                  <Button onClick={() => openAdd(null)}>
+                    <Plus className="h-4 w-4" /> Add expense
+                  </Button>
+                }
+              />
+            </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="balances">
+          {myBalances.length > 0 ? (
+            <Card className="overflow-hidden">
+              <div className="divide-y divide-border">
+                {myBalances.map((b) => (
+                  <PersonBalanceRow key={b.personId} personId={b.personId} amount={b.amount} groupId={null} />
+                ))}
+              </div>
+            </Card>
+          ) : (
+            <Card>
+              <EmptyState icon={ArrowLeftRight} title="All settled" description="No outstanding direct balances." />
+            </Card>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
