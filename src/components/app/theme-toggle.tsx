@@ -3,20 +3,21 @@
 import { Moon, Sun } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "@/components/theme-provider";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-export function ThemeToggle({ className }: { className?: string }) {
+/** Flips between light and dark (an explicit choice, so it overrides the system setting). */
+export function ThemeToggle({ className }: Readonly<{ className?: string }>) {
   const { resolved, setChoice } = useTheme();
   const isDark = resolved === "dark";
 
   return (
-    <button
+    <Button
+      variant="ghost"
+      size="icon-sm"
       onClick={() => setChoice(isDark ? "light" : "dark")}
       aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
-      className={cn(
-        "relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-full text-text-2 transition-colors hover:bg-surface-inset hover:text-text",
-        className,
-      )}
+      className={cn("overflow-hidden rounded-full", className)}
     >
       <AnimatePresence mode="wait" initial={false}>
         <motion.span
@@ -25,10 +26,15 @@ export function ThemeToggle({ className }: { className?: string }) {
           animate={{ y: 0, opacity: 1, rotate: 0 }}
           exit={{ y: -12, opacity: 0, rotate: 30 }}
           transition={{ duration: 0.2 }}
+          className="flex"
         >
-          {isDark ? <Moon className="h-[18px] w-[18px]" /> : <Sun className="h-[18px] w-[18px]" />}
+          {isDark ? (
+            <Moon className="size-[18px]" strokeWidth={1.8} aria-hidden />
+          ) : (
+            <Sun className="size-[18px]" strokeWidth={1.8} aria-hidden />
+          )}
         </motion.span>
       </AnimatePresence>
-    </button>
+    </Button>
   );
 }
