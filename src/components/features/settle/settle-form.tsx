@@ -78,7 +78,7 @@ export function SettleForm({
     setFrozen(scopes);
     for (const entry of settlementEntries(active, myId, person.id)) settleUp(entry);
     toast({ message: settledMessage(summary, name) });
-    celebrate();
+    void celebrate();
     onDone();
   }
 

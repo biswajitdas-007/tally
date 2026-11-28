@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
  * shadcn Checkbox (base-nova, Base UI). Wrap it in a `<label>` with its text
  * so the whole row toggles it. Controlled with `checked` / `onCheckedChange`.
  */
-function Checkbox({ className, ...props }: CheckboxPrimitive.Root.Props) {
+function Checkbox({ className, ...props }: Readonly<CheckboxPrimitive.Root.Props>) {
   return (
     <CheckboxPrimitive.Root
       data-slot="checkbox"

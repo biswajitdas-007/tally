@@ -50,4 +50,20 @@ describe("celebrate", () => {
     expect(create).toHaveBeenCalledTimes(1);
     expect(create).toHaveBeenCalledWith(undefined, { resize: true, useWorker: false });
   });
+
+  it("skips quietly when the confetti code can't load, and retries next time", async () => {
+    vi.resetModules();
+    create.mockClear();
+    create.mockImplementationOnce(() => {
+      throw new Error("chunk failed to load");
+    });
+    const fresh = await import("./celebrate");
+    vi.stubGlobal("window", {});
+    await expect(fresh.celebrate()).resolves.toBeUndefined();
+    expect(fire).not.toHaveBeenCalled();
+
+    await fresh.celebrate();
+    expect(create).toHaveBeenCalledTimes(2);
+    expect(fire).toHaveBeenCalledTimes(1);
+  });
 });

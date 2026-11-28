@@ -19,7 +19,15 @@ function getCannon(): Promise<CreateTypes> {
 /** A tasteful brand-coloured confetti burst — used when a settle-up completes. */
 export async function celebrate() {
   if (typeof window === "undefined") return;
-  const confetti = await getCannon();
+  let confetti: CreateTypes;
+  try {
+    confetti = await getCannon();
+  } catch {
+    // Offline with the chunk not cached: skip the flourish (the settlement is
+    // already recorded) and let the next settle-up try loading it again.
+    cannon = undefined;
+    return;
+  }
   // The logo's tally strokes plus the magenta tick.
   const colors = ["#e3165b", "#5b3ff0", "#0b8fe0", "#12a16b", "#ffb020"];
   confetti({

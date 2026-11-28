@@ -89,7 +89,7 @@ function OwnUpiForm({ name }: Readonly<{ name: string }>) {
   const inputId = useId();
   const valid = isValidVpa(draft);
 
-  function save(e: React.FormEvent) {
+  function save(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!valid) return;
     updateProfile({ upiId: draft.trim() });
