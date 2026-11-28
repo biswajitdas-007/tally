@@ -1,12 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { ChevronLeft, Plus, UserPlus, MoreVertical, Trash2, ArrowLeftRight, Receipt, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Segmented } from "@/components/ui/segmented";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AvatarStack } from "@/components/ui/avatar";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ExpenseRow } from "@/components/features/expense-row";
@@ -35,8 +35,6 @@ export default function GroupDetailPage() {
   const openDeleteGroup = useUI((s) => s.openDeleteGroup);
   const openSettle = useUI((s) => s.openSettle);
   const myId = useMyId() ?? "";
-
-  const [tab, setTab] = useState<"expenses" | "balances">("expenses");
 
   const group = groups.find((g) => g.id === id);
 
@@ -138,107 +136,106 @@ export default function GroupDetailPage() {
         </div>
       </Card>
 
-      <Segmented
-        value={tab}
-        onChange={setTab}
-        className="w-full"
-        options={[
-          { value: "expenses", label: `Expenses (${groupExpenses.length})` },
-          { value: "balances", label: "Balances" },
-        ]}
-      />
+      <Tabs defaultValue="expenses">
+        <TabsList aria-label="Group view" className="w-full">
+          <TabsTrigger value="expenses">Expenses ({groupExpenses.length})</TabsTrigger>
+          <TabsTrigger value="balances">Balances</TabsTrigger>
+        </TabsList>
 
-      {tab === "expenses" ? (
-        groupExpenses.length > 0 ? (
-          <Card className="overflow-hidden">
-            <div className="divide-y divide-border">
-              {groupExpenses.map((e) => (
-                <ExpenseRow key={e.id} expense={e} />
-              ))}
-            </div>
-          </Card>
-        ) : (
-          <Card>
-            <EmptyState
-              icon={Receipt}
-              title="No expenses yet"
-              description="Add the first shared expense for this group."
-              action={
-                <Button onClick={() => openAdd(group.id)}>
-                  <Plus className="h-4 w-4" /> Add expense
-                </Button>
-              }
-            />
-          </Card>
-        )
-      ) : (
-        <div className="flex flex-col gap-4">
-          {myBalances.length > 0 && (
+        <TabsContent value="expenses">
+          {groupExpenses.length > 0 ? (
+            <Card className="overflow-hidden">
+              <div className="divide-y divide-border">
+                {groupExpenses.map((e) => (
+                  <ExpenseRow key={e.id} expense={e} />
+                ))}
+              </div>
+            </Card>
+          ) : (
+            <Card>
+              <EmptyState
+                icon={Receipt}
+                title="No expenses yet"
+                description="Add the first shared expense for this group."
+                action={
+                  <Button onClick={() => openAdd(group.id)}>
+                    <Plus className="h-4 w-4" /> Add expense
+                  </Button>
+                }
+              />
+            </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="balances">
+          <div className="flex flex-col gap-4">
+            {myBalances.length > 0 && (
+              <div>
+                <p className="mb-2 px-1 text-[0.7rem] font-semibold uppercase tracking-[0.08em] text-text-3">
+                  Your balances
+                </p>
+                <Card className="overflow-hidden">
+                  <div className="divide-y divide-border">
+                    {myBalances.map((b) => (
+                      <PersonBalanceRow key={b.personId} personId={b.personId} amount={b.amount} groupId={group.id} />
+                    ))}
+                  </div>
+                </Card>
+              </div>
+            )}
+
             <div>
               <p className="mb-2 px-1 text-[0.7rem] font-semibold uppercase tracking-[0.08em] text-text-3">
-                Your balances
+                Simplified settle-up
               </p>
-              <Card className="overflow-hidden">
-                <div className="divide-y divide-border">
-                  {myBalances.map((b) => (
-                    <PersonBalanceRow key={b.personId} personId={b.personId} amount={b.amount} groupId={group.id} />
-                  ))}
-                </div>
-              </Card>
-            </div>
-          )}
-
-          <div>
-            <p className="mb-2 px-1 text-[0.7rem] font-semibold uppercase tracking-[0.08em] text-text-3">
-              Simplified settle-up
-            </p>
-            {transfers.length > 0 ? (
-              <Card className="overflow-hidden">
-                <div className="divide-y divide-border">
-                  {transfers.map((t, i) => {
-                    const involvesMe = t.from === myId || t.to === myId;
-                    return (
-                      <div key={i} className="flex items-center gap-3 px-4 py-3">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-inset text-text-3">
-                          <ArrowLeftRight className="h-4 w-4" />
+              {transfers.length > 0 ? (
+                <Card className="overflow-hidden">
+                  <div className="divide-y divide-border">
+                    {transfers.map((t, i) => {
+                      const involvesMe = t.from === myId || t.to === myId;
+                      return (
+                        <div key={i} className="flex items-center gap-3 px-4 py-3">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-inset text-text-3">
+                            <ArrowLeftRight className="h-4 w-4" />
+                          </div>
+                          <p className="flex-1 text-[0.9rem] text-text">
+                            <span className="font-semibold">{nameOf(t.from)}</span> pays{" "}
+                            <span className="font-semibold">{nameOf(t.to)}</span>
+                          </p>
+                          <span className="tnum text-[0.9rem] font-semibold text-text">{formatINR(t.amount)}</span>
+                          {involvesMe && (
+                            <Button
+                              size="sm"
+                              variant={t.from === myId ? "primary" : "soft"}
+                              onClick={() =>
+                                openSettle({
+                                  personId: t.from === myId ? t.to : t.from,
+                                  amount: t.from === myId ? -t.amount : t.amount,
+                                  groupId: group.id,
+                                })
+                              }
+                            >
+                              {t.from === myId ? "Pay" : "Remind"}
+                            </Button>
+                          )}
                         </div>
-                        <p className="flex-1 text-[0.9rem] text-text">
-                          <span className="font-semibold">{nameOf(t.from)}</span> pays{" "}
-                          <span className="font-semibold">{nameOf(t.to)}</span>
-                        </p>
-                        <span className="tnum text-[0.9rem] font-semibold text-text">{formatINR(t.amount)}</span>
-                        {involvesMe && (
-                          <Button
-                            size="sm"
-                            variant={t.from === myId ? "primary" : "soft"}
-                            onClick={() =>
-                              openSettle({
-                                personId: t.from === myId ? t.to : t.from,
-                                amount: t.from === myId ? -t.amount : t.amount,
-                                groupId: group.id,
-                              })
-                            }
-                          >
-                            {t.from === myId ? "Pay" : "Remind"}
-                          </Button>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </Card>
-            ) : (
-              <Card>
-                <EmptyState
-                  icon={ArrowLeftRight}
-                  title="All settled up"
-                  description="No one owes anything in this group."
-                />
-              </Card>
-            )}
+                      );
+                    })}
+                  </div>
+                </Card>
+              ) : (
+                <Card>
+                  <EmptyState
+                    icon={ArrowLeftRight}
+                    title="All settled up"
+                    description="No one owes anything in this group."
+                  />
+                </Card>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        </TabsContent>
+      </Tabs>
     </main>
   );
 }
