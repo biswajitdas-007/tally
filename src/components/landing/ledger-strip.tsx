@@ -1,12 +1,17 @@
-import { LANDING } from "./palette";
+import { Coffee, Gift, House, MonitorPlay, TreePalm, UtensilsCrossed, type LucideIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-const LEDGERS = [
-  { name: "Goa trip", dot: LANDING.sky },
-  { name: "Flat rent", dot: LANDING.violet },
-  { name: "Friday dinners", dot: LANDING.sun },
-  { name: "Office chai fund", dot: LANDING.mint },
-  { name: "Wedding gift", dot: LANDING.magenta },
-  { name: "Netflix & Spotify", dot: LANDING.ink, invertInDark: true },
+/**
+ * Each tone is a soft fill with its darker "on-soft" ink: theme tokens that
+ * keep the icon well above 3:1 in both light and dark.
+ */
+const LEDGERS: { name: string; icon: LucideIcon; tone: string }[] = [
+  { name: "Goa trip", icon: TreePalm, tone: "bg-sky-soft text-sky-on-soft" },
+  { name: "Flat rent", icon: House, tone: "bg-violet-soft text-violet-on-soft" },
+  { name: "Friday dinners", icon: UtensilsCrossed, tone: "bg-sun-soft text-sun-on-soft" },
+  { name: "Office chai fund", icon: Coffee, tone: "bg-mint-soft text-mint-on-soft" },
+  { name: "Wedding gift", icon: Gift, tone: "bg-brand-soft text-brand-on-soft" },
+  { name: "Netflix & Spotify", icon: MonitorPlay, tone: "bg-[color-mix(in_srgb,var(--text)_10%,transparent)] text-text" },
 ];
 
 /** The kinds of shared tables people keep in Tally. */
@@ -14,17 +19,15 @@ export function LedgerStrip() {
   return (
     <section aria-label="Made for every shared table" className="px-5 py-12">
       <ul className="mx-auto flex max-w-5xl flex-wrap justify-center gap-3">
-        {LEDGERS.map((l) => (
+        {LEDGERS.map(({ name, icon: Icon, tone }) => (
           <li
-            key={l.name}
-            className="flex items-center gap-2.5 rounded-full border border-border bg-surface py-2 pl-2 pr-4 text-sm font-semibold text-text"
+            key={name}
+            className="flex items-center gap-2.5 rounded-full border border-border bg-surface py-1.5 pr-4 pl-1.5 text-sm font-semibold text-text"
           >
-            <span
-              aria-hidden
-              className={`size-7 rounded-full dark:ring-1 dark:ring-white/20 ${"invertInDark" in l ? "dark:!bg-text" : ""}`}
-              style={{ backgroundColor: l.dot }}
-            />
-            {l.name}
+            <span aria-hidden className={cn("flex size-8 items-center justify-center rounded-full", tone)}>
+              <Icon className="size-4" strokeWidth={1.8} />
+            </span>
+            {name}
           </li>
         ))}
       </ul>
