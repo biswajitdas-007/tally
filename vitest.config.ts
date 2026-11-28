@@ -13,7 +13,7 @@ export default defineConfig({
       // have set up, so measuring them here would report a number that means
       // nothing rather than a gap anyone can close.
       // Plus the request proxy, which is plain logic with its own tests.
-      include: ["src/lib/**/*.ts", "src/proxy.ts"],
+      include: ["src/lib/**/*.ts", "src/proxy.ts", "src/components/landing/palette.ts"],
       exclude: ["src/lib/**/*.test.ts", "src/lib/types.ts"],
     },
   },
