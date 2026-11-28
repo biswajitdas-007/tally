@@ -15,6 +15,8 @@ interface UIState {
   addOpen: boolean;
   addGroupId: ID | null;
   addEditId: ID | null;
+  /** Bumped on every open, so the form starts fresh each time (it's keyed by it). */
+  addSession: number;
   openAdd: (groupId?: ID | null) => void;
   openEdit: (expenseId: ID) => void;
   closeAdd: () => void;
@@ -62,8 +64,11 @@ export const useUI = create<UIState>((set) => ({
   addOpen: false,
   addGroupId: null,
   addEditId: null,
-  openAdd: (groupId = null) => set({ addOpen: true, addGroupId: groupId, addEditId: null }),
-  openEdit: (expenseId) => set({ addOpen: true, addEditId: expenseId, addGroupId: null }),
+  addSession: 0,
+  openAdd: (groupId = null) =>
+    set((s) => ({ addOpen: true, addGroupId: groupId, addEditId: null, addSession: s.addSession + 1 })),
+  openEdit: (expenseId) =>
+    set((s) => ({ addOpen: true, addEditId: expenseId, addGroupId: null, addSession: s.addSession + 1 })),
   closeAdd: () => set({ addOpen: false, addEditId: null }),
 
   settle: null,
