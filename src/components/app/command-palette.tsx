@@ -8,8 +8,7 @@ import {
   Search, Plus, Users, UserPlus, Home, PieChart, Activity, User, CornerDownLeft, type LucideIcon,
 } from "lucide-react";
 import { useUI } from "@/store/useUI";
-import { useScrollLock } from "@/hooks/use-scroll-lock";
-import { usePresence } from "@/hooks/use-presence";
+import { ScrollLock } from "@/components/ui/scroll-lock";
 import { useMounted } from "@/hooks/use-mounted";
 import { cn } from "@/lib/utils";
 
@@ -70,9 +69,6 @@ export function CommandPalette() {
   const { q, search, results, active, setActive } = useCommandSearch(commands);
   const listRef = useRef<HTMLDivElement>(null);
 
-  const [present, onExitComplete] = usePresence(open);
-  useScrollLock(present);
-
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
@@ -113,9 +109,10 @@ export function CommandPalette() {
   }
 
   return createPortal(
-    <AnimatePresence onExitComplete={onExitComplete}>
+    <AnimatePresence>
       {open && (
         <div className="fixed inset-0 z-[60] flex justify-center px-4 pt-[max(12vh,calc(var(--overlay-top)+8px))]" role="dialog" aria-modal="true" aria-label="Commands">
+          <ScrollLock />
           <motion.div
             className="absolute inset-0"
             style={{ background: "var(--scrim)" }}

@@ -7,9 +7,8 @@ import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useIsDesktop } from "@/hooks/use-media-query";
-import { useScrollLock } from "@/hooks/use-scroll-lock";
+import { ScrollLock } from "@/components/ui/scroll-lock";
 import { useVisualViewport } from "@/hooks/use-visual-viewport";
-import { usePresence } from "@/hooks/use-presence";
 
 const EASE_IN: [number, number, number, number] = [0.32, 0, 0.67, 0];
 
@@ -37,9 +36,9 @@ function panelMotion(isDesktop: boolean) {
  * - the iOS keyboard fit: the viewport follows the *visual* viewport, so the
  *   sheet stays above the keys and below the notch;
  * - drag-to-dismiss on phones;
- * - the iOS-safe scroll lock (pins the body so autofocus can't scroll the page),
- *   held until the exit animation has finished. Base UI's own modal lock sees
- *   the page is already locked and stands aside.
+ * - the iOS-safe <ScrollLock>, inside the AnimatePresence subtree so it holds
+ *   until the exit animation has finished. Base UI's own modal lock sees the
+ *   page is already pinned and stands aside.
  */
 export function Sheet({
   open,
@@ -61,11 +60,7 @@ export function Sheet({
   const isDesktop = useIsDesktop();
   const vp = useVisualViewport(open && !isDesktop);
   const keyboard = vp.keyboard;
-  // Hold the page still until the sheet has finished sliding away.
-  const [present, onExitComplete] = usePresence(open);
   const popupRef = useRef<HTMLDivElement>(null);
-
-  useScrollLock(present);
 
   return (
     <Dialog.Root
@@ -76,9 +71,11 @@ export function Sheet({
         if (!next && dismissable) onClose();
       }}
     >
-      <AnimatePresence onExitComplete={onExitComplete}>
+      <AnimatePresence>
         {open && (
           <Dialog.Portal keepMounted>
+            {/* Holds the page still until the sheet has finished sliding away. */}
+            <ScrollLock />
             {/* AnimatePresence owns unmounting. Base UI would otherwise hide each
                 part as soon as it stops seeing CSS/WAAPI animations — and motion's
                 JS-driven slide is invisible to it, so the sheet would just vanish. */}

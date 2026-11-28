@@ -2,8 +2,7 @@
 
 import { useEffect } from "react";
 import { useMounted } from "@/hooks/use-mounted";
-import { useScrollLock } from "@/hooks/use-scroll-lock";
-import { usePresence } from "@/hooks/use-presence";
+import { ScrollLock } from "@/components/ui/scroll-lock";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
@@ -46,9 +45,6 @@ export function MenuDrawer() {
 
   const mounted = useMounted();
 
-  const [present, onExitComplete] = usePresence(open);
-  useScrollLock(present);
-
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && close();
@@ -59,9 +55,10 @@ export function MenuDrawer() {
   if (!mounted) return null;
 
   return createPortal(
-    <AnimatePresence onExitComplete={onExitComplete}>
+    <AnimatePresence>
       {open && (
         <div className="fixed inset-0 z-50 md:hidden" role="dialog" aria-modal="true" aria-label="Menu">
+          <ScrollLock />
           <motion.div
             className="absolute inset-0"
             style={{ background: "var(--scrim)" }}
