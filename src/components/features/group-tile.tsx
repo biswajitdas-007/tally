@@ -4,7 +4,8 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import { useGroupSummary } from "@/hooks/use-group-summary";
 import { Button } from "@/components/ui/button";
-import { formatINR, cn } from "@/lib/utils";
+import { SignedAmount } from "@/components/ui/signed-amount";
+import { cn } from "@/lib/utils";
 import { groupFill } from "@/lib/group-colour";
 import type { Group } from "@/lib/types";
 
@@ -13,10 +14,6 @@ const TILE = "flex h-[168px] w-[150px] shrink-0 snap-start flex-col rounded-[24p
 function balanceTone(settled: boolean, net: number): string {
   if (settled) return "text-text-2";
   return net > 0 ? "text-positive" : "text-negative";
-}
-
-function balanceLabel(net: number): string {
-  return net > 0 ? "You're owed" : "You owe";
 }
 
 /**
@@ -51,10 +48,7 @@ export function GroupTile({ group }: Readonly<{ group: Group }>) {
         {settled ? (
           "all settled"
         ) : (
-          <>
-            <span className="sr-only">{balanceLabel(net)}: </span>
-            {formatINR(net, { decimals: false, signed: true })}
-          </>
+          <SignedAmount net={net} />
         )}
       </span>
     </Link>

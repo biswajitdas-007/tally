@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { User, Users, type LucideIcon } from "lucide-react";
-import { formatINR, cn } from "@/lib/utils";
+import { SignedAmount } from "@/components/ui/signed-amount";
+import { cn } from "@/lib/utils";
 import type { SplitSide } from "@/lib/balances";
 
 function plural(n: number, one: string, many: string): string {
@@ -36,8 +37,7 @@ function Side({
         <span className="block truncate text-[0.8125rem] text-text-2">{sub}</span>
       </span>
       <span className={cn("shrink-0 text-[0.9375rem] font-semibold tnum", amountTone(square, side.net))}>
-        {square ? "Settled" : formatINR(side.net, { decimals: false, signed: true })}
-        {!square && <span className="sr-only">{side.net > 0 ? " owed to you" : " you owe"}</span>}
+        {square ? "Settled" : <SignedAmount net={side.net} />}
       </span>
     </Link>
   );
