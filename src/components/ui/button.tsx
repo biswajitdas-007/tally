@@ -5,8 +5,8 @@ import { cn } from "@/lib/utils";
 
 /**
  * shadcn Button (base-nova, Base UI primitive) with Tally's variants and sizes.
- * Pass `render={<Link href="…" />}` (with `nativeButton={false}`) to style a
- * link as a button.
+ * To make a link look like a button, style the link itself with
+ * `buttonVariants()` so it keeps link semantics for screen readers.
  */
 export const buttonVariants = cva(
   "relative inline-flex cursor-pointer select-none items-center justify-center font-semibold tracking-[-0.01em] whitespace-nowrap transition-all active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 data-disabled:pointer-events-none data-disabled:opacity-50 focus-visible:ring-4 focus-visible:ring-[color-mix(in_srgb,var(--brand)_28%,transparent)] [&_svg]:pointer-events-none [&_svg]:shrink-0",
