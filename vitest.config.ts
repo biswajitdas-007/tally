@@ -12,7 +12,8 @@ export default defineConfig({
       // Only the logic layer. Components need a DOM and a renderer we don't
       // have set up, so measuring them here would report a number that means
       // nothing rather than a gap anyone can close.
-      include: ["src/lib/**/*.ts"],
+      // Plus the request proxy, which is plain logic with its own tests.
+      include: ["src/lib/**/*.ts", "src/proxy.ts"],
       exclude: ["src/lib/**/*.test.ts", "src/lib/types.ts"],
     },
   },

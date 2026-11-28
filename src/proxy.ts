@@ -1,8 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { rateLimit } from "@/lib/rate-limit";
 
-// Only guard the API — pages and static assets are untouched.
-export const config = { matcher: "/api/:path*" };
+// Rate-limit the API and hide dev tools in production; other pages and static
+// assets never reach the proxy.
+export const config = { matcher: ["/api/:path*", "/dev/:path*"] };
 
 const WRITE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
@@ -19,6 +20,12 @@ function clientIp(req: NextRequest): string {
 }
 
 export function proxy(req: NextRequest) {
+  // Dev-only tools (e.g. the sample-data preview at /dev/preview) don't exist in production.
+  const path = req.nextUrl.pathname;
+  if (path === "/dev" || path.startsWith("/dev/")) {
+    return process.env.NODE_ENV === "production" ? new NextResponse(null, { status: 404 }) : NextResponse.next();
+  }
+
   const isWrite = WRITE_METHODS.has(req.method.toUpperCase());
   const limit = isWrite ? WRITE_LIMIT : READ_LIMIT;
   const r = rateLimit(`${isWrite ? "w" : "r"}:${clientIp(req)}`, limit, WINDOW_SEC);
