@@ -130,8 +130,7 @@ export default function AccountPage() {
       <section>
         <p className="mb-2 px-1 text-[0.7rem] font-semibold uppercase tracking-[0.08em] text-text-3">Appearance</p>
         <Card className="p-4">
-          <Segmented<ThemeChoice>
-            aria-label="Theme"
+          <Segmented<ThemeChoice> aria-label="Theme"
             value={choice}
             onChange={setChoice}
             className="w-full"

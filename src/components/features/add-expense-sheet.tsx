@@ -308,8 +308,7 @@ export function AddExpenseSheet() {
         <div>
           <div className="mb-2 flex items-center justify-between px-0.5">
             <p className="text-[0.8rem] font-semibold text-text-2">Split between</p>
-            <Segmented
-              aria-label="Split method"
+            <Segmented aria-label="Split method"
               value={splitMode}
               onChange={(v) => setSplitMode(v)}
               options={[
