@@ -47,9 +47,8 @@ function isUngated(pathname: string | null): boolean {
   if (!pathname) return false;
   // The join flow renders its own sign-in UI.
   if (pathname.startsWith("/join")) return true;
-  // Dev tools (the preview switch). `page.dev.tsx` routes don't exist in
-  // production builds at all (see next.config.ts).
-  return process.env.NODE_ENV !== "production" && pathname.startsWith("/dev");
+  // Dev tools (the preview switch); the proxy 404s /dev/* in production.
+  return process.env.NODE_ENV !== "production" && (pathname === "/dev" || pathname.startsWith("/dev/"));
 }
 
 type Gate = "splash" | "login" | "error" | "ready";

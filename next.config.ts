@@ -38,9 +38,6 @@ const MOVED_TO_MONEY_LEDGER = ["/money", "/wealth", "/debt", "/report"];
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
-  // `page.dev.tsx` routes (dev tools such as /dev/preview) only exist under
-  // `next dev`; a production build doesn't see them as routes at all.
-  pageExtensions: isDev ? ["dev.tsx", "tsx", "ts"] : ["tsx", "ts"],
   async redirects() {
     if (!MONEY_LEDGER_URL) return [];
     // Temporary while people update bookmarks and installed shortcuts; made
